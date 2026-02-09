@@ -22,10 +22,15 @@ const bigNumOne: BigNum = { mantissa: 1, exponent: 0 };
 // --- Constructor ---
 
 export const bigNum = (value: number): BigNum => {
-	if (value === 0) return bigNumZero;
-	if (value < 0) throw new Error("BigNum does not support negative numbers");
-	if (!Number.isFinite(value))
+	if (value === 0) {
+		return bigNumZero;
+	}
+	if (value < 0) {
+		throw new Error("BigNum does not support negative numbers");
+	}
+	if (!Number.isFinite(value)) {
 		throw new Error("BigNum does not support Infinity or NaN");
+	}
 
 	const exponent = Math.floor(Math.log10(value));
 	const mantissa = value / 10 ** exponent;
@@ -36,7 +41,9 @@ export const bigNum = (value: number): BigNum => {
 // --- Normalization ---
 
 const normalize = (bn: BigNum): BigNum => {
-	if (bn.mantissa === 0) return bigNumZero;
+	if (bn.mantissa === 0) {
+		return bigNumZero;
+	}
 
 	let { mantissa, exponent } = bn;
 
@@ -56,14 +63,22 @@ const normalize = (bn: BigNum): BigNum => {
 // --- Arithmetic ---
 
 export const bnAdd = (a: BigNum, b: BigNum): BigNum => {
-	if (a.mantissa === 0) return b;
-	if (b.mantissa === 0) return a;
+	if (a.mantissa === 0) {
+		return b;
+	}
+	if (b.mantissa === 0) {
+		return a;
+	}
 
 	const expDiff = a.exponent - b.exponent;
 
 	// If difference is too large, the smaller number is negligible
-	if (expDiff > 15) return a;
-	if (expDiff < -15) return b;
+	if (expDiff > 15) {
+		return a;
+	}
+	if (expDiff < -15) {
+		return b;
+	}
 
 	// Align to the larger exponent
 	if (a.exponent >= b.exponent) {
@@ -76,32 +91,46 @@ export const bnAdd = (a: BigNum, b: BigNum): BigNum => {
 };
 
 export const bnSub = (a: BigNum, b: BigNum): BigNum => {
-	if (b.mantissa === 0) return a;
-	if (a.mantissa === 0) return bigNumZero; // No negatives in this game
+	if (b.mantissa === 0) {
+		return a;
+	}
+	if (a.mantissa === 0) {
+		return bigNumZero; // No negatives in this game
+	}
 
 	const expDiff = a.exponent - b.exponent;
 
 	// If a is much larger, b is negligible
-	if (expDiff > 15) return a;
+	if (expDiff > 15) {
+		return a;
+	}
 	// If b is much larger, result would be negative — clamp to zero
-	if (expDiff < -15) return bigNumZero;
+	if (expDiff < -15) {
+		return bigNumZero;
+	}
 
 	let result: number;
 	if (a.exponent >= b.exponent) {
 		const alignedB = b.mantissa * 10 ** (b.exponent - a.exponent);
 		result = a.mantissa - alignedB;
-		if (result <= 0) return bigNumZero;
+		if (result <= 0) {
+			return bigNumZero;
+		}
 		return normalize({ mantissa: result, exponent: a.exponent });
 	}
 
 	const alignedA = a.mantissa * 10 ** (a.exponent - b.exponent);
 	result = alignedA - b.mantissa;
-	if (result <= 0) return bigNumZero;
+	if (result <= 0) {
+		return bigNumZero;
+	}
 	return normalize({ mantissa: result, exponent: b.exponent });
 };
 
 export const bnMul = (a: BigNum, b: BigNum): BigNum => {
-	if (a.mantissa === 0 || b.mantissa === 0) return bigNumZero;
+	if (a.mantissa === 0 || b.mantissa === 0) {
+		return bigNumZero;
+	}
 
 	return normalize({
 		mantissa: a.mantissa * b.mantissa,
@@ -110,8 +139,12 @@ export const bnMul = (a: BigNum, b: BigNum): BigNum => {
 };
 
 export const bnPow = (base: BigNum, exp: number): BigNum => {
-	if (exp === 0) return bigNumOne;
-	if (base.mantissa === 0) return bigNumZero;
+	if (exp === 0) {
+		return bigNumOne;
+	}
+	if (base.mantissa === 0) {
+		return bigNumZero;
+	}
 
 	// Use logarithmic approach for efficiency
 	// log10(base^exp) = exp * log10(base) = exp * (log10(mantissa) + exponent)
@@ -125,10 +158,18 @@ export const bnPow = (base: BigNum, exp: number): BigNum => {
 // --- Comparisons ---
 
 const bnGt = (a: BigNum, b: BigNum): boolean => {
-	if (a.mantissa === 0 && b.mantissa === 0) return false;
-	if (a.mantissa === 0) return false;
-	if (b.mantissa === 0) return true;
-	if (a.exponent !== b.exponent) return a.exponent > b.exponent;
+	if (a.mantissa === 0 && b.mantissa === 0) {
+		return false;
+	}
+	if (a.mantissa === 0) {
+		return false;
+	}
+	if (b.mantissa === 0) {
+		return true;
+	}
+	if (a.exponent !== b.exponent) {
+		return a.exponent > b.exponent;
+	}
 	return a.mantissa > b.mantissa;
 };
 
@@ -139,8 +180,12 @@ export const bnGte = (a: BigNum, b: BigNum): boolean => !bnLt(a, b);
 export const bnIsZero = (bn: BigNum): boolean => bn.mantissa === 0;
 
 export const bnFloor = (bn: BigNum): BigNum => {
-	if (bn.mantissa === 0) return bigNumZero;
-	if (bn.exponent >= 15) return bn;
+	if (bn.mantissa === 0) {
+		return bigNumZero;
+	}
+	if (bn.exponent >= 15) {
+		return bn;
+	}
 	const value = bn.mantissa * 10 ** bn.exponent;
 	return bigNum(Math.floor(value));
 };
@@ -148,7 +193,9 @@ export const bnFloor = (bn: BigNum): BigNum => {
 // --- Conversion ---
 
 const bnToNumber = (bn: BigNum): number => {
-	if (bn.mantissa === 0) return 0;
+	if (bn.mantissa === 0) {
+		return 0;
+	}
 	return bn.mantissa * 10 ** bn.exponent;
 };
 
@@ -172,7 +219,9 @@ const getLetterSuffix = (index: number): string => {
 };
 
 export const bnFormat = (bn: BigNum): string => {
-	if (bn.mantissa === 0) return "0";
+	if (bn.mantissa === 0) {
+		return "0";
+	}
 
 	const value = bnToNumber(bn);
 
@@ -189,7 +238,9 @@ export const bnFormat = (bn: BigNum): string => {
 	// Standard names up to quintillion (10^18)
 	if (group < STANDARD_NAMES.length) {
 		const name = STANDARD_NAMES[group];
-		if (name === "") return Math.floor(value).toLocaleString("en-US");
+		if (name === "") {
+			return Math.floor(value).toLocaleString("en-US");
+		}
 		return `${displayValue.toFixed(2)} ${name}`;
 	}
 

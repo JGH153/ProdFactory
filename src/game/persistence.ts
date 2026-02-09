@@ -80,9 +80,13 @@ export const saveGame = (state: GameState): void => {
 export const loadGame = (): GameState => {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) return createInitialGameState();
+		if (!raw) {
+			return createInitialGameState();
+		}
 		const parsed = JSON.parse(raw) as SerializedGameState;
-		if (parsed.version !== SAVE_VERSION) return createInitialGameState();
+		if (parsed.version !== SAVE_VERSION) {
+			return createInitialGameState();
+		}
 		return deserializeGameState(parsed);
 	} catch {
 		return createInitialGameState();

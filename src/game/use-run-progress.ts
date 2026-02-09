@@ -17,7 +17,9 @@ export const useRunProgress = (resource: ResourceState): number => {
 	const runTimeMs = config.baseRunTime * 1000;
 
 	const tick = useCallback(() => {
-		if (runStartedAt === null) return;
+		if (runStartedAt === null) {
+			return;
+		}
 
 		const elapsed = Date.now() - runStartedAt;
 		const newProgress = Math.min(1, Math.max(0, elapsed / runTimeMs));

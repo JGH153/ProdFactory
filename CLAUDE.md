@@ -117,7 +117,9 @@ export const GameStateProvider: React.FC<PropsWithChildren> = ({ children }) => 
 
 export const useGameState = (): GameState => {
   const context = use(GameStateContext);
-  if (!context) throw new Error("useGameState must be used within GameStateProvider");
+  if (!context) {
+    throw new Error("useGameState must be used within GameStateProvider");
+  }
   return context;
 };
 ```
@@ -127,6 +129,7 @@ export const useGameState = (): GameState => {
 - **Functional programming** over object-oriented — prefer pure functions, immutable data, and composition.
 - **Readability first** — prioritize clear, readable code over clever or terse solutions.
 - **Avoid `useEffect`** — only use `useEffect` when no other React pattern can achieve the goal. Prefer derived state, event handlers, and `useSyncExternalStore` where applicable.
+- **Always use braces** — never write single-line `if` statements. Every `if` body must be wrapped in curly braces, even for single-statement returns or throws.
 - **No lodash** — write utilities from scratch. Minimize external npm packages; only add a dependency when it provides substantial value.
 - **No outdated dependencies** — always use current, maintained versions of all packages.
 

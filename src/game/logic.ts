@@ -29,7 +29,9 @@ export const canBuyProducer = (
 	resourceId: ResourceId,
 ): boolean => {
 	const resource = state.resources[resourceId];
-	if (!resource.isUnlocked) return false;
+	if (!resource.isUnlocked) {
+		return false;
+	}
 	const cost = getProducerCost(resourceId, resource.producers);
 	return bnGte(resource.amount, cost);
 };
@@ -39,7 +41,9 @@ export const buyProducer = (
 	state: GameState,
 	resourceId: ResourceId,
 ): GameState => {
-	if (!canBuyProducer(state, resourceId)) return state;
+	if (!canBuyProducer(state, resourceId)) {
+		return state;
+	}
 
 	const resource = state.resources[resourceId];
 	const cost = getProducerCost(resourceId, resource.producers);
@@ -65,9 +69,12 @@ export const canUnlock = (
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
-	if (resource.isUnlocked) return false;
-	if (config.unlockCost === null || config.unlockCostResourceId === null)
+	if (resource.isUnlocked) {
 		return false;
+	}
+	if (config.unlockCost === null || config.unlockCostResourceId === null) {
+		return false;
+	}
 
 	const payingResource = state.resources[config.unlockCostResourceId];
 	return bnGte(payingResource.amount, config.unlockCost);
@@ -78,14 +85,17 @@ export const unlockResource = (
 	state: GameState,
 	resourceId: ResourceId,
 ): GameState => {
-	if (!canUnlock(state, resourceId)) return state;
+	if (!canUnlock(state, resourceId)) {
+		return state;
+	}
 
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
 	// Guaranteed non-null by canUnlock check above
-	if (config.unlockCost === null || config.unlockCostResourceId === null)
+	if (config.unlockCost === null || config.unlockCostResourceId === null) {
 		return state;
+	}
 
 	const unlockCost = config.unlockCost;
 	const payingResourceId = config.unlockCostResourceId;
@@ -116,8 +126,12 @@ export const canStartRun = (
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
-	if (!resource.isUnlocked) return false;
-	if (resource.runStartedAt !== null) return false;
+	if (!resource.isUnlocked) {
+		return false;
+	}
+	if (resource.runStartedAt !== null) {
+		return false;
+	}
 
 	// Check if we have enough input resources
 	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
@@ -126,7 +140,9 @@ export const canStartRun = (
 			config.inputCostPerRun,
 			bigNum(resource.producers),
 		);
-		if (!bnGte(inputResource.amount, totalInputCost)) return false;
+		if (!bnGte(inputResource.amount, totalInputCost)) {
+			return false;
+		}
 	}
 
 	return true;
@@ -137,7 +153,9 @@ export const startRun = (
 	state: GameState,
 	resourceId: ResourceId,
 ): GameState => {
-	if (!canStartRun(state, resourceId)) return state;
+	if (!canStartRun(state, resourceId)) {
+		return state;
+	}
 
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
@@ -175,7 +193,9 @@ export const isRunComplete = (
 	resource: ResourceState,
 	runTime: number,
 ): boolean => {
-	if (resource.runStartedAt === null) return false;
+	if (resource.runStartedAt === null) {
+		return false;
+	}
 	return Date.now() - resource.runStartedAt >= runTime * 1000;
 };
 
@@ -185,7 +205,9 @@ export const completeRun = (
 	resourceId: ResourceId,
 ): GameState => {
 	const resource = state.resources[resourceId];
-	if (resource.runStartedAt === null) return state;
+	if (resource.runStartedAt === null) {
+		return state;
+	}
 
 	const produced = bigNum(resource.producers);
 
@@ -210,8 +232,12 @@ export const canBuyAutomation = (
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
-	if (!resource.isUnlocked) return false;
-	if (resource.isAutomated) return false;
+	if (!resource.isUnlocked) {
+		return false;
+	}
+	if (resource.isAutomated) {
+		return false;
+	}
 
 	return bnGte(resource.amount, config.automationCost);
 };
@@ -221,7 +247,9 @@ export const buyAutomation = (
 	state: GameState,
 	resourceId: ResourceId,
 ): GameState => {
-	if (!canBuyAutomation(state, resourceId)) return state;
+	if (!canBuyAutomation(state, resourceId)) {
+		return state;
+	}
 
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
@@ -245,7 +273,11 @@ export const getRunInputCost = (
 	producers: number,
 ): BigNum | null => {
 	const config = RESOURCE_CONFIGS[resourceId];
-	if (config.inputCostPerRun === null) return null;
-	if (bnIsZero(config.inputCostPerRun)) return null;
+	if (config.inputCostPerRun === null) {
+		return null;
+	}
+	if (bnIsZero(config.inputCostPerRun)) {
+		return null;
+	}
 	return bnMul(config.inputCostPerRun, bigNum(producers));
 };
