@@ -1,0 +1,251 @@
+import {
+	type BigNum,
+	bigNum,
+	bnAdd,
+	bnFloor,
+	bnGte,
+	bnIsZero,
+	bnMul,
+	bnPow,
+	bnSub,
+} from "@/lib/big-number";
+import { RESOURCE_CONFIGS } from "./config";
+import type { GameState, ResourceId, ResourceState } from "./types";
+
+/** Calculate cost to buy the next producer */
+export const getProducerCost = (
+	resourceId: ResourceId,
+	owned: number,
+): BigNum => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	return bnFloor(
+		bnMul(config.baseCost, bnPow(bigNum(config.costScaling), owned)),
+	);
+};
+
+/** Check if player can afford to buy a producer */
+export const canBuyProducer = (
+	state: GameState,
+	resourceId: ResourceId,
+): boolean => {
+	const resource = state.resources[resourceId];
+	if (!resource.isUnlocked) return false;
+	const cost = getProducerCost(resourceId, resource.producers);
+	return bnGte(resource.amount, cost);
+};
+
+/** Buy a producer, returning new state */
+export const buyProducer = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	if (!canBuyProducer(state, resourceId)) return state;
+
+	const resource = state.resources[resourceId];
+	const cost = getProducerCost(resourceId, resource.producers);
+
+	return {
+		...state,
+		resources: {
+			...state.resources,
+			[resourceId]: {
+				...resource,
+				amount: bnSub(resource.amount, cost),
+				producers: resource.producers + 1,
+			},
+		},
+	};
+};
+
+/** Check if player can afford to unlock a resource */
+export const canUnlock = (
+	state: GameState,
+	resourceId: ResourceId,
+): boolean => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	const resource = state.resources[resourceId];
+
+	if (resource.isUnlocked) return false;
+	if (config.unlockCost === null || config.unlockCostResourceId === null)
+		return false;
+
+	const payingResource = state.resources[config.unlockCostResourceId];
+	return bnGte(payingResource.amount, config.unlockCost);
+};
+
+/** Unlock a resource, returning new state. Gives 1 free producer. */
+export const unlockResource = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	if (!canUnlock(state, resourceId)) return state;
+
+	const config = RESOURCE_CONFIGS[resourceId];
+	const resource = state.resources[resourceId];
+
+	// Guaranteed non-null by canUnlock check above
+	if (config.unlockCost === null || config.unlockCostResourceId === null)
+		return state;
+
+	const unlockCost = config.unlockCost;
+	const payingResourceId = config.unlockCostResourceId;
+	const payingResource = state.resources[payingResourceId];
+
+	return {
+		...state,
+		resources: {
+			...state.resources,
+			[payingResourceId]: {
+				...payingResource,
+				amount: bnSub(payingResource.amount, unlockCost),
+			},
+			[resourceId]: {
+				...resource,
+				isUnlocked: true,
+				producers: 1,
+			},
+		},
+	};
+};
+
+/** Check if a run can be started */
+export const canStartRun = (
+	state: GameState,
+	resourceId: ResourceId,
+): boolean => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	const resource = state.resources[resourceId];
+
+	if (!resource.isUnlocked) return false;
+	if (resource.runStartedAt !== null) return false;
+
+	// Check if we have enough input resources
+	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
+		const inputResource = state.resources[config.inputResourceId];
+		const totalInputCost = bnMul(
+			config.inputCostPerRun,
+			bigNum(resource.producers),
+		);
+		if (!bnGte(inputResource.amount, totalInputCost)) return false;
+	}
+
+	return true;
+};
+
+/** Start a run for a resource. Deducts input cost immediately. */
+export const startRun = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	if (!canStartRun(state, resourceId)) return state;
+
+	const config = RESOURCE_CONFIGS[resourceId];
+	const resource = state.resources[resourceId];
+	let newResources = { ...state.resources };
+
+	// Deduct input cost at run start
+	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
+		const inputResource = state.resources[config.inputResourceId];
+		const totalInputCost = bnMul(
+			config.inputCostPerRun,
+			bigNum(resource.producers),
+		);
+		newResources = {
+			...newResources,
+			[config.inputResourceId]: {
+				...inputResource,
+				amount: bnSub(inputResource.amount, totalInputCost),
+			},
+		};
+	}
+
+	newResources = {
+		...newResources,
+		[resourceId]: {
+			...resource,
+			runStartedAt: Date.now(),
+		},
+	};
+
+	return { ...state, resources: newResources };
+};
+
+/** Check if a run has completed */
+export const isRunComplete = (
+	resource: ResourceState,
+	runTime: number,
+): boolean => {
+	if (resource.runStartedAt === null) return false;
+	return Date.now() - resource.runStartedAt >= runTime * 1000;
+};
+
+/** Complete a run: award resources and reset timer */
+export const completeRun = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	const resource = state.resources[resourceId];
+	if (resource.runStartedAt === null) return state;
+
+	const produced = bigNum(resource.producers);
+
+	return {
+		...state,
+		resources: {
+			...state.resources,
+			[resourceId]: {
+				...resource,
+				amount: bnAdd(resource.amount, produced),
+				runStartedAt: null,
+			},
+		},
+	};
+};
+
+/** Check if player can afford to buy automation */
+export const canBuyAutomation = (
+	state: GameState,
+	resourceId: ResourceId,
+): boolean => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	const resource = state.resources[resourceId];
+
+	if (!resource.isUnlocked) return false;
+	if (resource.isAutomated) return false;
+
+	return bnGte(resource.amount, config.automationCost);
+};
+
+/** Buy automation for a resource */
+export const buyAutomation = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	if (!canBuyAutomation(state, resourceId)) return state;
+
+	const config = RESOURCE_CONFIGS[resourceId];
+	const resource = state.resources[resourceId];
+
+	return {
+		...state,
+		resources: {
+			...state.resources,
+			[resourceId]: {
+				...resource,
+				amount: bnSub(resource.amount, config.automationCost),
+				isAutomated: true,
+			},
+		},
+	};
+};
+
+/** Get total input cost for a run (scales with producers) */
+export const getRunInputCost = (
+	resourceId: ResourceId,
+	producers: number,
+): BigNum | null => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	if (config.inputCostPerRun === null) return null;
+	if (bnIsZero(config.inputCostPerRun)) return null;
+	return bnMul(config.inputCostPerRun, bigNum(producers));
+};
