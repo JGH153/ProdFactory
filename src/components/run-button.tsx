@@ -31,7 +31,7 @@ export const RunButton = ({ resource }: RunButtonProps) => {
 			onClick={handleClick}
 			disabled={!canRun || isRunning}
 			className="flex flex-col items-center gap-1 w-20 shrink-0 cursor-pointer
-				disabled:cursor-not-allowed disabled:opacity-60 select-none"
+				disabled:cursor-not-allowed select-none"
 		>
 			<motion.div
 				animate={isRunning ? { rotate: [0, 5, -5, 0] } : undefined}
