@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
 import { canStartRun } from "@/game/logic";
+import { useSfx } from "@/game/sfx-context";
 import type { ResourceState } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 import { ResourceIcon } from "./resource-icon";
@@ -14,12 +15,14 @@ type RunButtonProps = {
 
 export const RunButton = ({ resource }: RunButtonProps) => {
 	const { state, startResourceRun } = useGameState();
+	const { playClickSfx } = useSfx();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isRunning = resource.runStartedAt !== null;
 	const canRun = canStartRun(state, resource.id);
 
 	const handleClick = () => {
 		if (canRun && !isRunning) {
+			playClickSfx();
 			startResourceRun(resource.id);
 		}
 	};
