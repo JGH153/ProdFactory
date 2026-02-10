@@ -14,7 +14,9 @@ import {
 
 const INTRO_SEEN_KEY = "prodfactory-intro-seen";
 
-const hasSeenIntro = (): boolean => {
+export const INTRO_CLOSED_EVENT = "prodfactory-intro-closed";
+
+export const hasSeenIntro = (): boolean => {
 	try {
 		return localStorage.getItem(INTRO_SEEN_KEY) === "true";
 	} catch {
@@ -47,6 +49,7 @@ export const IntroVideoDialog = () => {
 			if (videoRef.current) {
 				videoRef.current.pause();
 			}
+			document.dispatchEvent(new CustomEvent(INTRO_CLOSED_EVENT));
 		}
 	}, []);
 

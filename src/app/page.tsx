@@ -3,6 +3,7 @@
 import { GameBoard } from "@/components/game-board";
 import { IntroVideoDialog } from "@/components/intro-video-dialog";
 import { Logo } from "@/components/logo";
+import { MusicButton } from "@/components/music-button";
 
 export default function Home() {
 	return (
@@ -10,6 +11,7 @@ export default function Home() {
 			<div className="flex items-center gap-2">
 				<Logo />
 				<IntroVideoDialog />
+				<MusicButton />
 			</div>
 			<GameBoard />
 		</main>
