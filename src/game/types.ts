@@ -4,7 +4,9 @@ export type ResourceId =
 	| "iron-ore"
 	| "plates"
 	| "reinforced-plate"
-	| "modular-frame";
+	| "modular-frame"
+	| "heavy-modular-frame"
+	| "fused-modular-frame";
 
 export type ResourceConfig = {
 	id: ResourceId;
@@ -27,6 +29,7 @@ export type ResourceState = {
 	producers: number;
 	isUnlocked: boolean;
 	isAutomated: boolean;
+	isPaused: boolean;
 	runStartedAt: number | null;
 };
 

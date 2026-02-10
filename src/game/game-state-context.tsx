@@ -13,11 +13,13 @@ import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
 import {
 	buyAutomation,
+	buyMaxProducers,
 	buyProducer,
 	canStartRun,
 	completeRun,
 	isRunComplete,
 	startRun,
+	togglePause,
 	unlockResource,
 } from "./logic";
 import { clearSave, loadGame, saveGame } from "./persistence";
@@ -29,7 +31,9 @@ type GameActions = {
 	state: GameState;
 	startResourceRun: (resourceId: ResourceId) => void;
 	buyResourceProducer: (resourceId: ResourceId) => void;
+	buyMaxResourceProducers: (resourceId: ResourceId) => void;
 	buyResourceAutomation: (resourceId: ResourceId) => void;
+	toggleResourcePause: (resourceId: ResourceId) => void;
 	unlockResourceTier: (resourceId: ResourceId) => void;
 	resetGame: () => void;
 };
@@ -70,10 +74,11 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 						changed = true;
 					}
 
-					// Auto-start runs for automated resources that are idle
+					// Auto-start runs for automated resources that are idle and not paused
 					const updated = next.resources[resourceId];
 					if (
 						updated.isAutomated &&
+						!updated.isPaused &&
 						updated.runStartedAt === null &&
 						canStartRun(next, resourceId)
 					) {
@@ -110,8 +115,16 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		setState((current) => buyProducer(current, resourceId));
 	}, []);
 
+	const buyMaxResourceProducers = useCallback((resourceId: ResourceId) => {
+		setState((current) => buyMaxProducers(current, resourceId));
+	}, []);
+
 	const buyResourceAutomation = useCallback((resourceId: ResourceId) => {
 		setState((current) => buyAutomation(current, resourceId));
+	}, []);
+
+	const toggleResourcePause = useCallback((resourceId: ResourceId) => {
+		setState((current) => togglePause(current, resourceId));
 	}, []);
 
 	const unlockResourceTier = useCallback((resourceId: ResourceId) => {
@@ -127,7 +140,9 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		state,
 		startResourceRun,
 		buyResourceProducer,
+		buyMaxResourceProducers,
 		buyResourceAutomation,
+		toggleResourcePause,
 		unlockResourceTier,
 		resetGame,
 	};

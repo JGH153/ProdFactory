@@ -60,6 +60,34 @@ export const RESOURCE_CONFIGS: Record<ResourceId, ResourceConfig> = {
 		automationCost: bigNum(10),
 		tier: 3,
 	},
+	"heavy-modular-frame": {
+		id: "heavy-modular-frame",
+		name: "Heavy Modular Frame",
+		description: "A reinforced framework built for extreme loads",
+		baseRunTime: 16,
+		baseCost: bigNum(32),
+		costScaling: COST_SCALING,
+		unlockCost: bigNum(20),
+		unlockCostResourceId: "modular-frame",
+		inputResourceId: "modular-frame",
+		inputCostPerRun: bigNum(4),
+		automationCost: bigNum(10),
+		tier: 4,
+	},
+	"fused-modular-frame": {
+		id: "fused-modular-frame",
+		name: "Fused Modular Frame",
+		description: "Modular frames fused with advanced materials",
+		baseRunTime: 32,
+		baseCost: bigNum(64),
+		costScaling: COST_SCALING,
+		unlockCost: bigNum(20),
+		unlockCostResourceId: "heavy-modular-frame",
+		inputResourceId: "heavy-modular-frame",
+		inputCostPerRun: bigNum(4),
+		automationCost: bigNum(10),
+		tier: 5,
+	},
 };
 
 export const RESOURCE_ORDER: ResourceId[] = [
@@ -67,4 +95,6 @@ export const RESOURCE_ORDER: ResourceId[] = [
 	"plates",
 	"reinforced-plate",
 	"modular-frame",
+	"heavy-modular-frame",
+	"fused-modular-frame",
 ];

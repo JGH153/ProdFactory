@@ -4,7 +4,11 @@ import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
-import { canBuyProducer, getProducerCost } from "@/game/logic";
+import {
+	canBuyProducer,
+	getMaxAffordableProducers,
+	getProducerCost,
+} from "@/game/logic";
 import type { ResourceState } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 
@@ -13,10 +17,12 @@ type BuyButtonProps = {
 };
 
 export const BuyButton = ({ resource }: BuyButtonProps) => {
-	const { state, buyResourceProducer } = useGameState();
+	const { state, buyResourceProducer, buyMaxResourceProducers } =
+		useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const cost = getProducerCost(resource.id, resource.producers);
 	const canBuy = canBuyProducer(state, resource.id);
+	const maxAffordable = getMaxAffordableProducers(state, resource.id);
 
 	const handleBuy = () => {
 		if (canBuy) {
@@ -24,18 +30,41 @@ export const BuyButton = ({ resource }: BuyButtonProps) => {
 		}
 	};
 
+	const handleBuyMax = () => {
+		if (maxAffordable > 0) {
+			buyMaxResourceProducers(resource.id);
+		}
+	};
+
 	return (
-		<motion.div whileTap={canBuy ? { scale: 0.95 } : undefined}>
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={handleBuy}
-				disabled={!canBuy}
-				className="w-full text-xs border-border bg-card hover:bg-primary/20
-					hover:text-primary disabled:opacity-40"
+		<div className="flex gap-1">
+			<motion.div
+				className="flex-1"
+				whileTap={canBuy ? { scale: 0.95 } : undefined}
 			>
-				Buy x1 — {bnFormat(cost)} {config.name}
-			</Button>
-		</motion.div>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={handleBuy}
+					disabled={!canBuy}
+					className="w-full text-xs border-border bg-card hover:bg-primary/20
+						hover:text-primary disabled:opacity-40"
+				>
+					Buy x1 — {bnFormat(cost)} {config.name}
+				</Button>
+			</motion.div>
+			<motion.div whileTap={maxAffordable > 0 ? { scale: 0.95 } : undefined}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={handleBuyMax}
+					disabled={maxAffordable === 0}
+					className="text-xs border-border bg-card hover:bg-primary/20
+						hover:text-primary disabled:opacity-40"
+				>
+					Max{maxAffordable > 0 ? ` (${maxAffordable})` : ""}
+				</Button>
+			</motion.div>
+		</div>
 	);
 };

@@ -13,15 +13,26 @@ type AutomateButtonProps = {
 };
 
 export const AutomateButton = ({ resource }: AutomateButtonProps) => {
-	const { state, buyResourceAutomation } = useGameState();
+	const { state, buyResourceAutomation, toggleResourcePause } = useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const canBuy = canBuyAutomation(state, resource.id);
 
 	if (resource.isAutomated) {
 		return (
-			<span className="text-xs text-success text-center font-medium">
-				Automated
-			</span>
+			<motion.div whileTap={{ scale: 0.95 }}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => toggleResourcePause(resource.id)}
+					className={`w-full text-xs border-border bg-card ${
+						resource.isPaused
+							? "hover:bg-success/20 hover:text-success"
+							: "hover:bg-accent-amber/20 hover:text-accent-amber"
+					}`}
+				>
+					{resource.isPaused ? "Resume" : "Pause"}
+				</Button>
+			</motion.div>
 		);
 	}
 

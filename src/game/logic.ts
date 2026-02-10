@@ -267,6 +267,67 @@ export const buyAutomation = (
 	};
 };
 
+/** Toggle pause state for an automated resource */
+export const togglePause = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	const resource = state.resources[resourceId];
+	if (!resource.isAutomated) {
+		return state;
+	}
+
+	return {
+		...state,
+		resources: {
+			...state.resources,
+			[resourceId]: {
+				...resource,
+				isPaused: !resource.isPaused,
+			},
+		},
+	};
+};
+
+/** Calculate how many producers the player can afford to buy */
+export const getMaxAffordableProducers = (
+	state: GameState,
+	resourceId: ResourceId,
+): number => {
+	const resource = state.resources[resourceId];
+	if (!resource.isUnlocked) {
+		return 0;
+	}
+
+	let remaining = resource.amount;
+	let owned = resource.producers;
+	let count = 0;
+
+	while (true) {
+		const cost = getProducerCost(resourceId, owned);
+		if (!bnGte(remaining, cost)) {
+			break;
+		}
+		remaining = bnSub(remaining, cost);
+		owned += 1;
+		count += 1;
+	}
+
+	return count;
+};
+
+/** Buy as many producers as the player can afford */
+export const buyMaxProducers = (
+	state: GameState,
+	resourceId: ResourceId,
+): GameState => {
+	let current = state;
+	while (canBuyProducer(current, resourceId)) {
+		current = buyProducer(current, resourceId);
+	}
+	return current;
+};
+
 /** Get total input cost for a run (scales with producers) */
 export const getRunInputCost = (
 	resourceId: ResourceId,

@@ -16,6 +16,7 @@ type SerializedResourceState = {
 	producers: number;
 	isUnlocked: boolean;
 	isAutomated: boolean;
+	isPaused?: boolean;
 	runStartedAt: number | null;
 };
 
@@ -33,6 +34,7 @@ const serializeResource = (
 	producers: resource.producers,
 	isUnlocked: resource.isUnlocked,
 	isAutomated: resource.isAutomated,
+	isPaused: resource.isPaused,
 	runStartedAt: resource.runStartedAt,
 });
 
@@ -42,6 +44,7 @@ const deserializeResource = (data: SerializedResourceState): ResourceState => ({
 	producers: data.producers,
 	isUnlocked: data.isUnlocked,
 	isAutomated: data.isAutomated,
+	isPaused: data.isPaused ?? false,
 	runStartedAt: data.runStartedAt,
 });
 
@@ -58,9 +61,14 @@ const serializeGameState = (state: GameState): SerializedGameState => {
 };
 
 const deserializeGameState = (data: SerializedGameState): GameState => {
+	const initialState = createInitialGameState();
 	const resources = {} as Record<ResourceId, ResourceState>;
 	for (const id of RESOURCE_ORDER) {
-		resources[id] = deserializeResource(data.resources[id]);
+		if (data.resources[id]) {
+			resources[id] = deserializeResource(data.resources[id]);
+		} else {
+			resources[id] = initialState.resources[id];
+		}
 	}
 	return {
 		resources,
