@@ -6,7 +6,9 @@ import { useGameState } from "@/game/game-state-context";
 import { canStartRun } from "@/game/logic";
 import { useSfx } from "@/game/sfx-context";
 import type { ResourceState } from "@/game/types";
+import { useParticleBurst } from "@/game/use-particle-burst";
 import { bnFormat } from "@/lib/big-number";
+import { ParticleEffect } from "./particle-effect";
 import { ResourceIcon } from "./resource-icon";
 
 type RunButtonProps = {
@@ -16,13 +18,21 @@ type RunButtonProps = {
 export const RunButton = ({ resource }: RunButtonProps) => {
 	const { state, startResourceRun } = useGameState();
 	const { playClickSfx } = useSfx();
+	const { particles, triggerBurst } = useParticleBurst();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isRunning = resource.runStartedAt !== null;
 	const canRun = canStartRun(state, resource.id);
 
-	const handleClick = () => {
+	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
 		if (canRun && !isRunning) {
 			playClickSfx();
+
+			// Trigger particle burst at click position (relative to button)
+			const rect = e.currentTarget.getBoundingClientRect();
+			const x = e.clientX - rect.left;
+			const y = e.clientY - rect.top;
+			triggerBurst(x, y);
+
 			startResourceRun(resource.id);
 		}
 	};
@@ -33,9 +43,14 @@ export const RunButton = ({ resource }: RunButtonProps) => {
 			whileTap={canRun && !isRunning ? { scale: 0.9 } : undefined}
 			onClick={handleClick}
 			disabled={!canRun || isRunning}
-			className="flex flex-col items-center gap-1 w-20 shrink-0 cursor-pointer
-				disabled:cursor-not-allowed select-none"
+			className="relative flex flex-col items-center gap-1 w-20 shrink-0 cursor-pointer
+				disabled:cursor-not-allowed select-none overflow-visible"
 		>
+			{/* Particle container */}
+			<div className="absolute inset-0 pointer-events-none">
+				<ParticleEffect particles={particles} />
+			</div>
+
 			<motion.div
 				animate={isRunning ? { rotate: [0, 5, -5, 0] } : undefined}
 				transition={
