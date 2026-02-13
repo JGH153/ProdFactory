@@ -15,6 +15,7 @@ import {
 	buyAutomation,
 	buyMaxProducers,
 	buyProducer,
+	canBuyProducer,
 	canStartRun,
 	completeRun,
 	getEffectiveRunTime,
@@ -49,9 +50,6 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
 	const { showMilestone } = useMilestoneNotification();
-	const milestoneQueueRef = useRef<
-		{ resourceId: ResourceId; multiplier: number }[]
-	>([]);
 
 	// Load from localStorage on mount (client-only, instant render)
 	useEffect(() => {
@@ -149,24 +147,17 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	const buyResourceProducer = useCallback(
 		(resourceId: ResourceId) => {
-			setState((current) => {
-				const before = current.resources[resourceId].producers;
-				const next = buyProducer(current, resourceId);
-				const after = next.resources[resourceId].producers;
+			const currentState = stateRef.current;
+			const before = currentState.resources[resourceId].producers;
+			setState((current) => buyProducer(current, resourceId));
+			if (canBuyProducer(currentState, resourceId)) {
+				const after = before + 1;
 				const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
 				const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
 				if (milestoneAfter > milestoneBefore) {
-					milestoneQueueRef.current.push({
-						resourceId,
-						multiplier: 2 ** milestoneAfter,
-					});
+					showMilestone(resourceId, 2 ** milestoneAfter);
 				}
-				return next;
-			});
-			for (const m of milestoneQueueRef.current) {
-				showMilestone(m.resourceId, m.multiplier);
 			}
-			milestoneQueueRef.current = [];
 			enqueueAction("buy-producer", resourceId);
 		},
 		[enqueueAction, showMilestone],
@@ -174,24 +165,16 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	const buyMaxResourceProducers = useCallback(
 		(resourceId: ResourceId) => {
-			setState((current) => {
-				const before = current.resources[resourceId].producers;
-				const next = buyMaxProducers(current, resourceId);
-				const after = next.resources[resourceId].producers;
-				const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
-				const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
-				if (milestoneAfter > milestoneBefore) {
-					milestoneQueueRef.current.push({
-						resourceId,
-						multiplier: 2 ** milestoneAfter,
-					});
-				}
-				return next;
-			});
-			for (const m of milestoneQueueRef.current) {
-				showMilestone(m.resourceId, m.multiplier);
+			const currentState = stateRef.current;
+			const before = currentState.resources[resourceId].producers;
+			const simResult = buyMaxProducers(currentState, resourceId);
+			const after = simResult.resources[resourceId].producers;
+			setState((current) => buyMaxProducers(current, resourceId));
+			const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
+			const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
+			if (milestoneAfter > milestoneBefore) {
+				showMilestone(resourceId, 2 ** milestoneAfter);
 			}
-			milestoneQueueRef.current = [];
 			enqueueAction("buy-max-producers", resourceId);
 		},
 		[enqueueAction, showMilestone],
