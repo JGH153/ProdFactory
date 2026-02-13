@@ -69,10 +69,13 @@ const isValidSerializedBigNum = (value: unknown): value is SerializedBigNum => {
 	return true;
 };
 
-const validateSerializedResource = (
-	resource: Record<string, unknown>,
-	expectedId: string,
-): string | null => {
+const validateSerializedResource = ({
+	resource,
+	expectedId,
+}: {
+	resource: Record<string, unknown>;
+	expectedId: string;
+}): string | null => {
 	if (resource.id !== expectedId) {
 		return `Resource id mismatch: expected ${expectedId}`;
 	}
@@ -124,7 +127,7 @@ const validateSerializedGameState = (
 		if (!isRecord(resource)) {
 			return `Invalid resource shape: ${id}`;
 		}
-		const error = validateSerializedResource(resource, id);
+		const error = validateSerializedResource({ resource, expectedId: id });
 		if (error !== null) {
 			return error;
 		}
@@ -259,10 +262,13 @@ export const parseVersionOnlyBody = async (
 
 // --- Execute action pattern ---
 
-export const executeAction = async (
-	request: NextRequest,
-	action: (state: GameState, resourceId: ResourceId) => GameState,
-): Promise<NextResponse> => {
+export const executeAction = async ({
+	request,
+	action,
+}: {
+	request: NextRequest;
+	action: (args: { state: GameState; resourceId: ResourceId }) => GameState;
+}): Promise<NextResponse> => {
 	const sessionResult = await getSessionFromRequest(request);
 	if (sessionResult instanceof NextResponse) {
 		return sessionResult;
@@ -291,7 +297,7 @@ export const executeAction = async (
 	}
 
 	const currentState = deserializeGameState(stored);
-	const newState = action(currentState, resourceId);
+	const newState = action({ state: currentState, resourceId });
 
 	if (newState === currentState) {
 		return NextResponse.json(
@@ -305,7 +311,7 @@ export const executeAction = async (
 		...newSerialized,
 		serverVersion: stored.serverVersion + 1,
 	};
-	await saveStoredGameState(sessionId, newStored);
+	await saveStoredGameState({ sessionId, stored: newStored });
 
 	return NextResponse.json({
 		state: newSerialized,

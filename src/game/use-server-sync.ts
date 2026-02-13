@@ -22,16 +22,19 @@ type QueueItem = {
 	resourceId: ResourceId;
 };
 
-type ReconcileCallback = (
-	state: SerializedGameState,
-	fullReplace: boolean,
-) => void;
+type ReconcileCallback = (args: {
+	state: SerializedGameState;
+	fullReplace: boolean;
+}) => void;
 
-export const useServerSync = (
-	stateRef: RefObject<GameState>,
-	reconcileState: ReconcileCallback,
-): {
-	enqueueAction: (endpoint: string, resourceId: ResourceId) => void;
+export const useServerSync = ({
+	stateRef,
+	reconcileState,
+}: {
+	stateRef: RefObject<GameState>;
+	reconcileState: ReconcileCallback;
+}): {
+	enqueueAction: (args: { endpoint: string; resourceId: ResourceId }) => void;
 	resetOnServer: () => void;
 } => {
 	const serverVersionRef = useRef(0);
@@ -53,37 +56,17 @@ export const useServerSync = (
 
 	const { mutateAsync: executeSave } = useMutation({
 		mutationKey: ["game", "save"],
-		mutationFn: ({
-			state,
-			serverVersion,
-		}: {
-			state: SerializedGameState;
-			serverVersion: number;
-		}) => apiSaveGame(state, serverVersion),
+		mutationFn: apiSaveGame,
 	});
 
 	const { mutateAsync: executeSync } = useMutation({
 		mutationKey: ["game", "sync"],
-		mutationFn: ({
-			state,
-			serverVersion,
-		}: {
-			state: SerializedGameState;
-			serverVersion: number;
-		}) => apiSyncGame(state, serverVersion),
+		mutationFn: apiSyncGame,
 	});
 
 	const { mutateAsync: executeAction } = useMutation({
 		mutationKey: ["game", "action"],
-		mutationFn: ({
-			endpoint,
-			resourceId,
-			serverVersion,
-		}: {
-			endpoint: string;
-			resourceId: ResourceId;
-			serverVersion: number;
-		}) => apiPostAction(endpoint, resourceId, serverVersion),
+		mutationFn: apiPostAction,
 	});
 
 	const { mutateAsync: executeReset } = useMutation({
@@ -122,7 +105,7 @@ export const useServerSync = (
 				if (error instanceof ConflictError) {
 					// Adopt the server's version and retry the same action once
 					serverVersionRef.current = error.serverVersion;
-					reconcileState(error.state, false);
+					reconcileState({ state: error.state, fullReplace: false });
 					try {
 						const retryResult = await executeAction({
 							endpoint: item.endpoint,
@@ -155,7 +138,7 @@ export const useServerSync = (
 			// Server has state — adopt it
 			serverVersionRef.current = initialData.serverVersion;
 			isReadyRef.current = true;
-			reconcileState(initialData.state, false);
+			reconcileState({ state: initialData.state, fullReplace: false });
 		} else {
 			// No server state (404) — migrate localStorage state to server
 			const serialized = serializeGameState(stateRef.current);
@@ -198,7 +181,7 @@ export const useServerSync = (
 					if (error instanceof ConflictError) {
 						if (queueRef.current.length === 0 && !processingRef.current) {
 							serverVersionRef.current = error.serverVersion;
-							reconcileState(error.state, false);
+							reconcileState({ state: error.state, fullReplace: false });
 						}
 					}
 					// Network errors silently ignored — next interval will retry
@@ -235,7 +218,7 @@ export const useServerSync = (
 					if (queueRef.current.length === 0 && !processingRef.current) {
 						serverVersionRef.current = result.serverVersion;
 						if (result.state !== null) {
-							reconcileState(result.state, false);
+							reconcileState({ state: result.state, fullReplace: false });
 						}
 					}
 				})
@@ -243,7 +226,7 @@ export const useServerSync = (
 					if (error instanceof ConflictError) {
 						if (queueRef.current.length === 0 && !processingRef.current) {
 							serverVersionRef.current = error.serverVersion;
-							reconcileState(error.state, false);
+							reconcileState({ state: error.state, fullReplace: false });
 						}
 					}
 				})
@@ -260,7 +243,13 @@ export const useServerSync = (
 	// --- Exported methods ---
 
 	const enqueueAction = useCallback(
-		(endpoint: string, resourceId: ResourceId) => {
+		({
+			endpoint,
+			resourceId,
+		}: {
+			endpoint: string;
+			resourceId: ResourceId;
+		}) => {
 			queueRef.current.push({ endpoint, resourceId });
 			processQueue();
 		},
@@ -279,12 +268,12 @@ export const useServerSync = (
 		executeReset({ serverVersion: serverVersionRef.current })
 			.then((result) => {
 				serverVersionRef.current = result.serverVersion;
-				reconcileState(result.state, true);
+				reconcileState({ state: result.state, fullReplace: true });
 			})
 			.catch((error) => {
 				if (error instanceof ConflictError) {
 					serverVersionRef.current = error.serverVersion;
-					reconcileState(error.state, true);
+					reconcileState({ state: error.state, fullReplace: true });
 				}
 			});
 	}, [executeReset, reconcileState]);

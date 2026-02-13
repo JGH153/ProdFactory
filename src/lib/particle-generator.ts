@@ -13,10 +13,13 @@ export type Particle = {
 
 const COLORS = ["#fa9549", "#f5a623", "#e8842e"] as const;
 
-export const generateParticles = (
-	originX: number,
-	originY: number,
-): Particle[] => {
+export const generateParticles = ({
+	originX,
+	originY,
+}: {
+	originX: number;
+	originY: number;
+}): Particle[] => {
 	const count = 6 + Math.floor(Math.random() * 3); // 6-8 particles
 
 	return Array.from({ length: count }, (_, i) => {

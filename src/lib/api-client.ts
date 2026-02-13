@@ -7,7 +7,13 @@ export class ConflictError extends Error {
 	state: SerializedGameState;
 	serverVersion: number;
 
-	constructor(state: SerializedGameState, serverVersion: number) {
+	constructor({
+		state,
+		serverVersion,
+	}: {
+		state: SerializedGameState;
+		serverVersion: number;
+	}) {
 		super("Version conflict");
 		this.name = "ConflictError";
 		this.state = state;
@@ -50,10 +56,13 @@ const ensureSession = async (): Promise<void> => {
 	await fetch("/api/session", { method: "POST" });
 };
 
-const fetchWithSessionRetry = async (
-	url: string,
-	init?: RequestInit,
-): Promise<Response> => {
+const fetchWithSessionRetry = async ({
+	url,
+	init,
+}: {
+	url: string;
+	init?: RequestInit;
+}): Promise<Response> => {
 	const response = await fetch(url, init);
 	if (response.status === 401) {
 		await ensureSession();
@@ -62,24 +71,36 @@ const fetchWithSessionRetry = async (
 	return response;
 };
 
-const postJson = (url: string, body: object): Promise<Response> =>
-	fetchWithSessionRetry(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
+const postJson = ({
+	url,
+	body,
+}: {
+	url: string;
+	body: object;
+}): Promise<Response> =>
+	fetchWithSessionRetry({
+		url,
+		init: {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(body),
+		},
 	});
 
 // --- Conflict handler ---
 
 const handleConflict = async (response: Response): Promise<never> => {
 	const data = await response.json();
-	throw new ConflictError(data.state, data.serverVersion);
+	throw new ConflictError({
+		state: data.state,
+		serverVersion: data.serverVersion,
+	});
 };
 
 // --- API functions ---
 
 export const loadGame = async (): Promise<LoadGameResponse | null> => {
-	const response = await fetchWithSessionRetry("/api/game");
+	const response = await fetchWithSessionRetry({ url: "/api/game" });
 	if (response.status === 404) {
 		return null;
 	}
@@ -89,11 +110,17 @@ export const loadGame = async (): Promise<LoadGameResponse | null> => {
 	return response.json();
 };
 
-export const saveGame = async (
-	state: SerializedGameState,
-	serverVersion: number,
-): Promise<SaveGameResponse> => {
-	const response = await postJson("/api/game/save", { state, serverVersion });
+export const saveGame = async ({
+	state,
+	serverVersion,
+}: {
+	state: SerializedGameState;
+	serverVersion: number;
+}): Promise<SaveGameResponse> => {
+	const response = await postJson({
+		url: "/api/game/save",
+		body: { state, serverVersion },
+	});
 	if (response.status === 409) {
 		return handleConflict(response);
 	}
@@ -103,11 +130,17 @@ export const saveGame = async (
 	return response.json();
 };
 
-export const syncGame = async (
-	state: SerializedGameState,
-	serverVersion: number,
-): Promise<SyncGameResponse> => {
-	const response = await postJson("/api/game/sync", { state, serverVersion });
+export const syncGame = async ({
+	state,
+	serverVersion,
+}: {
+	state: SerializedGameState;
+	serverVersion: number;
+}): Promise<SyncGameResponse> => {
+	const response = await postJson({
+		url: "/api/game/sync",
+		body: { state, serverVersion },
+	});
 	if (response.status === 409) {
 		return handleConflict(response);
 	}
@@ -117,14 +150,18 @@ export const syncGame = async (
 	return response.json();
 };
 
-export const postAction = async (
-	endpoint: string,
-	resourceId: ResourceId,
-	serverVersion: number,
-): Promise<ActionResponse> => {
-	const response = await postJson(`/api/game/${endpoint}`, {
-		resourceId,
-		serverVersion,
+export const postAction = async ({
+	endpoint,
+	resourceId,
+	serverVersion,
+}: {
+	endpoint: string;
+	resourceId: ResourceId;
+	serverVersion: number;
+}): Promise<ActionResponse> => {
+	const response = await postJson({
+		url: `/api/game/${endpoint}`,
+		body: { resourceId, serverVersion },
 	});
 	if (response.status === 409) {
 		return handleConflict(response);
@@ -142,7 +179,10 @@ export const postAction = async (
 export const resetGame = async (
 	serverVersion: number,
 ): Promise<ActionResponse> => {
-	const response = await postJson("/api/game/reset", { serverVersion });
+	const response = await postJson({
+		url: "/api/game/reset",
+		body: { serverVersion },
+	});
 	if (response.status === 409) {
 		return handleConflict(response);
 	}

@@ -39,9 +39,12 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
 	const freshState = serializeGameState(createInitialGameState());
 	const newVersion = stored ? stored.serverVersion + 1 : 1;
-	await saveStoredGameState(sessionId, {
-		...freshState,
-		serverVersion: newVersion,
+	await saveStoredGameState({
+		sessionId,
+		stored: {
+			...freshState,
+			serverVersion: newVersion,
+		},
 	});
 
 	await deleteSyncSnapshot(sessionId);

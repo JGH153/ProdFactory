@@ -20,9 +20,15 @@ export const BuyButton = ({ resource }: BuyButtonProps) => {
 	const { state, buyResourceProducer, buyMaxResourceProducers } =
 		useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
-	const cost = getProducerCost(resource.id, resource.producers);
-	const canBuy = canBuyProducer(state, resource.id);
-	const maxAffordable = getMaxAffordableProducers(state, resource.id);
+	const cost = getProducerCost({
+		resourceId: resource.id,
+		owned: resource.producers,
+	});
+	const canBuy = canBuyProducer({ state, resourceId: resource.id });
+	const maxAffordable = getMaxAffordableProducers({
+		state,
+		resourceId: resource.id,
+	});
 
 	const handleBuy = () => {
 		if (canBuy) {

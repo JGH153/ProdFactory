@@ -15,10 +15,13 @@ import type { GameState, ResourceId, ResourceState } from "./types";
 export const SPEED_MILESTONE_INTERVAL = 10;
 
 /** Get effective run time after speed milestones (halves every 10 producers) */
-export const getEffectiveRunTime = (
-	resourceId: ResourceId,
-	producers: number,
-): number => {
+export const getEffectiveRunTime = ({
+	resourceId,
+	producers,
+}: {
+	resourceId: ResourceId;
+	producers: number;
+}): number => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	const speedDoublings = Math.floor(producers / SPEED_MILESTONE_INTERVAL);
 	return config.baseRunTime / 2 ** speedDoublings;
@@ -36,10 +39,13 @@ export const getSpeedMilestone = (
 };
 
 /** Calculate cost to buy the next producer */
-export const getProducerCost = (
-	resourceId: ResourceId,
-	owned: number,
-): BigNum => {
+export const getProducerCost = ({
+	resourceId,
+	owned,
+}: {
+	resourceId: ResourceId;
+	owned: number;
+}): BigNum => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	return bnFloor(
 		bnMul(config.baseCost, bnPow(bigNum(config.costScaling), owned)),
@@ -47,29 +53,35 @@ export const getProducerCost = (
 };
 
 /** Check if player can afford to buy a producer */
-export const canBuyProducer = (
-	state: GameState,
-	resourceId: ResourceId,
-): boolean => {
+export const canBuyProducer = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): boolean => {
 	const resource = state.resources[resourceId];
 	if (!resource.isUnlocked) {
 		return false;
 	}
-	const cost = getProducerCost(resourceId, resource.producers);
+	const cost = getProducerCost({ resourceId, owned: resource.producers });
 	return bnGte(resource.amount, cost);
 };
 
 /** Buy a producer, returning new state */
-export const buyProducer = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
-	if (!canBuyProducer(state, resourceId)) {
+export const buyProducer = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
+	if (!canBuyProducer({ state, resourceId })) {
 		return state;
 	}
 
 	const resource = state.resources[resourceId];
-	const cost = getProducerCost(resourceId, resource.producers);
+	const cost = getProducerCost({ resourceId, owned: resource.producers });
 
 	return {
 		...state,
@@ -85,10 +97,13 @@ export const buyProducer = (
 };
 
 /** Check if player can afford to unlock a resource */
-export const canUnlock = (
-	state: GameState,
-	resourceId: ResourceId,
-): boolean => {
+export const canUnlock = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): boolean => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
@@ -104,11 +119,14 @@ export const canUnlock = (
 };
 
 /** Unlock a resource, returning new state. Gives 1 free producer. */
-export const unlockResource = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
-	if (!canUnlock(state, resourceId)) {
+export const unlockResource = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
+	if (!canUnlock({ state, resourceId })) {
 		return state;
 	}
 
@@ -142,10 +160,13 @@ export const unlockResource = (
 };
 
 /** Check if a run can be started */
-export const canStartRun = (
-	state: GameState,
-	resourceId: ResourceId,
-): boolean => {
+export const canStartRun = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): boolean => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
@@ -172,11 +193,14 @@ export const canStartRun = (
 };
 
 /** Start a run for a resource. Deducts input cost immediately. */
-export const startRun = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
-	if (!canStartRun(state, resourceId)) {
+export const startRun = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
+	if (!canStartRun({ state, resourceId })) {
 		return state;
 	}
 
@@ -212,10 +236,13 @@ export const startRun = (
 };
 
 /** Check if a run has completed */
-export const isRunComplete = (
-	resource: ResourceState,
-	runTime: number,
-): boolean => {
+export const isRunComplete = ({
+	resource,
+	runTime,
+}: {
+	resource: ResourceState;
+	runTime: number;
+}): boolean => {
 	if (resource.runStartedAt === null) {
 		return false;
 	}
@@ -223,10 +250,13 @@ export const isRunComplete = (
 };
 
 /** Complete a run: award resources and reset timer */
-export const completeRun = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
+export const completeRun = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
 	const resource = state.resources[resourceId];
 	if (resource.runStartedAt === null) {
 		return state;
@@ -248,10 +278,13 @@ export const completeRun = (
 };
 
 /** Check if player can afford to buy automation */
-export const canBuyAutomation = (
-	state: GameState,
-	resourceId: ResourceId,
-): boolean => {
+export const canBuyAutomation = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): boolean => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
@@ -266,11 +299,14 @@ export const canBuyAutomation = (
 };
 
 /** Buy automation for a resource */
-export const buyAutomation = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
-	if (!canBuyAutomation(state, resourceId)) {
+export const buyAutomation = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
+	if (!canBuyAutomation({ state, resourceId })) {
 		return state;
 	}
 
@@ -291,10 +327,13 @@ export const buyAutomation = (
 };
 
 /** Toggle pause state for an automated resource */
-export const togglePause = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
+export const togglePause = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
 	const resource = state.resources[resourceId];
 	if (!resource.isAutomated) {
 		return state;
@@ -313,10 +352,13 @@ export const togglePause = (
 };
 
 /** Calculate how many producers the player can afford to buy */
-export const getMaxAffordableProducers = (
-	state: GameState,
-	resourceId: ResourceId,
-): number => {
+export const getMaxAffordableProducers = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): number => {
 	const resource = state.resources[resourceId];
 	if (!resource.isUnlocked) {
 		return 0;
@@ -327,7 +369,7 @@ export const getMaxAffordableProducers = (
 	let count = 0;
 
 	while (true) {
-		const cost = getProducerCost(resourceId, owned);
+		const cost = getProducerCost({ resourceId, owned });
 		if (!bnGte(remaining, cost)) {
 			break;
 		}
@@ -340,22 +382,28 @@ export const getMaxAffordableProducers = (
 };
 
 /** Buy as many producers as the player can afford */
-export const buyMaxProducers = (
-	state: GameState,
-	resourceId: ResourceId,
-): GameState => {
+export const buyMaxProducers = ({
+	state,
+	resourceId,
+}: {
+	state: GameState;
+	resourceId: ResourceId;
+}): GameState => {
 	let current = state;
-	while (canBuyProducer(current, resourceId)) {
-		current = buyProducer(current, resourceId);
+	while (canBuyProducer({ state: current, resourceId })) {
+		current = buyProducer({ state: current, resourceId });
 	}
 	return current;
 };
 
 /** Get total input cost for a run (scales with producers) */
-export const getRunInputCost = (
-	resourceId: ResourceId,
-	producers: number,
-): BigNum | null => {
+export const getRunInputCost = ({
+	resourceId,
+	producers,
+}: {
+	resourceId: ResourceId;
+	producers: number;
+}): BigNum | null => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	if (config.inputCostPerRun === null) {
 		return null;

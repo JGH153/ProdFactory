@@ -52,10 +52,13 @@ export const loadStoredGameState = async (
 	return JSON.parse(raw) as StoredGameState;
 };
 
-export const saveStoredGameState = async (
-	sessionId: string,
-	stored: StoredGameState,
-): Promise<void> => {
+export const saveStoredGameState = async ({
+	sessionId,
+	stored,
+}: {
+	sessionId: string;
+	stored: StoredGameState;
+}): Promise<void> => {
 	await redis.set(
 		`game:${sessionId}`,
 		JSON.stringify(stored),
@@ -76,10 +79,13 @@ export const getSessionData = async (
 	return JSON.parse(raw) as SessionData;
 };
 
-export const setSessionData = async (
-	sessionId: string,
-	data: SessionData,
-): Promise<void> => {
+export const setSessionData = async ({
+	sessionId,
+	data,
+}: {
+	sessionId: string;
+	data: SessionData;
+}): Promise<void> => {
 	await redis.set(
 		`session:${sessionId}`,
 		JSON.stringify(data),
@@ -100,10 +106,13 @@ export const getSyncSnapshot = async (
 	return JSON.parse(raw) as SyncSnapshot;
 };
 
-export const setSyncSnapshot = async (
-	sessionId: string,
-	snapshot: SyncSnapshot,
-): Promise<void> => {
+export const setSyncSnapshot = async ({
+	sessionId,
+	snapshot,
+}: {
+	sessionId: string;
+	snapshot: SyncSnapshot;
+}): Promise<void> => {
 	await redis.set(
 		`sync:${sessionId}`,
 		JSON.stringify(snapshot),

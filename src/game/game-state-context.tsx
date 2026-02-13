@@ -65,7 +65,13 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	// --- Server reconciliation ---
 
 	const reconcileState = useCallback(
-		(serverSerialized: SerializedGameState, fullReplace: boolean) => {
+		({
+			state: serverSerialized,
+			fullReplace,
+		}: {
+			state: SerializedGameState;
+			fullReplace: boolean;
+		}) => {
 			const serverState = deserializeGameState(serverSerialized);
 			if (fullReplace) {
 				setState(serverState);
@@ -88,10 +94,10 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	// --- Server sync hook (save/sync intervals, action queue) ---
 
-	const { enqueueAction, resetOnServer } = useServerSync(
+	const { enqueueAction, resetOnServer } = useServerSync({
 		stateRef,
 		reconcileState,
-	);
+	});
 
 	// Game tick: check run completions via requestAnimationFrame
 	useEffect(() => {
@@ -106,12 +112,15 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 					const resource = next.resources[resourceId];
 
 					if (
-						isRunComplete(
+						isRunComplete({
 							resource,
-							getEffectiveRunTime(resourceId, resource.producers),
-						)
+							runTime: getEffectiveRunTime({
+								resourceId,
+								producers: resource.producers,
+							}),
+						})
 					) {
-						next = completeRun(next, resourceId);
+						next = completeRun({ state: next, resourceId });
 						changed = true;
 					}
 
@@ -121,9 +130,9 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 						updated.isAutomated &&
 						!updated.isPaused &&
 						updated.runStartedAt === null &&
-						canStartRun(next, resourceId)
+						canStartRun({ state: next, resourceId })
 					) {
-						next = startRun(next, resourceId);
+						next = startRun({ state: next, resourceId });
 						changed = true;
 					}
 				}
@@ -142,23 +151,23 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	// --- Action callbacks (optimistic + server) ---
 
 	const startResourceRun = useCallback((resourceId: ResourceId) => {
-		setState((current) => startRun(current, resourceId));
+		setState((current) => startRun({ state: current, resourceId }));
 	}, []);
 
 	const buyResourceProducer = useCallback(
 		(resourceId: ResourceId) => {
 			const currentState = stateRef.current;
 			const before = currentState.resources[resourceId].producers;
-			setState((current) => buyProducer(current, resourceId));
-			if (canBuyProducer(currentState, resourceId)) {
+			setState((current) => buyProducer({ state: current, resourceId }));
+			if (canBuyProducer({ state: currentState, resourceId })) {
 				const after = before + 1;
 				const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
 				const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
 				if (milestoneAfter > milestoneBefore) {
-					showMilestone(resourceId, 2 ** milestoneAfter);
+					showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
 				}
 			}
-			enqueueAction("buy-producer", resourceId);
+			enqueueAction({ endpoint: "buy-producer", resourceId });
 		},
 		[enqueueAction, showMilestone],
 	);
@@ -167,39 +176,39 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		(resourceId: ResourceId) => {
 			const currentState = stateRef.current;
 			const before = currentState.resources[resourceId].producers;
-			const simResult = buyMaxProducers(currentState, resourceId);
+			const simResult = buyMaxProducers({ state: currentState, resourceId });
 			const after = simResult.resources[resourceId].producers;
-			setState((current) => buyMaxProducers(current, resourceId));
+			setState((current) => buyMaxProducers({ state: current, resourceId }));
 			const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
 			const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
 			if (milestoneAfter > milestoneBefore) {
-				showMilestone(resourceId, 2 ** milestoneAfter);
+				showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
 			}
-			enqueueAction("buy-max-producers", resourceId);
+			enqueueAction({ endpoint: "buy-max-producers", resourceId });
 		},
 		[enqueueAction, showMilestone],
 	);
 
 	const buyResourceAutomation = useCallback(
 		(resourceId: ResourceId) => {
-			setState((current) => buyAutomation(current, resourceId));
-			enqueueAction("buy-automation", resourceId);
+			setState((current) => buyAutomation({ state: current, resourceId }));
+			enqueueAction({ endpoint: "buy-automation", resourceId });
 		},
 		[enqueueAction],
 	);
 
 	const toggleResourcePause = useCallback(
 		(resourceId: ResourceId) => {
-			setState((current) => togglePause(current, resourceId));
-			enqueueAction("toggle-pause", resourceId);
+			setState((current) => togglePause({ state: current, resourceId }));
+			enqueueAction({ endpoint: "toggle-pause", resourceId });
 		},
 		[enqueueAction],
 	);
 
 	const unlockResourceTier = useCallback(
 		(resourceId: ResourceId) => {
-			setState((current) => unlockResource(current, resourceId));
-			enqueueAction("unlock", resourceId);
+			setState((current) => unlockResource({ state: current, resourceId }));
+			enqueueAction({ endpoint: "unlock", resourceId });
 		},
 		[enqueueAction],
 	);

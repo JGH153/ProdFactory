@@ -13,7 +13,11 @@ export const useRunProgress = (resource: ResourceState): number => {
 	const rafRef = useRef<number>(0);
 
 	const runStartedAt = resource.runStartedAt;
-	const runTimeMs = getEffectiveRunTime(resource.id, resource.producers) * 1000;
+	const runTimeMs =
+		getEffectiveRunTime({
+			resourceId: resource.id,
+			producers: resource.producers,
+		}) * 1000;
 
 	const tick = useCallback(() => {
 		if (runStartedAt === null) {

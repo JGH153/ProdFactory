@@ -47,9 +47,12 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 
 	if (!lastSnapshot) {
 		const newStored = { ...body.state, serverVersion: newVersion };
-		await saveStoredGameState(sessionId, newStored);
-		const snapshot = buildSyncSnapshot(body.state, serverNow);
-		await setSyncSnapshot(sessionId, snapshot);
+		await saveStoredGameState({ sessionId, stored: newStored });
+		const snapshot = buildSyncSnapshot({
+			state: body.state,
+			timestamp: serverNow,
+		});
+		await setSyncSnapshot({ sessionId, snapshot });
 
 		return NextResponse.json({
 			state: null,
@@ -58,16 +61,23 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 		});
 	}
 
-	const result = checkPlausibility(body.state, lastSnapshot, serverNow);
+	const result = checkPlausibility({
+		claimedState: body.state,
+		lastSnapshot,
+		serverNow,
+	});
 
 	if (result.corrected && result.correctedState) {
 		const correctedStored = {
 			...result.correctedState,
 			serverVersion: newVersion,
 		};
-		await saveStoredGameState(sessionId, correctedStored);
-		const snapshot = buildSyncSnapshot(result.correctedState, serverNow);
-		await setSyncSnapshot(sessionId, snapshot);
+		await saveStoredGameState({ sessionId, stored: correctedStored });
+		const snapshot = buildSyncSnapshot({
+			state: result.correctedState,
+			timestamp: serverNow,
+		});
+		await setSyncSnapshot({ sessionId, snapshot });
 		await incrementWarnings(sessionId);
 
 		return NextResponse.json({
@@ -78,9 +88,12 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	}
 
 	const acceptedStored = { ...body.state, serverVersion: newVersion };
-	await saveStoredGameState(sessionId, acceptedStored);
-	const snapshot = buildSyncSnapshot(body.state, serverNow);
-	await setSyncSnapshot(sessionId, snapshot);
+	await saveStoredGameState({ sessionId, stored: acceptedStored });
+	const snapshot = buildSyncSnapshot({
+		state: body.state,
+		timestamp: serverNow,
+	});
+	await setSyncSnapshot({ sessionId, snapshot });
 
 	return NextResponse.json({
 		state: null,

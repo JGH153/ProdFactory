@@ -22,7 +22,7 @@ export const RunButton = ({ resource }: RunButtonProps) => {
 	const { particles, triggerBurst } = useParticleBurst();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isRunning = resource.runStartedAt !== null;
-	const canRun = canStartRun(state, resource.id);
+	const canRun = canStartRun({ state, resourceId: resource.id });
 	const milestone = getSpeedMilestone(resource.producers);
 
 	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -33,7 +33,7 @@ export const RunButton = ({ resource }: RunButtonProps) => {
 			const rect = e.currentTarget.getBoundingClientRect();
 			const x = e.clientX - rect.left;
 			const y = e.clientY - rect.top;
-			triggerBurst(x, y);
+			triggerBurst({ originX: x, originY: y });
 
 			startResourceRun(resource.id);
 		}

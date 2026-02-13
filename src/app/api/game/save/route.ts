@@ -32,9 +32,12 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	}
 
 	const newVersion = stored ? stored.serverVersion + 1 : 1;
-	await saveStoredGameState(sessionId, {
-		...body.state,
-		serverVersion: newVersion,
+	await saveStoredGameState({
+		sessionId,
+		stored: {
+			...body.state,
+			serverVersion: newVersion,
+		},
 	});
 
 	return NextResponse.json({ serverVersion: newVersion });

@@ -28,7 +28,10 @@ export const ProgressBar = ({ resource }: ProgressBarProps) => {
 	const isManual = !resource.isAutomated || resource.isPaused;
 	useEffect(() => {
 		if (wasRunningRef.current && !isRunning && isManual && barRef.current) {
-			triggerBurst(barRef.current.offsetWidth, barRef.current.offsetHeight / 2);
+			triggerBurst({
+				originX: barRef.current.offsetWidth,
+				originY: barRef.current.offsetHeight / 2,
+			});
 		}
 		wasRunningRef.current = isRunning;
 	}, [isRunning, isManual, triggerBurst]);
@@ -38,9 +41,12 @@ export const ProgressBar = ({ resource }: ProgressBarProps) => {
 		resource.isAutomated &&
 		!resource.isPaused &&
 		!isRunning &&
-		!canStartRun(state, resource.id);
+		!canStartRun({ state, resourceId: resource.id });
 
-	const effectiveRunTime = getEffectiveRunTime(resource.id, resource.producers);
+	const effectiveRunTime = getEffectiveRunTime({
+		resourceId: resource.id,
+		producers: resource.producers,
+	});
 	const remainingSeconds = isRunning
 		? Math.max(0, effectiveRunTime - Math.floor(progress * effectiveRunTime))
 		: effectiveRunTime;

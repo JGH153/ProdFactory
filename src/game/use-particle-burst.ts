@@ -7,10 +7,13 @@ import { generateParticles } from "@/lib/particle-generator";
 export const useParticleBurst = () => {
 	const [particles, setParticles] = useState<Particle[]>([]);
 
-	const triggerBurst = useCallback((originX: number, originY: number) => {
-		const newParticles = generateParticles(originX, originY);
-		setParticles((prev) => [...prev, ...newParticles]);
-	}, []);
+	const triggerBurst = useCallback(
+		({ originX, originY }: { originX: number; originY: number }) => {
+			const newParticles = generateParticles({ originX, originY });
+			setParticles((prev) => [...prev, ...newParticles]);
+		},
+		[],
+	);
 
 	// Auto-cleanup: remove particles after animation completes
 	useEffect(() => {

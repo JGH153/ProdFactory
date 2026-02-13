@@ -15,7 +15,7 @@ type AutomateButtonProps = {
 export const AutomateButton = ({ resource }: AutomateButtonProps) => {
 	const { state, buyResourceAutomation, toggleResourcePause } = useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
-	const canBuy = canBuyAutomation(state, resource.id);
+	const canBuy = canBuyAutomation({ state, resourceId: resource.id });
 
 	if (resource.isAutomated) {
 		return (

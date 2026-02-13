@@ -19,7 +19,10 @@ type ResourceCardProps = {
 export const ResourceCard = ({ resource }: ResourceCardProps) => {
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isLocked = !resource.isUnlocked;
-	const inputCost = getRunInputCost(resource.id, resource.producers);
+	const inputCost = getRunInputCost({
+		resourceId: resource.id,
+		producers: resource.producers,
+	});
 
 	return (
 		<motion.div

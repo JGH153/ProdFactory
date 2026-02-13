@@ -3,5 +3,5 @@ import { buyMaxProducers } from "@/game/logic";
 import { executeAction } from "@/lib/api-helpers";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	return executeAction(request, buyMaxProducers);
+	return executeAction({ request, action: buyMaxProducers });
 };

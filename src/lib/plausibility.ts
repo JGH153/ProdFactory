@@ -26,11 +26,15 @@ type PlausibilityResult = {
 	warnings: string[];
 };
 
-export const checkPlausibility = (
-	claimedState: SerializedGameState,
-	lastSnapshot: SyncSnapshot,
-	serverNow: number,
-): PlausibilityResult => {
+export const checkPlausibility = ({
+	claimedState,
+	lastSnapshot,
+	serverNow,
+}: {
+	claimedState: SerializedGameState;
+	lastSnapshot: SyncSnapshot;
+	serverNow: number;
+}): PlausibilityResult => {
 	const elapsed = serverNow - lastSnapshot.timestamp;
 
 	if (elapsed <= 0) {
@@ -73,7 +77,10 @@ export const checkPlausibility = (
 			maxProduction = bigNum(0);
 		} else {
 			const runTimeMs =
-				getEffectiveRunTime(resourceId, snapshotResource.producers) * 1000;
+				getEffectiveRunTime({
+					resourceId,
+					producers: snapshotResource.producers,
+				}) * 1000;
 			const maxRuns = Math.floor(elapsed / runTimeMs);
 			const producers = snapshotResource.producers;
 			maxProduction = bigNum(maxRuns * producers);
@@ -117,10 +124,13 @@ export const checkPlausibility = (
 	return { corrected: false, correctedState: null, warnings: [] };
 };
 
-export const buildSyncSnapshot = (
-	state: SerializedGameState,
-	timestamp: number,
-): SyncSnapshot => {
+export const buildSyncSnapshot = ({
+	state,
+	timestamp,
+}: {
+	state: SerializedGameState;
+	timestamp: number;
+}): SyncSnapshot => {
 	const resources = {} as SyncSnapshot["resources"];
 	for (const resourceId of RESOURCE_ORDER) {
 		const resource = state.resources[resourceId];

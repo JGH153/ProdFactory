@@ -19,7 +19,7 @@ type MilestoneNotification = {
 };
 
 type MilestoneContextValue = {
-	showMilestone: (resourceId: ResourceId, multiplier: number) => void;
+	showMilestone: (args: { resourceId: ResourceId; multiplier: number }) => void;
 };
 
 const MilestoneContext = createContext<MilestoneContextValue | null>(null);
@@ -45,7 +45,13 @@ export const MilestoneNotificationProvider = ({
 	}, [dismissCurrent]);
 
 	const showMilestone = useCallback(
-		(resourceId: ResourceId, multiplier: number) => {
+		({
+			resourceId,
+			multiplier,
+		}: {
+			resourceId: ResourceId;
+			multiplier: number;
+		}) => {
 			setQueue((prev) => [...prev, { resourceId, multiplier }]);
 		},
 		[],

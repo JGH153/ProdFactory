@@ -15,7 +15,7 @@ type UnlockOverlayProps = {
 export const UnlockOverlay = ({ resourceId }: UnlockOverlayProps) => {
 	const { state, unlockResourceTier } = useGameState();
 	const config = RESOURCE_CONFIGS[resourceId];
-	const affordable = canUnlock(state, resourceId);
+	const affordable = canUnlock({ state, resourceId });
 
 	const handleUnlock = () => {
 		if (affordable) {

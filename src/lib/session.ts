@@ -11,7 +11,7 @@ export const createSession = async (): Promise<string> => {
 		lastActiveAt: Date.now(),
 		warnings: 0,
 	};
-	await setSessionData(sessionId, data);
+	await setSessionData({ sessionId, data });
 	return sessionId;
 };
 
@@ -26,7 +26,7 @@ export const validateSession = async (
 		...data,
 		lastActiveAt: Date.now(),
 	};
-	await setSessionData(sessionId, updated);
+	await setSessionData({ sessionId, data: updated });
 	return updated;
 };
 
@@ -40,7 +40,7 @@ export const incrementWarnings = async (sessionId: string): Promise<void> => {
 		warnings: data.warnings + 1,
 		lastActiveAt: Date.now(),
 	};
-	await setSessionData(sessionId, updated);
+	await setSessionData({ sessionId, data: updated });
 };
 
 export const buildSessionCookie = (sessionId: string): string => {
