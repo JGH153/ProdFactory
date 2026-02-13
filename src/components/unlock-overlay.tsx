@@ -1,5 +1,10 @@
 "use client";
 
+import {
+	SquareLock02Icon,
+	SquareUnlock02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { RESOURCE_CONFIGS } from "@/game/config";
@@ -37,13 +42,22 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 			exit={{ opacity: 0, scale: 1.05 }}
 			transition={{ duration: 0.3 }}
 		>
-			<p className="text-text-muted text-sm mb-3 font-medium">Locked</p>
+			<p className="text-text-muted text-sm mb-3 font-medium">
+				{affordable ? "Ready to unlock!" : "Locked"}
+			</p>
 			<Button
 				onClick={handleUnlock}
 				disabled={!affordable}
-				className="bg-primary hover:bg-primary-hover text-primary-foreground font-bold
-					disabled:opacity-40"
+				className={
+					affordable
+						? "bg-accent-amber hover:bg-accent-amber/80 text-primary-foreground font-bold transition-all"
+						: "bg-primary/30 text-primary-foreground/50 font-bold"
+				}
 			>
+				<HugeiconsIcon
+					icon={affordable ? SquareUnlock02Icon : SquareLock02Icon}
+					size={16}
+				/>
 				Unlock — {unlockCostText}
 			</Button>
 		</motion.div>

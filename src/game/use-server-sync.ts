@@ -105,7 +105,6 @@ export const useServerSync = ({
 				if (error instanceof ConflictError) {
 					// Adopt the server's version and retry the same action once
 					serverVersionRef.current = error.serverVersion;
-					reconcileState({ state: error.state, fullReplace: false });
 					try {
 						const retryResult = await executeAction({
 							endpoint: item.endpoint,
@@ -113,10 +112,12 @@ export const useServerSync = ({
 							serverVersion: serverVersionRef.current,
 						});
 						serverVersionRef.current = retryResult.serverVersion;
+						reconcileState({ state: retryResult.state, fullReplace: false });
 						queueRef.current.shift();
 						continue;
 					} catch {
-						// Retry failed — clear remaining queue
+						// Retry failed — roll back optimistic update with the 409 state
+						reconcileState({ state: error.state, fullReplace: false });
 					}
 				}
 				queueRef.current = [];
