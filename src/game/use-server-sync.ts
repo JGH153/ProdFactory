@@ -38,6 +38,7 @@ export const useServerSync = (
 	const isReadyRef = useRef(false);
 	const queueRef = useRef<QueueItem[]>([]);
 	const processingRef = useRef(false);
+	const inFlightSaveRef = useRef<Promise<unknown> | null>(null);
 
 	// --- TanStack Query: initial load ---
 
@@ -97,6 +98,11 @@ export const useServerSync = (
 		if (processingRef.current || !isReadyRef.current) {
 			return;
 		}
+
+		if (inFlightSaveRef.current) {
+			await inFlightSaveRef.current;
+		}
+
 		processingRef.current = true;
 
 		while (queueRef.current.length > 0) {
@@ -111,7 +117,6 @@ export const useServerSync = (
 					serverVersion: serverVersionRef.current,
 				});
 				serverVersionRef.current = result.serverVersion;
-				reconcileState(result.state, false);
 				queueRef.current.shift();
 			} catch (error) {
 				if (error instanceof ConflictError) {
@@ -125,7 +130,6 @@ export const useServerSync = (
 							serverVersion: serverVersionRef.current,
 						});
 						serverVersionRef.current = retryResult.serverVersion;
-						reconcileState(retryResult.state, false);
 						queueRef.current.shift();
 						continue;
 					} catch {
@@ -174,26 +178,36 @@ export const useServerSync = (
 			if (
 				!isReadyRef.current ||
 				queueRef.current.length > 0 ||
-				processingRef.current
+				processingRef.current ||
+				inFlightSaveRef.current
 			) {
 				return;
 			}
 
 			const serialized = serializeGameState(stateRef.current);
-			executeSave({
+			const savePromise = executeSave({
 				state: serialized,
 				serverVersion: serverVersionRef.current,
 			})
 				.then((result) => {
-					serverVersionRef.current = result.serverVersion;
+					if (queueRef.current.length === 0 && !processingRef.current) {
+						serverVersionRef.current = result.serverVersion;
+					}
 				})
 				.catch((error) => {
 					if (error instanceof ConflictError) {
-						serverVersionRef.current = error.serverVersion;
-						reconcileState(error.state, false);
+						if (queueRef.current.length === 0 && !processingRef.current) {
+							serverVersionRef.current = error.serverVersion;
+							reconcileState(error.state, false);
+						}
 					}
 					// Network errors silently ignored — next interval will retry
+				})
+				.finally(() => {
+					inFlightSaveRef.current = null;
 				});
+
+			inFlightSaveRef.current = savePromise;
 		}, AUTO_SAVE_INTERVAL_MS);
 
 		return () => clearInterval(interval);
@@ -206,28 +220,38 @@ export const useServerSync = (
 			if (
 				!isReadyRef.current ||
 				queueRef.current.length > 0 ||
-				processingRef.current
+				processingRef.current ||
+				inFlightSaveRef.current
 			) {
 				return;
 			}
 
 			const serialized = serializeGameState(stateRef.current);
-			executeSync({
+			const syncPromise = executeSync({
 				state: serialized,
 				serverVersion: serverVersionRef.current,
 			})
 				.then((result) => {
-					serverVersionRef.current = result.serverVersion;
-					if (result.state !== null) {
-						reconcileState(result.state, false);
+					if (queueRef.current.length === 0 && !processingRef.current) {
+						serverVersionRef.current = result.serverVersion;
+						if (result.state !== null) {
+							reconcileState(result.state, false);
+						}
 					}
 				})
 				.catch((error) => {
 					if (error instanceof ConflictError) {
-						serverVersionRef.current = error.serverVersion;
-						reconcileState(error.state, false);
+						if (queueRef.current.length === 0 && !processingRef.current) {
+							serverVersionRef.current = error.serverVersion;
+							reconcileState(error.state, false);
+						}
 					}
+				})
+				.finally(() => {
+					inFlightSaveRef.current = null;
 				});
+
+			inFlightSaveRef.current = syncPromise;
 		}, AUTO_SYNC_INTERVAL_MS);
 
 		return () => clearInterval(interval);

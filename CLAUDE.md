@@ -172,9 +172,9 @@ The custom implementation must support:
 ### Backend Integration
 
 - **Sessions**: Anonymous UUID sessions created automatically on first API call. The `pf-session` cookie is `HttpOnly; SameSite=Strict` with a 30-day TTL. The client detects a missing session via 401 response and retries after creating one.
-- **Server-validated actions**: Purchases, unlocks, automation, and pause toggles are applied optimistically on the client, then confirmed by the server. Runs (startRun/completeRun) are client-only.
+- **Server-validated actions**: Purchases, unlocks, automation, and pause toggles are applied optimistically on the client, then confirmed by the server. Successful action responses only update the `serverVersion` — the client trusts its own optimistic state (since identical pure logic functions run on both sides). Only conflict (409) responses trigger state reconciliation. Runs (startRun/completeRun) are client-only.
 - **Mutation queue**: Action requests are enqueued and processed serially. Each request uses the `serverVersion` from the previous response, preventing 409 conflicts from rapid clicking.
-- **Auto-save**: Every 5 seconds via `POST /api/game/save` (replaces localStorage-only save).
+- **Auto-save**: Every 5 seconds via `POST /api/game/save` (replaces localStorage-only save). Save and sync requests are guarded against racing with the action queue — responses are ignored if actions were enqueued while the request was in-flight.
 - **Plausibility sync**: Every 15 seconds via `POST /api/game/sync`. The server compares claimed production against maximum possible rates (10% tolerance) and corrects if needed.
 - **Optimistic concurrency**: Every state-changing API call includes a `serverVersion` number. On mismatch (409), the client adopts the server's state.
 - **Run preservation**: When reconciling server state, the client preserves its own `runStartedAt` values since runs are client-managed.
