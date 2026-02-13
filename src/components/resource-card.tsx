@@ -29,7 +29,7 @@ export const ResourceCard = ({ resource }: ResourceCardProps) => {
 			}}
 		>
 			<Card
-				className={`relative overflow-hidden border-border bg-card select-none
+				className={`relative border-border bg-card select-none
 					${isLocked ? "opacity-50" : ""}`}
 			>
 				<CardContent className="flex items-center gap-4 p-4">
