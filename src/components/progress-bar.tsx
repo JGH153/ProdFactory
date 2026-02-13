@@ -6,7 +6,7 @@ import { ParticleEffect } from "@/components/particle-effect";
 import { Progress } from "@/components/ui/progress";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
-import { canStartRun } from "@/game/logic";
+import { canStartRun, getEffectiveRunTime } from "@/game/logic";
 import type { ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
 import { useRunProgress } from "@/game/use-run-progress";
@@ -40,12 +40,10 @@ export const ProgressBar = ({ resource }: ProgressBarProps) => {
 		!isRunning &&
 		!canStartRun(state, resource.id);
 
+	const effectiveRunTime = getEffectiveRunTime(resource.id, resource.producers);
 	const remainingSeconds = isRunning
-		? Math.max(
-				0,
-				config.baseRunTime - Math.floor(progress * config.baseRunTime),
-			)
-		: config.baseRunTime;
+		? Math.max(0, effectiveRunTime - Math.floor(progress * effectiveRunTime))
+		: effectiveRunTime;
 
 	const inputResourceName = config.inputResourceId
 		? RESOURCE_CONFIGS[config.inputResourceId].name
@@ -81,7 +79,7 @@ export const ProgressBar = ({ resource }: ProgressBarProps) => {
 							? `Waiting for ${inputResourceName}...`
 							: isRunning
 								? `${remainingSeconds}s`
-								: `${config.baseRunTime}s`}
+								: `${effectiveRunTime}s`}
 				</span>
 			</div>
 		</div>

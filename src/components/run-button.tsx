@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
+import { Progress } from "@/components/ui/progress";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
-import { canStartRun } from "@/game/logic";
+import { canStartRun, getSpeedMilestone } from "@/game/logic";
 import { useSfx } from "@/game/sfx-context";
 import type { ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
@@ -22,6 +23,7 @@ export const RunButton = ({ resource }: RunButtonProps) => {
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isRunning = resource.runStartedAt !== null;
 	const canRun = canStartRun(state, resource.id);
+	const milestone = getSpeedMilestone(resource.producers);
 
 	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
 		if (canRun && !isRunning) {
@@ -67,7 +69,23 @@ export const RunButton = ({ resource }: RunButtonProps) => {
 			<span className="text-sm font-bold text-primary">
 				{bnFormat(resource.amount)}
 			</span>
-			<span className="text-xs text-text-muted">x{resource.producers}</span>
+			{resource.producers > 0 && (
+				<div className="relative w-full">
+					<Progress
+						value={milestone.progress * 100}
+						className="h-5 w-full rounded-sm bg-border *:data-[slot=progress-indicator]:bg-accent-amber *:data-[slot=progress-indicator]:rounded-sm"
+					/>
+					<span
+						className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-text-primary"
+						style={{
+							WebkitTextStroke: "2.5px #1a1a2e",
+							paintOrder: "stroke fill",
+						}}
+					>
+						{milestone.current}/{milestone.next}
+					</span>
+				</div>
+			)}
 		</motion.button>
 	);
 };

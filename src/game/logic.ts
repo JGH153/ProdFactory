@@ -12,6 +12,29 @@ import {
 import { RESOURCE_CONFIGS } from "./config";
 import type { GameState, ResourceId, ResourceState } from "./types";
 
+const SPEED_MILESTONE_INTERVAL = 10;
+
+/** Get effective run time after speed milestones (halves every 10 producers) */
+export const getEffectiveRunTime = (
+	resourceId: ResourceId,
+	producers: number,
+): number => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	const speedDoublings = Math.floor(producers / SPEED_MILESTONE_INTERVAL);
+	return config.baseRunTime / 2 ** speedDoublings;
+};
+
+/** Get speed milestone info for a resource */
+export const getSpeedMilestone = (
+	producers: number,
+): { current: number; next: number; progress: number } => {
+	const milestone = Math.floor(producers / SPEED_MILESTONE_INTERVAL);
+	const next = (milestone + 1) * SPEED_MILESTONE_INTERVAL;
+	const progressInMilestone =
+		(producers % SPEED_MILESTONE_INTERVAL) / SPEED_MILESTONE_INTERVAL;
+	return { current: producers, next, progress: progressInMilestone };
+};
+
 /** Calculate cost to buy the next producer */
 export const getProducerCost = (
 	resourceId: ResourceId,

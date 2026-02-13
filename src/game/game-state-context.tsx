@@ -9,7 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "./config";
+import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
 import {
 	buyAutomation,
@@ -17,6 +17,7 @@ import {
 	buyProducer,
 	canStartRun,
 	completeRun,
+	getEffectiveRunTime,
 	isRunComplete,
 	startRun,
 	togglePause,
@@ -99,9 +100,13 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 				for (const resourceId of RESOURCE_ORDER) {
 					const resource = next.resources[resourceId];
-					const config = RESOURCE_CONFIGS[resourceId];
 
-					if (isRunComplete(resource, config.baseRunTime)) {
+					if (
+						isRunComplete(
+							resource,
+							getEffectiveRunTime(resourceId, resource.producers),
+						)
+					) {
 						next = completeRun(next, resourceId);
 						changed = true;
 					}

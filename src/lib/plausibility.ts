@@ -1,4 +1,5 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
+import { getEffectiveRunTime } from "@/game/logic";
 import type {
 	SerializedGameState,
 	SerializedResourceState,
@@ -71,7 +72,8 @@ export const checkPlausibility = (
 		if (!claimedResource.isUnlocked || (claimedResource.isPaused ?? false)) {
 			maxProduction = bigNum(0);
 		} else {
-			const runTimeMs = config.baseRunTime * 1000;
+			const runTimeMs =
+				getEffectiveRunTime(resourceId, snapshotResource.producers) * 1000;
 			const maxRuns = Math.floor(elapsed / runTimeMs);
 			const producers = snapshotResource.producers;
 			maxProduction = bigNum(maxRuns * producers);

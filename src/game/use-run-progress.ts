@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RESOURCE_CONFIGS } from "./config";
+import { getEffectiveRunTime } from "./logic";
 import type { ResourceState } from "./types";
 
 /**
@@ -12,9 +12,8 @@ export const useRunProgress = (resource: ResourceState): number => {
 	const [progress, setProgress] = useState(0);
 	const rafRef = useRef<number>(0);
 
-	const config = RESOURCE_CONFIGS[resource.id];
 	const runStartedAt = resource.runStartedAt;
-	const runTimeMs = config.baseRunTime * 1000;
+	const runTimeMs = getEffectiveRunTime(resource.id, resource.producers) * 1000;
 
 	const tick = useCallback(() => {
 		if (runStartedAt === null) {
