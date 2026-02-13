@@ -8,6 +8,7 @@ import {
 	INTRO_CLOSED_EVENT,
 } from "@/components/intro-video-dialog";
 import { Button } from "@/components/ui/button";
+import { useMuteShortcut } from "@/game/use-mute-shortcut";
 
 const MUSIC_PREF_KEY = "prodfactory-music-playing";
 
@@ -90,6 +91,8 @@ export const MusicButton = () => {
 		};
 	}, [play]);
 
+	useMuteShortcut(toggle);
+
 	// Cleanup audio on unmount
 	useEffect(() => {
 		return () => {
@@ -105,7 +108,7 @@ export const MusicButton = () => {
 			variant="ghost"
 			size="icon-sm"
 			onClick={toggle}
-			title={isPlaying ? "Pause music" : "Play music"}
+			title={isPlaying ? "Pause music (M)" : "Play music (M)"}
 			className="text-text-muted hover:text-primary"
 		>
 			<HugeiconsIcon

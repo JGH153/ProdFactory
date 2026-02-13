@@ -4,7 +4,9 @@ import LogRocket from "logrocket";
 import { AppProviders } from "@/providers/app-providers";
 import "./globals.css";
 
-LogRocket.init("vibing-projects/prodfactory");
+if (process.env.NODE_ENV === "production") {
+	LogRocket.init("vibing-projects/prodfactory");
+}
 
 export default function RootLayout({
 	children,

@@ -5,6 +5,7 @@ import {
 	type PropsWithChildren,
 	use,
 	useCallback,
+	useEffect,
 	useState,
 } from "react";
 
@@ -35,7 +36,11 @@ type SfxContextValue = {
 const SfxContext = createContext<SfxContextValue | null>(null);
 
 export const SfxProvider = ({ children }: PropsWithChildren) => {
-	const [sfxEnabled, setSfxEnabled] = useState(getSfxPreference);
+	const [sfxEnabled, setSfxEnabled] = useState(true);
+
+	useEffect(() => {
+		setSfxEnabled(getSfxPreference());
+	}, []);
 
 	const toggleSfx = useCallback(() => {
 		setSfxEnabled((prev) => {
@@ -50,6 +55,7 @@ export const SfxProvider = ({ children }: PropsWithChildren) => {
 			return;
 		}
 		const audio = new Audio("/pickaxe.mp3");
+		audio.volume = 0.4;
 		audio.play().catch(() => {
 			// Autoplay blocked by browser
 		});

@@ -115,10 +115,23 @@ export const useServerSync = (
 				queueRef.current.shift();
 			} catch (error) {
 				if (error instanceof ConflictError) {
+					// Adopt the server's version and retry the same action once
 					serverVersionRef.current = error.serverVersion;
 					reconcileState(error.state, false);
+					try {
+						const retryResult = await executeAction({
+							endpoint: item.endpoint,
+							resourceId: item.resourceId,
+							serverVersion: serverVersionRef.current,
+						});
+						serverVersionRef.current = retryResult.serverVersion;
+						reconcileState(retryResult.state, false);
+						queueRef.current.shift();
+						continue;
+					} catch {
+						// Retry failed — clear remaining queue
+					}
 				}
-				// On any error (conflict, action failed, network), clear remaining queue
 				queueRef.current = [];
 				break;
 			}

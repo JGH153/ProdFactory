@@ -4,6 +4,7 @@ import { GameBoard } from "@/components/game-board";
 import { IntroVideoDialog } from "@/components/intro-video-dialog";
 import { Logo } from "@/components/logo";
 import { MusicButton } from "@/components/music-button";
+import { NewGameButton } from "@/components/new-game-button";
 import { SfxButton } from "@/components/sfx-button";
 import { SfxProvider } from "@/game/sfx-context";
 
@@ -16,6 +17,7 @@ export default function Home() {
 					<IntroVideoDialog />
 					<MusicButton />
 					<SfxButton />
+					<NewGameButton />
 				</div>
 				<GameBoard />
 			</main>
