@@ -12,11 +12,11 @@ import { ProgressBar } from "./progress-bar";
 import { RunButton } from "./run-button";
 import { UnlockOverlay } from "./unlock-overlay";
 
-type ResourceCardProps = {
+type Props = {
 	resource: ResourceState;
 };
 
-export const ResourceCard = ({ resource }: ResourceCardProps) => {
+export const ResourceCard = ({ resource }: Props) => {
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isLocked = !resource.isUnlocked;
 	const inputCost = getRunInputCost({

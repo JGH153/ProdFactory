@@ -3,18 +3,12 @@
 import {
 	GameController01Icon,
 	Settings01Icon,
-	SquareLock02Icon,
 	Store01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
-import { useState } from "react";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { LockedTab } from "@/components/locked-tab";
 import { useGameState } from "@/game/game-state-context";
 import type { ResourceId } from "@/game/types";
 
@@ -44,42 +38,12 @@ const TABS: TabConfig[] = [
 	{ id: "settings", label: "Settings", icon: Settings01Icon },
 ];
 
-type LockedTabProps = {
-	label: string;
-	message: string;
-};
-
-const LockedTab = ({ label, message }: LockedTabProps) => {
-	const [open, setOpen] = useState(false);
-
-	return (
-		<Tooltip open={open} onOpenChange={setOpen}>
-			<TooltipTrigger asChild>
-				<button
-					type="button"
-					role="tab"
-					aria-selected={false}
-					aria-disabled
-					onClick={() => setOpen((prev) => !prev)}
-					className="relative flex flex-col items-center gap-1 px-6 py-2 opacity-50 cursor-not-allowed text-text-muted"
-				>
-					<HugeiconsIcon icon={SquareLock02Icon} size={24} />
-					<span className="text-xs font-medium">{label}</span>
-				</button>
-			</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={8}>
-				{message}
-			</TooltipContent>
-		</Tooltip>
-	);
-};
-
-type BottomNavProps = {
+type Props = {
 	activeTab: BottomNavTab;
 	onTabChange: (tab: BottomNavTab) => void;
 };
 
-export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
+export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 	const { state } = useGameState();
 
 	return (

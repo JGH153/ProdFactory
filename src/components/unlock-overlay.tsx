@@ -8,11 +8,11 @@ import { canUnlock } from "@/game/logic";
 import type { ResourceId } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 
-type UnlockOverlayProps = {
+type Props = {
 	resourceId: ResourceId;
 };
 
-export const UnlockOverlay = ({ resourceId }: UnlockOverlayProps) => {
+export const UnlockOverlay = ({ resourceId }: Props) => {
 	const { state, unlockResourceTier } = useGameState();
 	const config = RESOURCE_CONFIGS[resourceId];
 	const affordable = canUnlock({ state, resourceId });

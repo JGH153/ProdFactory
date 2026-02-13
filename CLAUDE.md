@@ -79,7 +79,7 @@ export const calculateProduction = (base: number, multiplier: number): BigNum =>
   // ...
 };
 
-export const ResourceButton: React.FC<ResourceButtonProps> = ({ resource }) => {
+export const ResourceButton = ({ resource }: Props) => {
   // ...
 };
 
@@ -91,15 +91,16 @@ export default function calculateProduction(base, multiplier) { ... }
 
 - **Types over interfaces** — use `type` for all type definitions.
 - **Co-locate types** with the code that owns them. Only extract to shared type files when a type is used across multiple modules.
+- **Use `Props` for co-located prop types** — when a component's props type is private to its file (not exported), name it simply `Props` instead of `ComponentNameProps`. If a file contains multiple components with their own props types (e.g., an internal helper), keep the helper's type named and use `Props` only for the primary exported component.
 
 ```typescript
 // Co-located type — lives in the same file as the component that uses it
-type ResourceCardProps = {
+type Props = {
   resource: Resource;
   onUpgrade: (id: string) => void;
 };
 
-export const ResourceCard: React.FC<ResourceCardProps> = ({ resource, onUpgrade }) => {
+export const ResourceCard = ({ resource, onUpgrade }: Props) => {
   // ...
 };
 ```

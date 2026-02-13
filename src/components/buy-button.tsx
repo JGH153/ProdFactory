@@ -12,11 +12,11 @@ import {
 import type { ResourceState } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 
-type BuyButtonProps = {
+type Props = {
 	resource: ResourceState;
 };
 
-export const BuyButton = ({ resource }: BuyButtonProps) => {
+export const BuyButton = ({ resource }: Props) => {
 	const { state, buyResourceProducer, buyMaxResourceProducers } =
 		useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];

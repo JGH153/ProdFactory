@@ -3,11 +3,11 @@
 import { AnimatePresence, motion } from "motion/react";
 import type { Particle } from "@/lib/particle-generator";
 
-type ParticleEffectProps = {
+type Props = {
 	particles: Particle[];
 };
 
-export const ParticleEffect = ({ particles }: ParticleEffectProps) => {
+export const ParticleEffect = ({ particles }: Props) => {
 	return (
 		<AnimatePresence>
 			{particles.map((particle) => (

@@ -12,11 +12,11 @@ import { bnFormat } from "@/lib/big-number";
 import { ParticleEffect } from "./particle-effect";
 import { ResourceIcon } from "./resource-icon";
 
-type RunButtonProps = {
+type Props = {
 	resource: ResourceState;
 };
 
-export const RunButton = ({ resource }: RunButtonProps) => {
+export const RunButton = ({ resource }: Props) => {
 	const { state, startResourceRun } = useGameState();
 	const { playClickSfx } = useSfx();
 	const { particles, triggerBurst } = useParticleBurst();

@@ -3,11 +3,11 @@
 import { motion } from "motion/react";
 import { NewGameButton } from "@/components/new-game-button";
 
-type SettingsPageProps = {
+type Props = {
 	onReset?: () => void;
 };
 
-export const SettingsPage = ({ onReset }: SettingsPageProps) => {
+export const SettingsPage = ({ onReset }: Props) => {
 	return (
 		<motion.div
 			className="w-full max-w-lg mt-6"

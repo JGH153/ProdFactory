@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { useGameState } from "@/game/game-state-context";
 
-type NewGameButtonProps = {
+type Props = {
 	onReset?: () => void;
 };
 
-export const NewGameButton = ({ onReset }: NewGameButtonProps) => {
+export const NewGameButton = ({ onReset }: Props) => {
 	const [open, setOpen] = useState(false);
 	const { resetGame } = useGameState();
 

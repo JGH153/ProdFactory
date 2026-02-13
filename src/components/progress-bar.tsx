@@ -11,11 +11,11 @@ import type { ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
 import { useRunProgress } from "@/game/use-run-progress";
 
-type ProgressBarProps = {
+type Props = {
 	resource: ResourceState;
 };
 
-export const ProgressBar = ({ resource }: ProgressBarProps) => {
+export const ProgressBar = ({ resource }: Props) => {
 	const { state } = useGameState();
 	const progress = useRunProgress(resource);
 	const { particles, triggerBurst } = useParticleBurst();

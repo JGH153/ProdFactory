@@ -11,7 +11,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ResourceId } from "@/game/types";
 
-type ResourceIconProps = {
+type Props = {
 	resourceId: ResourceId;
 	size?: number;
 };
@@ -34,7 +34,7 @@ const COLOR_MAP: Record<ResourceId, string> = {
 	"fused-modular-frame": "var(--color-fused-modular-frame)",
 };
 
-export const ResourceIcon = ({ resourceId, size = 32 }: ResourceIconProps) => (
+export const ResourceIcon = ({ resourceId, size = 32 }: Props) => (
 	<HugeiconsIcon
 		icon={ICON_MAP[resourceId]}
 		size={size}

@@ -8,11 +8,11 @@ import { canBuyAutomation } from "@/game/logic";
 import type { ResourceState } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 
-type AutomateButtonProps = {
+type Props = {
 	resource: ResourceState;
 };
 
-export const AutomateButton = ({ resource }: AutomateButtonProps) => {
+export const AutomateButton = ({ resource }: Props) => {
 	const { state, buyResourceAutomation, toggleResourcePause } = useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const canBuy = canBuyAutomation({ state, resourceId: resource.id });
