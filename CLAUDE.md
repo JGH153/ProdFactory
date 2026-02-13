@@ -37,6 +37,8 @@ Each tier feeds into the next. Iron Ore is the base resource produced from nothi
 | UI components   | Shadcn                                      |
 | Icons           | Hugeicons (free tier)                       |
 | Data fetching   | TanStack Query                              |
+| Backend storage | Redis (ioredis locally, Upstash in production) |
+| Sessions        | Anonymous UUID, HttpOnly cookies             |
 | Linting/format  | Biome                                       |
 | Dead code       | Knip                                        |
 | E2E testing     | Playwright (to be added later)              |
@@ -57,6 +59,7 @@ pnpm check          # Run Biome check (lint + format combined)
 pnpm typecheck      # Run tsc --noEmit
 pnpm knip           # Run Knip for unused exports/dependencies
 pnpm validate       # Run biome check + typecheck + knip (end-of-session command)
+pnpm start:db       # Start Redis via Docker Compose
 ```
 
 **Important**: Always end a development session by running `pnpm validate` to catch lint errors, type errors, and dead code before committing.
@@ -162,10 +165,34 @@ The custom implementation must support:
 
 ### Game State Persistence
 
-- **First iteration**: all game state is stored in `localStorage` via JSON serialization.
-- **Future iteration**: game state will be migrated to a database backend.
+- **Primary storage**: Redis via server API routes. Game state is stored at `game:{sessionId}` with a 30-day TTL.
+- **localStorage cache**: On every server response, state is also written to localStorage. On mount, the client renders from localStorage immediately (no loading screen) while fetching the authoritative state from the server.
+- **Serialization**: Shared `serialization.ts` module used by both the frontend (localStorage) and backend (Redis). `SerializedGameState` is the wire format for all API communication.
 
-Design the state layer with this migration in mind — keep serialization and deserialization logic isolated so the storage backend can be swapped later.
+### Backend Integration
+
+- **Sessions**: Anonymous UUID sessions created automatically on first API call. The `pf-session` cookie is `HttpOnly; SameSite=Strict` with a 30-day TTL. The client detects a missing session via 401 response and retries after creating one.
+- **Server-validated actions**: Purchases, unlocks, automation, and pause toggles are applied optimistically on the client, then confirmed by the server. Runs (startRun/completeRun) are client-only.
+- **Mutation queue**: Action requests are enqueued and processed serially. Each request uses the `serverVersion` from the previous response, preventing 409 conflicts from rapid clicking.
+- **Auto-save**: Every 5 seconds via `POST /api/game/save` (replaces localStorage-only save).
+- **Plausibility sync**: Every 15 seconds via `POST /api/game/sync`. The server compares claimed production against maximum possible rates (10% tolerance) and corrects if needed.
+- **Optimistic concurrency**: Every state-changing API call includes a `serverVersion` number. On mismatch (409), the client adopts the server's state.
+- **Run preservation**: When reconciling server state, the client preserves its own `runStartedAt` values since runs are client-managed.
+
+### API Routes
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/session` | POST | Create anonymous session |
+| `/api/game` | GET | Load game state |
+| `/api/game/save` | POST | Persist state (auto-save) |
+| `/api/game/sync` | POST | Persist + plausibility check |
+| `/api/game/buy-producer` | POST | Buy producer (server-validated) |
+| `/api/game/buy-max-producers` | POST | Buy max producers |
+| `/api/game/buy-automation` | POST | Buy automation |
+| `/api/game/unlock` | POST | Unlock resource tier |
+| `/api/game/toggle-pause` | POST | Toggle automation pause |
+| `/api/game/reset` | POST | Reset to initial state |
 
 ### Run Timing
 

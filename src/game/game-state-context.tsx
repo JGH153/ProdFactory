@@ -23,9 +23,10 @@ import {
 	unlockResource,
 } from "./logic";
 import { clearSave, loadGame, saveGame } from "./persistence";
-import type { GameState, ResourceId } from "./types";
-
-const AUTO_SAVE_INTERVAL_MS = 5000;
+import type { SerializedGameState } from "./serialization";
+import { deserializeGameState } from "./serialization";
+import type { GameState, ResourceId, ResourceState } from "./types";
+import { useServerSync } from "./use-server-sync";
 
 type GameActions = {
 	state: GameState;
@@ -45,7 +46,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
 
-	// Load from localStorage on mount (client-only)
+	// Load from localStorage on mount (client-only, instant render)
 	useEffect(() => {
 		if (!hasLoadedRef.current) {
 			hasLoadedRef.current = true;
@@ -55,6 +56,37 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	// Keep stateRef in sync
 	stateRef.current = state;
+
+	// --- Server reconciliation ---
+
+	const reconcileState = useCallback(
+		(serverSerialized: SerializedGameState, fullReplace: boolean) => {
+			const serverState = deserializeGameState(serverSerialized);
+			if (fullReplace) {
+				setState(serverState);
+			} else {
+				setState((current) => {
+					const resources = {} as Record<ResourceId, ResourceState>;
+					for (const id of RESOURCE_ORDER) {
+						resources[id] = {
+							...serverState.resources[id],
+							runStartedAt: current.resources[id].runStartedAt,
+						};
+					}
+					return { resources, lastSavedAt: serverState.lastSavedAt };
+				});
+			}
+			saveGame(serverState);
+		},
+		[],
+	);
+
+	// --- Server sync hook (save/sync intervals, action queue) ---
+
+	const { enqueueAction, resetOnServer } = useServerSync(
+		stateRef,
+		reconcileState,
+	);
 
 	// Game tick: check run completions via requestAnimationFrame
 	useEffect(() => {
@@ -98,43 +130,57 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		return () => cancelAnimationFrame(rafId);
 	}, []);
 
-	// Auto-save every 5 seconds
-	useEffect(() => {
-		const interval = setInterval(() => {
-			saveGame(stateRef.current);
-		}, AUTO_SAVE_INTERVAL_MS);
-
-		return () => clearInterval(interval);
-	}, []);
+	// --- Action callbacks (optimistic + server) ---
 
 	const startResourceRun = useCallback((resourceId: ResourceId) => {
 		setState((current) => startRun(current, resourceId));
 	}, []);
 
-	const buyResourceProducer = useCallback((resourceId: ResourceId) => {
-		setState((current) => buyProducer(current, resourceId));
-	}, []);
+	const buyResourceProducer = useCallback(
+		(resourceId: ResourceId) => {
+			setState((current) => buyProducer(current, resourceId));
+			enqueueAction("buy-producer", resourceId);
+		},
+		[enqueueAction],
+	);
 
-	const buyMaxResourceProducers = useCallback((resourceId: ResourceId) => {
-		setState((current) => buyMaxProducers(current, resourceId));
-	}, []);
+	const buyMaxResourceProducers = useCallback(
+		(resourceId: ResourceId) => {
+			setState((current) => buyMaxProducers(current, resourceId));
+			enqueueAction("buy-max-producers", resourceId);
+		},
+		[enqueueAction],
+	);
 
-	const buyResourceAutomation = useCallback((resourceId: ResourceId) => {
-		setState((current) => buyAutomation(current, resourceId));
-	}, []);
+	const buyResourceAutomation = useCallback(
+		(resourceId: ResourceId) => {
+			setState((current) => buyAutomation(current, resourceId));
+			enqueueAction("buy-automation", resourceId);
+		},
+		[enqueueAction],
+	);
 
-	const toggleResourcePause = useCallback((resourceId: ResourceId) => {
-		setState((current) => togglePause(current, resourceId));
-	}, []);
+	const toggleResourcePause = useCallback(
+		(resourceId: ResourceId) => {
+			setState((current) => togglePause(current, resourceId));
+			enqueueAction("toggle-pause", resourceId);
+		},
+		[enqueueAction],
+	);
 
-	const unlockResourceTier = useCallback((resourceId: ResourceId) => {
-		setState((current) => unlockResource(current, resourceId));
-	}, []);
+	const unlockResourceTier = useCallback(
+		(resourceId: ResourceId) => {
+			setState((current) => unlockResource(current, resourceId));
+			enqueueAction("unlock", resourceId);
+		},
+		[enqueueAction],
+	);
 
 	const resetGame = useCallback(() => {
 		clearSave();
 		setState(createInitialGameState());
-	}, []);
+		resetOnServer();
+	}, [resetOnServer]);
 
 	const value: GameActions = {
 		state,
