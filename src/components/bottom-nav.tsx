@@ -2,6 +2,7 @@
 
 import {
 	GameController01Icon,
+	Settings01Icon,
 	SquareLock02Icon,
 	Store01Icon,
 } from "@hugeicons/core-free-icons";
@@ -17,7 +18,7 @@ import {
 import { useGameState } from "@/game/game-state-context";
 import type { ResourceId } from "@/game/types";
 
-type BottomNavTab = "game" | "shop";
+type BottomNavTab = "game" | "shop" | "settings";
 
 type TabConfig = {
 	id: BottomNavTab;
@@ -40,6 +41,7 @@ const TABS: TabConfig[] = [
 			message: "Unlock Plates to access the Shop",
 		},
 	},
+	{ id: "settings", label: "Settings", icon: Settings01Icon },
 ];
 
 type LockedTabProps = {

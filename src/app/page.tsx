@@ -6,12 +6,12 @@ import { GameBoard } from "@/components/game-board";
 import { IntroVideoDialog } from "@/components/intro-video-dialog";
 import { Logo } from "@/components/logo";
 import { MusicButton } from "@/components/music-button";
-import { NewGameButton } from "@/components/new-game-button";
+import { SettingsPage } from "@/components/settings-page";
 import { SfxButton } from "@/components/sfx-button";
 import { ShopPage } from "@/components/shop-page";
 import { SfxProvider } from "@/game/sfx-context";
 
-type ActiveTab = "game" | "shop";
+type ActiveTab = "game" | "shop" | "settings";
 
 export default function Home() {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
@@ -24,9 +24,12 @@ export default function Home() {
 					<IntroVideoDialog />
 					<MusicButton />
 					<SfxButton />
-					<NewGameButton />
 				</div>
-				{activeTab === "game" ? <GameBoard /> : <ShopPage />}
+				{activeTab === "game" && <GameBoard />}
+				{activeTab === "shop" && <ShopPage />}
+				{activeTab === "settings" && (
+					<SettingsPage onReset={() => setActiveTab("game")} />
+				)}
 			</main>
 			<BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 		</SfxProvider>

@@ -13,25 +13,29 @@ import {
 } from "@/components/ui/dialog";
 import { useGameState } from "@/game/game-state-context";
 
-export const NewGameButton = () => {
+type NewGameButtonProps = {
+	onReset?: () => void;
+};
+
+export const NewGameButton = ({ onReset }: NewGameButtonProps) => {
 	const [open, setOpen] = useState(false);
 	const { resetGame } = useGameState();
 
 	const handleReset = useCallback(() => {
 		resetGame();
 		setOpen(false);
-	}, [resetGame]);
+		onReset?.();
+	}, [resetGame, onReset]);
 
 	return (
 		<>
 			<Button
-				variant="ghost"
-				size="icon-sm"
+				variant="destructive"
 				onClick={() => setOpen(true)}
-				title="New game"
-				className="text-text-muted hover:text-primary"
+				className="w-full"
 			>
 				<HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={20} />
+				Reset Game
 			</Button>
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="max-w-sm">
