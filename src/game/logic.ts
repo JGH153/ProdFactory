@@ -12,7 +12,7 @@ import {
 import { RESOURCE_CONFIGS } from "./config";
 import type { GameState, ResourceId, ResourceState } from "./types";
 
-const SPEED_MILESTONE_INTERVAL = 10;
+export const SPEED_MILESTONE_INTERVAL = 10;
 
 /** Get effective run time after speed milestones (halves every 10 producers) */
 export const getEffectiveRunTime = (
