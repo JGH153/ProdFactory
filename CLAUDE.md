@@ -62,8 +62,6 @@ pnpm validate       # Run biome check + typecheck + knip (end-of-session command
 pnpm start:db       # Start Redis via Docker Compose
 ```
 
-**Important**: Always end a development session by running `pnpm validate` to catch lint errors, type errors, and dead code before committing.
-
 ---
 
 ## Code Conventions
@@ -240,9 +238,6 @@ Each tier's base run time is `4 * 2^(tier_index)` seconds.
 
 1. **Ask clarifying questions** when requirements are ambiguous — do not proceed until 98% confident of the intent.
 2. Write modular, extendable code that follows the conventions above.
-3. **Always end sessions** by running the full validation suite:
-   ```bash
-   pnpm validate
-   ```
-   This runs Biome check, TypeScript checking, and Knip. Fix any issues before committing.
+3. **Always end sessions** by running `/validate` to catch lint errors, type errors, and dead code before committing.
 4. Keep the codebase clean — no unused exports, no dead code, no type errors.
+5. **No mutating git commands** — never run `git commit`, `git fetch`, `git branch`, `git push`, or `git pull`. Read-only commands like `git log`, `git status`, and `git diff` are fine. The user manages all git mutations manually.

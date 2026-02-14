@@ -20,7 +20,7 @@
 
 # misc
 .DS_Store
-.claude/
+.claude/settings.local.json
 *.pem
 
 # debug
