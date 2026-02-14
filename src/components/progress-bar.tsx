@@ -6,10 +6,15 @@ import { ParticleEffect } from "@/components/particle-effect";
 import { Progress } from "@/components/ui/progress";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
-import { canStartRun, getEffectiveRunTime } from "@/game/logic";
+import {
+	canStartRun,
+	getClampedRunTime,
+	getEffectiveRunTime,
+} from "@/game/logic";
 import type { ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
 import { useRunProgress } from "@/game/use-run-progress";
+import { bigNum, bnFormat } from "@/lib/big-number";
 
 type Props = {
 	resource: ResourceState;
@@ -17,7 +22,7 @@ type Props = {
 
 export const ProgressBar = ({ resource }: Props) => {
 	const { state } = useGameState();
-	const progress = useRunProgress(resource);
+	const { progress, isContinuous } = useRunProgress(resource);
 	const { particles, triggerBurst } = useParticleBurst();
 	const barRef = useRef<HTMLDivElement>(null);
 	const wasRunningRef = useRef(false);
@@ -47,8 +52,14 @@ export const ProgressBar = ({ resource }: Props) => {
 		resourceId: resource.id,
 		producers: resource.producers,
 	});
+	const clampedRunTime = getClampedRunTime({
+		resourceId: resource.id,
+		producers: resource.producers,
+	});
 	const remainingSeconds = isRunning
-		? Math.max(0, effectiveRunTime - Math.floor(progress * effectiveRunTime))
+		? isContinuous
+			? effectiveRunTime
+			: Math.max(0, clampedRunTime - Math.floor(progress * clampedRunTime))
 		: effectiveRunTime;
 
 	const inputResourceName = config.inputResourceId
@@ -60,11 +71,11 @@ export const ProgressBar = ({ resource }: Props) => {
 			<div ref={barRef} className="relative overflow-visible">
 				<ParticleEffect particles={particles} />
 				<Progress
-					value={progress * 100}
-					className="h-3 bg-border [&>[data-slot=progress-indicator]]:bg-primary *:data-[slot=progress-indicator]:transition-none!"
+					value={isContinuous && isRunning ? 100 : progress * 100}
+					className={`h-3 bg-border [&>[data-slot=progress-indicator]]:bg-primary *:data-[slot=progress-indicator]:transition-none! ${isContinuous && isRunning ? "animate-shimmer" : ""}`}
 				/>
 				<AnimatePresence>
-					{progress >= 1 && (
+					{!isContinuous && progress >= 1 && (
 						<motion.div
 							className="absolute inset-0 rounded-full bg-success/30"
 							initial={{ opacity: 0.8 }}
@@ -84,7 +95,9 @@ export const ProgressBar = ({ resource }: Props) => {
 						: isWaitingForInput && inputResourceName
 							? `Waiting for ${inputResourceName}...`
 							: isRunning
-								? `${remainingSeconds}s`
+								? isContinuous
+									? `${remainingSeconds}s/run · ${bnFormat(bigNum(resource.producers / effectiveRunTime))}/s`
+									: `${remainingSeconds}s`
 								: `${effectiveRunTime}s`}
 				</span>
 			</div>

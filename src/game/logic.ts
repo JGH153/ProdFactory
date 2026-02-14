@@ -13,6 +13,7 @@ import { RESOURCE_CONFIGS } from "./config";
 import type { GameState, ResourceId, ResourceState } from "./types";
 
 export const SPEED_MILESTONE_INTERVAL = 10;
+const CONTINUOUS_THRESHOLD = 0.5;
 
 /** Get effective run time after speed milestones (halves every 10 producers) */
 export const getEffectiveRunTime = ({
@@ -26,6 +27,44 @@ export const getEffectiveRunTime = ({
 	const speedDoublings = Math.floor(producers / SPEED_MILESTONE_INTERVAL);
 	return config.baseRunTime / 2 ** speedDoublings;
 };
+
+/** Whether a resource is in continuous mode (effective run time below threshold) */
+export const isContinuousMode = ({
+	resourceId,
+	producers,
+}: {
+	resourceId: ResourceId;
+	producers: number;
+}): boolean =>
+	getEffectiveRunTime({ resourceId, producers }) < CONTINUOUS_THRESHOLD;
+
+/** Multiplier to compensate for clamped tick rate in continuous mode */
+const getContinuousMultiplier = ({
+	resourceId,
+	producers,
+}: {
+	resourceId: ResourceId;
+	producers: number;
+}): number => {
+	const effective = getEffectiveRunTime({ resourceId, producers });
+	if (effective >= CONTINUOUS_THRESHOLD) {
+		return 1;
+	}
+	return CONTINUOUS_THRESHOLD / effective;
+};
+
+/** Run time clamped to continuous threshold minimum */
+export const getClampedRunTime = ({
+	resourceId,
+	producers,
+}: {
+	resourceId: ResourceId;
+	producers: number;
+}): number =>
+	Math.max(
+		getEffectiveRunTime({ resourceId, producers }),
+		CONTINUOUS_THRESHOLD,
+	);
 
 /** Get speed milestone info for a resource */
 export const getSpeedMilestone = (
@@ -177,12 +216,16 @@ export const canStartRun = ({
 		return false;
 	}
 
-	// Check if we have enough input resources
+	// Check if we have enough input resources (multiplied in continuous mode)
 	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
 		const inputResource = state.resources[config.inputResourceId];
+		const multiplier = getContinuousMultiplier({
+			resourceId,
+			producers: resource.producers,
+		});
 		const totalInputCost = bnMul(
-			config.inputCostPerRun,
-			bigNum(resource.producers),
+			bnMul(config.inputCostPerRun, bigNum(resource.producers)),
+			bigNum(multiplier),
 		);
 		if (!bnGte(inputResource.amount, totalInputCost)) {
 			return false;
@@ -208,12 +251,16 @@ export const startRun = ({
 	const resource = state.resources[resourceId];
 	let newResources = { ...state.resources };
 
-	// Deduct input cost at run start
+	// Deduct input cost at run start (multiplied in continuous mode)
 	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
 		const inputResource = state.resources[config.inputResourceId];
+		const multiplier = getContinuousMultiplier({
+			resourceId,
+			producers: resource.producers,
+		});
 		const totalInputCost = bnMul(
-			config.inputCostPerRun,
-			bigNum(resource.producers),
+			bnMul(config.inputCostPerRun, bigNum(resource.producers)),
+			bigNum(multiplier),
 		);
 		newResources = {
 			...newResources,
@@ -262,7 +309,11 @@ export const completeRun = ({
 		return state;
 	}
 
-	const produced = bigNum(resource.producers);
+	const multiplier = getContinuousMultiplier({
+		resourceId,
+		producers: resource.producers,
+	});
+	const produced = bnMul(bigNum(resource.producers), bigNum(multiplier));
 
 	return {
 		...state,
@@ -396,7 +447,7 @@ export const buyMaxProducers = ({
 	return current;
 };
 
-/** Get total input cost for a run (scales with producers) */
+/** Get total input cost for a run (scales with producers, multiplied in continuous mode) */
 export const getRunInputCost = ({
 	resourceId,
 	producers,
@@ -411,5 +462,9 @@ export const getRunInputCost = ({
 	if (bnIsZero(config.inputCostPerRun)) {
 		return null;
 	}
-	return bnMul(config.inputCostPerRun, bigNum(producers));
+	const multiplier = getContinuousMultiplier({ resourceId, producers });
+	return bnMul(
+		bnMul(config.inputCostPerRun, bigNum(producers)),
+		bigNum(multiplier),
+	);
 };

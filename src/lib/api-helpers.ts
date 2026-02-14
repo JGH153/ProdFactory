@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { RESOURCE_ORDER } from "@/game/config";
-import { createInitialGameState } from "@/game/initial-state";
 import {
 	deserializeGameState,
 	type SerializedGameState,
@@ -11,19 +10,13 @@ import type { GameState, ResourceId } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
 import {
-	deleteSyncSnapshot,
 	getSyncSnapshot,
 	loadStoredGameState,
 	type StoredGameState,
 	saveStoredGameState,
 	setSyncSnapshot,
 } from "./redis";
-import {
-	COOKIE_NAME,
-	incrementWarnings,
-	resetWarnings,
-	validateSession,
-} from "./session";
+import { COOKIE_NAME, incrementWarnings, validateSession } from "./session";
 
 const VALID_RESOURCE_IDS: ReadonlySet<string> = new Set<string>([
 	"iron-ore",
@@ -286,18 +279,10 @@ export const parseVersionOnlyBody = async (
 
 // --- Plausibility-checked persistence ---
 
-const MAX_WARNINGS = 10;
-
 export type PlausibilitySaveResult =
 	| { type: "accepted"; serverVersion: number }
 	| {
 			type: "corrected";
-			state: SerializedGameState;
-			serverVersion: number;
-			warning: string;
-	  }
-	| {
-			type: "reset_violation";
 			state: SerializedGameState;
 			serverVersion: number;
 			warning: string;
@@ -337,23 +322,7 @@ export const persistWithPlausibility = async ({
 	});
 
 	if (result.corrected && result.correctedState) {
-		const warningCount = await incrementWarnings(sessionId);
-
-		if (warningCount >= MAX_WARNINGS) {
-			const freshState = serializeGameState(createInitialGameState());
-			await saveStoredGameState({
-				sessionId,
-				stored: { ...freshState, serverVersion: newVersion },
-			});
-			await deleteSyncSnapshot(sessionId);
-			await resetWarnings(sessionId);
-			return {
-				type: "reset_violation",
-				state: freshState,
-				serverVersion: newVersion,
-				warning: "Too many plausibility violations — game state has been reset",
-			};
-		}
+		await incrementWarnings(sessionId);
 
 		await saveStoredGameState({
 			sessionId,

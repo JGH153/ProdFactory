@@ -18,7 +18,7 @@ import {
 	canBuyProducer,
 	canStartRun,
 	completeRun,
-	getEffectiveRunTime,
+	getClampedRunTime,
 	isRunComplete,
 	SPEED_MILESTONE_INTERVAL,
 	startRun,
@@ -114,7 +114,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 					if (
 						isRunComplete({
 							resource,
-							runTime: getEffectiveRunTime({
+							runTime: getClampedRunTime({
 								resourceId,
 								producers: resource.producers,
 							}),

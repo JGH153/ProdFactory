@@ -1,20 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getEffectiveRunTime } from "./logic";
+import { getClampedRunTime, isContinuousMode } from "./logic";
 import type { ResourceState } from "./types";
 
+type RunProgress = {
+	progress: number;
+	isContinuous: boolean;
+};
+
 /**
- * Returns 0-1 progress for an active run.
- * Only triggers per-frame re-renders while a run is active.
+ * Returns 0-1 progress for an active run and continuous mode flag.
+ * In continuous mode, skips RAF loop entirely (always returns progress=1).
  */
-export const useRunProgress = (resource: ResourceState): number => {
+export const useRunProgress = (resource: ResourceState): RunProgress => {
 	const [progress, setProgress] = useState(0);
 	const rafRef = useRef<number>(0);
 
 	const runStartedAt = resource.runStartedAt;
+	const continuous = isContinuousMode({
+		resourceId: resource.id,
+		producers: resource.producers,
+	});
 	const runTimeMs =
-		getEffectiveRunTime({
+		getClampedRunTime({
 			resourceId: resource.id,
 			producers: resource.producers,
 		}) * 1000;
@@ -39,12 +48,18 @@ export const useRunProgress = (resource: ResourceState): number => {
 			return;
 		}
 
+		// In continuous mode, always show full bar — no RAF needed
+		if (continuous) {
+			setProgress(1);
+			return;
+		}
+
 		rafRef.current = requestAnimationFrame(tick);
 
 		return () => {
 			cancelAnimationFrame(rafRef.current);
 		};
-	}, [runStartedAt, tick]);
+	}, [runStartedAt, tick, continuous]);
 
-	return progress;
+	return { progress, isContinuous: continuous };
 };

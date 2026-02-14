@@ -76,13 +76,13 @@ export const checkPlausibility = ({
 		if (!claimedResource.isUnlocked || (claimedResource.isPaused ?? false)) {
 			maxProduction = bigNum(0);
 		} else {
-			const runTimeMs =
-				getEffectiveRunTime({
-					resourceId,
-					producers: snapshotResource.producers,
-				}) * 1000;
-			const maxRuns = Math.floor(elapsed / runTimeMs);
-			const producers = snapshotResource.producers;
+			const producers = Math.max(
+				snapshotResource.producers,
+				claimedResource.producers,
+			);
+			const runTimeMs = getEffectiveRunTime({ resourceId, producers }) * 1000;
+			// +1 accounts for a run already in-progress when the snapshot was taken
+			const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
 			maxProduction = bigNum(maxRuns * producers);
 		}
 

@@ -3,9 +3,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RESOURCE_CONFIGS } from "@/game/config";
-import { getRunInputCost } from "@/game/logic";
+import { getEffectiveRunTime, getRunInputCost } from "@/game/logic";
 import type { ResourceState } from "@/game/types";
-import { bnFormat } from "@/lib/big-number";
+import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
 import { AutomateButton } from "./automate-button";
 import { BuyButton } from "./buy-button";
 import { ProgressBar } from "./progress-bar";
@@ -23,6 +23,20 @@ export const ResourceCard = ({ resource }: Props) => {
 		resourceId: resource.id,
 		producers: resource.producers,
 	});
+	const isAutomatedActive = resource.isAutomated && !resource.isPaused;
+	const inputCostPerSecond =
+		isAutomatedActive && config.inputCostPerRun
+			? bnMul(
+					config.inputCostPerRun,
+					bigNum(
+						resource.producers /
+							getEffectiveRunTime({
+								resourceId: resource.id,
+								producers: resource.producers,
+							}),
+					),
+				)
+			: null;
 
 	return (
 		<motion.div
@@ -43,11 +57,19 @@ export const ResourceCard = ({ resource }: Props) => {
 					<div className="flex-1 flex flex-col gap-2">
 						<ProgressBar resource={resource} />
 
-						{inputCost && config.inputResourceId && (
+						{config.inputResourceId && inputCostPerSecond ? (
 							<span className="text-xs text-text-muted">
-								Cost: {bnFormat(inputCost)}{" "}
-								{RESOURCE_CONFIGS[config.inputResourceId].name}
+								Cost: {bnFormat(inputCostPerSecond)}{" "}
+								{RESOURCE_CONFIGS[config.inputResourceId].name}/s
 							</span>
+						) : (
+							inputCost &&
+							config.inputResourceId && (
+								<span className="text-xs text-text-muted">
+									Cost: {bnFormat(inputCost)}{" "}
+									{RESOURCE_CONFIGS[config.inputResourceId].name}
+								</span>
+							)
 						)}
 
 						<BuyButton resource={resource} />

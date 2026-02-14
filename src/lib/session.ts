@@ -51,19 +51,6 @@ export const incrementWarnings = async (sessionId: string): Promise<number> => {
 	return newCount;
 };
 
-export const resetWarnings = async (sessionId: string): Promise<void> => {
-	const data = await getSessionData(sessionId);
-	if (!data) {
-		return;
-	}
-	const updated: SessionData = {
-		...data,
-		warnings: 0,
-		lastActiveAt: Date.now(),
-	};
-	await setSessionData({ sessionId, data: updated });
-};
-
 export const buildSessionCookie = (sessionId: string): string => {
 	const secure = process.env.NODE_ENV !== "development" ? "; Secure" : "";
 	return `${COOKIE_NAME}=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${COOKIE_MAX_AGE}; Path=/${secure}`;

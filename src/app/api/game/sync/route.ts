@@ -74,7 +74,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 		);
 	}
 
-	if (result.type === "corrected" || result.type === "reset_violation") {
+	if (result.type === "corrected") {
 		return NextResponse.json({
 			state: result.state,
 			serverVersion: result.serverVersion,
