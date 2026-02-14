@@ -37,6 +37,8 @@ type LoadGameResponse = {
 
 type SaveGameResponse = {
 	serverVersion: number;
+	state?: SerializedGameState | null;
+	warning?: string | null;
 };
 
 type SyncGameResponse = {

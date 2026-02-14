@@ -124,3 +124,19 @@ export const setSyncSnapshot = async ({
 export const deleteSyncSnapshot = async (sessionId: string): Promise<void> => {
 	await redis.del(`sync:${sessionId}`);
 };
+
+// --- Rate limiting ---
+
+export const incrementRateLimitCounter = async ({
+	key,
+	windowSeconds,
+}: {
+	key: string;
+	windowSeconds: number;
+}): Promise<number> => {
+	const current = await redis.incr(key);
+	if (current === 1) {
+		await redis.expire(key, windowSeconds);
+	}
+	return current;
+};

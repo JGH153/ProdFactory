@@ -1,14 +1,19 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { createInitialGameState } from "@/game/initial-state";
+import { serializeGameState } from "@/game/serialization";
 import { getSessionFromRequest, parseSaveActionBody } from "@/lib/api-helpers";
 import { buildSyncSnapshot, checkPlausibility } from "@/lib/plausibility";
 import {
+	deleteSyncSnapshot,
 	getSyncSnapshot,
 	loadStoredGameState,
 	saveStoredGameState,
 	setSyncSnapshot,
 } from "@/lib/redis";
-import { incrementWarnings } from "@/lib/session";
+import { incrementWarnings, resetWarnings } from "@/lib/session";
+
+const MAX_WARNINGS = 10;
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const sessionResult = await getSessionFromRequest(request);
@@ -68,6 +73,22 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	});
 
 	if (result.corrected && result.correctedState) {
+		const warningCount = await incrementWarnings(sessionId);
+
+		if (warningCount >= MAX_WARNINGS) {
+			const freshState = serializeGameState(createInitialGameState());
+			const resetStored = { ...freshState, serverVersion: newVersion };
+			await saveStoredGameState({ sessionId, stored: resetStored });
+			await deleteSyncSnapshot(sessionId);
+			await resetWarnings(sessionId);
+
+			return NextResponse.json({
+				state: freshState,
+				serverVersion: newVersion,
+				warning: "Too many plausibility violations — game state has been reset",
+			});
+		}
+
 		const correctedStored = {
 			...result.correctedState,
 			serverVersion: newVersion,
@@ -78,7 +99,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 			timestamp: serverNow,
 		});
 		await setSyncSnapshot({ sessionId, snapshot });
-		await incrementWarnings(sessionId);
 
 		return NextResponse.json({
 			state: result.correctedState,

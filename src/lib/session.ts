@@ -30,14 +30,35 @@ export const validateSession = async (
 	return updated;
 };
 
-export const incrementWarnings = async (sessionId: string): Promise<void> => {
+export const incrementWarnings = async (sessionId: string): Promise<number> => {
+	const data = await getSessionData(sessionId);
+	if (!data) {
+		return 0;
+	}
+	console.warn(
+		"Incrementing warnings for session",
+		sessionId,
+		"current count:",
+		data.warnings,
+	);
+	const newCount = data.warnings + 1;
+	const updated: SessionData = {
+		...data,
+		warnings: newCount,
+		lastActiveAt: Date.now(),
+	};
+	await setSessionData({ sessionId, data: updated });
+	return newCount;
+};
+
+export const resetWarnings = async (sessionId: string): Promise<void> => {
 	const data = await getSessionData(sessionId);
 	if (!data) {
 		return;
 	}
 	const updated: SessionData = {
 		...data,
-		warnings: data.warnings + 1,
+		warnings: 0,
 		lastActiveAt: Date.now(),
 	};
 	await setSessionData({ sessionId, data: updated });

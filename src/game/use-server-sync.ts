@@ -176,6 +176,9 @@ export const useServerSync = ({
 				.then((result) => {
 					if (queueRef.current.length === 0 && !processingRef.current) {
 						serverVersionRef.current = result.serverVersion;
+						if (result.state) {
+							reconcileState({ state: result.state, fullReplace: false });
+						}
 					}
 				})
 				.catch((error) => {

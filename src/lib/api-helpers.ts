@@ -66,6 +66,9 @@ const isValidSerializedBigNum = (value: unknown): value is SerializedBigNum => {
 	if (!Number.isFinite(value.e) || !Number.isInteger(value.e)) {
 		return false;
 	}
+	if (value.e < 0 || value.e > 1000) {
+		return false;
+	}
 	return true;
 };
 
@@ -138,12 +141,21 @@ const validateSerializedGameState = (
 
 // --- Session helpers ---
 
+const UUID_REGEX =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const getSessionFromRequest = async (
 	request: NextRequest,
 ): Promise<{ sessionId: string } | NextResponse> => {
 	const sessionId = request.cookies.get(COOKIE_NAME)?.value ?? null;
 	if (!sessionId) {
 		return NextResponse.json({ error: "No session cookie" }, { status: 401 });
+	}
+	if (!UUID_REGEX.test(sessionId)) {
+		return NextResponse.json(
+			{ error: "Invalid session format" },
+			{ status: 401 },
+		);
 	}
 	const session = await validateSession(sessionId);
 	if (!session) {
