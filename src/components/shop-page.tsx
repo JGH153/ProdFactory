@@ -7,6 +7,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -50,6 +51,13 @@ const SHOP_MULTIPLIERS: ReadonlyArray<{
 
 export const ShopPage = () => {
 	const { state, activateShopBoost } = useGameState();
+	const [activatingId, setActivatingId] = useState<ShopBoostId | null>(null);
+
+	const handleActivate = async (boostId: ShopBoostId) => {
+		setActivatingId(boostId);
+		await activateShopBoost(boostId);
+		setActivatingId(null);
+	};
 
 	return (
 		<div className="w-full max-w-lg flex flex-col gap-6">
@@ -65,6 +73,7 @@ export const ShopPage = () => {
 			>
 				{SHOP_MULTIPLIERS.map((multiplier) => {
 					const isActive = state.shopBoosts[multiplier.id];
+					const isActivating = activatingId === multiplier.id;
 					return (
 						<motion.div
 							key={multiplier.id}
@@ -104,9 +113,17 @@ export const ShopPage = () => {
 									) : (
 										<Button
 											className="w-full"
-											onClick={() => activateShopBoost(multiplier.id)}
+											onClick={() => handleActivate(multiplier.id)}
+											disabled={activatingId !== null}
 										>
-											Activate
+											{isActivating ? (
+												<>
+													<span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+													Activating...
+												</>
+											) : (
+												"Activate"
+											)}
 										</Button>
 									)}
 								</CardContent>

@@ -40,6 +40,11 @@ export const useServerSync = ({
 		resourceId?: ResourceId;
 		boostId?: ShopBoostId;
 	}) => void;
+	executeAwaitedAction: (args: {
+		endpoint: string;
+		resourceId?: ResourceId;
+		boostId?: ShopBoostId;
+	}) => Promise<SerializedGameState>;
 	resetOnServer: () => void;
 } => {
 	const serverVersionRef = useRef(0);
@@ -251,6 +256,60 @@ export const useServerSync = ({
 		return () => clearInterval(interval);
 	}, [executeSync, reconcileState, stateRef]);
 
+	// --- Awaited action (bypasses queue, waits for server response) ---
+
+	const executeAwaitedAction = useCallback(
+		async ({
+			endpoint,
+			resourceId,
+			boostId,
+		}: {
+			endpoint: string;
+			resourceId?: ResourceId;
+			boostId?: ShopBoostId;
+		}): Promise<SerializedGameState> => {
+			// Wait for queue to drain
+			while (processingRef.current || queueRef.current.length > 0) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+
+			// Wait for any in-flight save/sync
+			if (inFlightSaveRef.current) {
+				await inFlightSaveRef.current;
+			}
+
+			// Block queue and save/sync from running
+			processingRef.current = true;
+
+			try {
+				const result = await executeAction({
+					endpoint,
+					resourceId,
+					boostId,
+					serverVersion: serverVersionRef.current,
+				});
+				serverVersionRef.current = result.serverVersion;
+				return result.state;
+			} catch (error) {
+				if (error instanceof ConflictError) {
+					serverVersionRef.current = error.serverVersion;
+					const retryResult = await executeAction({
+						endpoint,
+						resourceId,
+						boostId,
+						serverVersion: serverVersionRef.current,
+					});
+					serverVersionRef.current = retryResult.serverVersion;
+					return retryResult.state;
+				}
+				throw error;
+			} finally {
+				processingRef.current = false;
+			}
+		},
+		[executeAction],
+	);
+
 	// --- Exported methods ---
 
 	const enqueueAction = useCallback(
@@ -291,5 +350,5 @@ export const useServerSync = ({
 			});
 	}, [executeReset, reconcileState]);
 
-	return { enqueueAction, resetOnServer };
+	return { enqueueAction, executeAwaitedAction, resetOnServer };
 };

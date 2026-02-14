@@ -12,7 +12,6 @@ import {
 import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
 import {
-	activateBoost,
 	buyAutomation,
 	buyMaxProducers,
 	buyProducer,
@@ -25,7 +24,6 @@ import {
 	SPEED_MILESTONE_INTERVAL,
 	startRun,
 	togglePause,
-	unlockResource,
 } from "./logic";
 import { useMilestoneNotification } from "./milestone-context";
 import { clearSave, loadGame, saveGame } from "./persistence";
@@ -46,8 +44,8 @@ type GameActions = {
 	buyMaxResourceProducers: (resourceId: ResourceId) => void;
 	buyResourceAutomation: (resourceId: ResourceId) => void;
 	toggleResourcePause: (resourceId: ResourceId) => void;
-	unlockResourceTier: (resourceId: ResourceId) => void;
-	activateShopBoost: (boostId: ShopBoostId) => void;
+	unlockResourceTier: (resourceId: ResourceId) => Promise<boolean>;
+	activateShopBoost: (boostId: ShopBoostId) => Promise<boolean>;
 	resetGame: () => void;
 };
 
@@ -106,7 +104,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	// --- Server sync hook (save/sync intervals, action queue) ---
 
-	const { enqueueAction, resetOnServer } = useServerSync({
+	const { enqueueAction, executeAwaitedAction, resetOnServer } = useServerSync({
 		stateRef,
 		reconcileState,
 	});
@@ -223,19 +221,35 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	);
 
 	const unlockResourceTier = useCallback(
-		(resourceId: ResourceId) => {
-			setState((current) => unlockResource({ state: current, resourceId }));
-			enqueueAction({ endpoint: "unlock", resourceId });
+		async (resourceId: ResourceId): Promise<boolean> => {
+			try {
+				const serverState = await executeAwaitedAction({
+					endpoint: "unlock",
+					resourceId,
+				});
+				reconcileState({ state: serverState, fullReplace: false });
+				return true;
+			} catch {
+				return false;
+			}
 		},
-		[enqueueAction],
+		[executeAwaitedAction, reconcileState],
 	);
 
 	const activateShopBoost = useCallback(
-		(boostId: ShopBoostId) => {
-			setState((current) => activateBoost({ state: current, boostId }));
-			enqueueAction({ endpoint: "activate-boost", boostId });
+		async (boostId: ShopBoostId): Promise<boolean> => {
+			try {
+				const serverState = await executeAwaitedAction({
+					endpoint: "activate-boost",
+					boostId,
+				});
+				reconcileState({ state: serverState, fullReplace: false });
+				return true;
+			} catch {
+				return false;
+			}
 		},
-		[enqueueAction],
+		[executeAwaitedAction, reconcileState],
 	);
 
 	const resetGame = useCallback(() => {

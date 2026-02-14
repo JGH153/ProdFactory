@@ -6,6 +6,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
@@ -21,10 +22,13 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 	const { state, unlockResourceTier } = useGameState();
 	const config = RESOURCE_CONFIGS[resourceId];
 	const affordable = canUnlock({ state, resourceId });
+	const [isUnlocking, setIsUnlocking] = useState(false);
 
-	const handleUnlock = () => {
-		if (affordable) {
-			unlockResourceTier(resourceId);
+	const handleUnlock = async () => {
+		if (affordable && !isUnlocking) {
+			setIsUnlocking(true);
+			await unlockResourceTier(resourceId);
+			setIsUnlocking(false);
 		}
 	};
 
@@ -43,22 +47,30 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 			transition={{ duration: 0.3 }}
 		>
 			<p className="text-text-muted text-sm mb-3 font-medium">
-				{affordable ? "Ready to unlock!" : "Locked"}
+				{isUnlocking
+					? "Unlocking..."
+					: affordable
+						? "Ready to unlock!"
+						: "Locked"}
 			</p>
 			<Button
 				onClick={handleUnlock}
-				disabled={!affordable}
+				disabled={!affordable || isUnlocking}
 				className={
-					affordable
+					affordable && !isUnlocking
 						? "bg-accent-amber hover:bg-accent-amber/80 text-primary-foreground font-bold transition-all"
 						: "bg-primary/30 text-primary-foreground/50 font-bold"
 				}
 			>
-				<HugeiconsIcon
-					icon={affordable ? SquareUnlock02Icon : SquareLock02Icon}
-					size={16}
-				/>
-				Unlock — {unlockCostText}
+				{isUnlocking ? (
+					<span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+				) : (
+					<HugeiconsIcon
+						icon={affordable ? SquareUnlock02Icon : SquareLock02Icon}
+						size={16}
+					/>
+				)}
+				{isUnlocking ? "Unlocking..." : `Unlock — ${unlockCostText}`}
 			</Button>
 		</motion.div>
 	);
