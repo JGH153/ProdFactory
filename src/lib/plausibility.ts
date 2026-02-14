@@ -1,5 +1,6 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
-import { getEffectiveRunTime } from "@/game/logic";
+import { createInitialGameState } from "@/game/initial-state";
+import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
 import type {
 	SerializedGameState,
 	SerializedResourceState,
@@ -41,6 +42,10 @@ export const checkPlausibility = ({
 		return { corrected: false, correctedState: null, warnings: [] };
 	}
 
+	const defaultBoosts = createInitialGameState().shopBoosts;
+	const shopBoosts = claimedState.shopBoosts ?? defaultBoosts;
+	const productionMul = shopBoosts["production-2x"] ? 2 : 1;
+
 	let corrected = false;
 	const warnings: string[] = [];
 	const correctedResources = { ...claimedState.resources } as Record<
@@ -80,10 +85,20 @@ export const checkPlausibility = ({
 				snapshotResource.producers,
 				claimedResource.producers,
 			);
-			const runTimeMs = getEffectiveRunTime({ resourceId, producers }) * 1000;
+			const rtm = getRunTimeMultiplier({
+				shopBoosts,
+				isAutomated:
+					claimedResource.isAutomated && !(claimedResource.isPaused ?? false),
+			});
+			const runTimeMs =
+				getEffectiveRunTime({
+					resourceId,
+					producers,
+					runTimeMultiplier: rtm,
+				}) * 1000;
 			// +1 accounts for a run already in-progress when the snapshot was taken
 			const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
-			maxProduction = bigNum(maxRuns * producers);
+			maxProduction = bigNum(maxRuns * producers * productionMul);
 		}
 
 		if (bnIsZero(maxProduction) && !bnIsZero(actualGain)) {

@@ -15,8 +15,16 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useGameState } from "@/game/game-state-context";
+import type { ShopBoostId } from "@/game/types";
 
-const SHOP_MULTIPLIERS = [
+const SHOP_MULTIPLIERS: ReadonlyArray<{
+	id: ShopBoostId;
+	name: string;
+	description: string;
+	icon: typeof Rocket01Icon;
+	colorClass: string;
+}> = [
 	{
 		id: "production-2x",
 		name: "2x All Production",
@@ -38,9 +46,11 @@ const SHOP_MULTIPLIERS = [
 		icon: Timer01Icon,
 		colorClass: "text-success",
 	},
-] as const;
+];
 
 export const ShopPage = () => {
+	const { state, activateShopBoost } = useGameState();
+
 	return (
 		<div className="w-full max-w-lg flex flex-col gap-6">
 			<h2 className="text-2xl font-bold text-text-primary">Shop</h2>
@@ -53,34 +63,57 @@ export const ShopPage = () => {
 					visible: { transition: { staggerChildren: 0.1 } },
 				}}
 			>
-				{SHOP_MULTIPLIERS.map((multiplier) => (
-					<motion.div
-						key={multiplier.id}
-						variants={{
-							hidden: { opacity: 0, y: 20 },
-							visible: { opacity: 1, y: 0 },
-						}}
-					>
-						<Card>
-							<CardHeader>
-								<div className="flex items-center gap-3">
-									<div className={multiplier.colorClass}>
-										<HugeiconsIcon icon={multiplier.icon} size={28} />
+				{SHOP_MULTIPLIERS.map((multiplier) => {
+					const isActive = state.shopBoosts[multiplier.id];
+					return (
+						<motion.div
+							key={multiplier.id}
+							variants={{
+								hidden: { opacity: 0, y: 20 },
+								visible: { opacity: 1, y: 0 },
+							}}
+						>
+							<Card
+								className={isActive ? "border-success/50 bg-success/5" : ""}
+							>
+								<CardHeader>
+									<div className="flex items-center gap-3">
+										<div
+											className={
+												isActive ? "text-success" : multiplier.colorClass
+											}
+										>
+											<HugeiconsIcon icon={multiplier.icon} size={28} />
+										</div>
+										<div>
+											<CardTitle>{multiplier.name}</CardTitle>
+											<CardDescription>
+												{multiplier.description}
+											</CardDescription>
+										</div>
 									</div>
-									<div>
-										<CardTitle>{multiplier.name}</CardTitle>
-										<CardDescription>{multiplier.description}</CardDescription>
-									</div>
-								</div>
-							</CardHeader>
-							<CardContent>
-								<Button disabled className="w-full opacity-50">
-									Coming Soon
-								</Button>
-							</CardContent>
-						</Card>
-					</motion.div>
-				))}
+								</CardHeader>
+								<CardContent>
+									{isActive ? (
+										<Button
+											disabled
+											className="w-full bg-success/20 text-success border-success/30"
+										>
+											Active
+										</Button>
+									) : (
+										<Button
+											className="w-full"
+											onClick={() => activateShopBoost(multiplier.id)}
+										>
+											Activate
+										</Button>
+									)}
+								</CardContent>
+							</Card>
+						</motion.div>
+					);
+				})}
 			</motion.div>
 		</div>
 	);

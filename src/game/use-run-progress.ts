@@ -13,7 +13,13 @@ type RunProgress = {
  * Returns 0-1 progress for an active run and continuous mode flag.
  * In continuous mode, skips RAF loop entirely (always returns progress=1).
  */
-export const useRunProgress = (resource: ResourceState): RunProgress => {
+export const useRunProgress = ({
+	resource,
+	runTimeMultiplier = 1,
+}: {
+	resource: ResourceState;
+	runTimeMultiplier?: number;
+}): RunProgress => {
 	const [progress, setProgress] = useState(0);
 	const rafRef = useRef<number>(0);
 
@@ -21,11 +27,13 @@ export const useRunProgress = (resource: ResourceState): RunProgress => {
 	const continuous = isContinuousMode({
 		resourceId: resource.id,
 		producers: resource.producers,
+		runTimeMultiplier,
 	});
 	const runTimeMs =
 		getClampedRunTime({
 			resourceId: resource.id,
 			producers: resource.producers,
+			runTimeMultiplier,
 		}) * 1000;
 
 	const tick = useCallback(() => {

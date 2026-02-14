@@ -10,43 +10,78 @@ import {
 	bnSub,
 } from "@/lib/big-number";
 import { RESOURCE_CONFIGS } from "./config";
-import type { GameState, ResourceId, ResourceState } from "./types";
+import type {
+	GameState,
+	ResourceId,
+	ResourceState,
+	ShopBoostId,
+	ShopBoosts,
+} from "./types";
 
 export const SPEED_MILESTONE_INTERVAL = 10;
 const CONTINUOUS_THRESHOLD = 0.5;
+
+/** Compute run time multiplier from active shop boosts */
+export const getRunTimeMultiplier = ({
+	shopBoosts,
+	isAutomated,
+}: {
+	shopBoosts: ShopBoosts;
+	isAutomated: boolean;
+}): number => {
+	let m = 1;
+	if (shopBoosts["runtime-50"]) {
+		m *= 0.5;
+	}
+	if (shopBoosts["automation-2x"] && isAutomated) {
+		m *= 0.5;
+	}
+	return m;
+};
 
 /** Get effective run time after speed milestones (halves every 10 producers) */
 export const getEffectiveRunTime = ({
 	resourceId,
 	producers,
+	runTimeMultiplier = 1,
 }: {
 	resourceId: ResourceId;
 	producers: number;
+	runTimeMultiplier?: number;
 }): number => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	const speedDoublings = Math.floor(producers / SPEED_MILESTONE_INTERVAL);
-	return config.baseRunTime / 2 ** speedDoublings;
+	return (config.baseRunTime / 2 ** speedDoublings) * runTimeMultiplier;
 };
 
 /** Whether a resource is in continuous mode (effective run time below threshold) */
 export const isContinuousMode = ({
 	resourceId,
 	producers,
+	runTimeMultiplier = 1,
 }: {
 	resourceId: ResourceId;
 	producers: number;
+	runTimeMultiplier?: number;
 }): boolean =>
-	getEffectiveRunTime({ resourceId, producers }) < CONTINUOUS_THRESHOLD;
+	getEffectiveRunTime({ resourceId, producers, runTimeMultiplier }) <
+	CONTINUOUS_THRESHOLD;
 
 /** Multiplier to compensate for clamped tick rate in continuous mode */
-const getContinuousMultiplier = ({
+export const getContinuousMultiplier = ({
 	resourceId,
 	producers,
+	runTimeMultiplier = 1,
 }: {
 	resourceId: ResourceId;
 	producers: number;
+	runTimeMultiplier?: number;
 }): number => {
-	const effective = getEffectiveRunTime({ resourceId, producers });
+	const effective = getEffectiveRunTime({
+		resourceId,
+		producers,
+		runTimeMultiplier,
+	});
 	if (effective >= CONTINUOUS_THRESHOLD) {
 		return 1;
 	}
@@ -57,12 +92,14 @@ const getContinuousMultiplier = ({
 export const getClampedRunTime = ({
 	resourceId,
 	producers,
+	runTimeMultiplier = 1,
 }: {
 	resourceId: ResourceId;
 	producers: number;
+	runTimeMultiplier?: number;
 }): number =>
 	Math.max(
-		getEffectiveRunTime({ resourceId, producers }),
+		getEffectiveRunTime({ resourceId, producers, runTimeMultiplier }),
 		CONTINUOUS_THRESHOLD,
 	);
 
@@ -219,9 +256,14 @@ export const canStartRun = ({
 	// Check if we have enough input resources (multiplied in continuous mode)
 	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
 		const inputResource = state.resources[config.inputResourceId];
+		const rtm = getRunTimeMultiplier({
+			shopBoosts: state.shopBoosts,
+			isAutomated: resource.isAutomated && !resource.isPaused,
+		});
 		const multiplier = getContinuousMultiplier({
 			resourceId,
 			producers: resource.producers,
+			runTimeMultiplier: rtm,
 		});
 		const totalInputCost = bnMul(
 			bnMul(config.inputCostPerRun, bigNum(resource.producers)),
@@ -254,9 +296,14 @@ export const startRun = ({
 	// Deduct input cost at run start (multiplied in continuous mode)
 	if (config.inputResourceId !== null && config.inputCostPerRun !== null) {
 		const inputResource = state.resources[config.inputResourceId];
+		const rtm = getRunTimeMultiplier({
+			shopBoosts: state.shopBoosts,
+			isAutomated: resource.isAutomated && !resource.isPaused,
+		});
 		const multiplier = getContinuousMultiplier({
 			resourceId,
 			producers: resource.producers,
+			runTimeMultiplier: rtm,
 		});
 		const totalInputCost = bnMul(
 			bnMul(config.inputCostPerRun, bigNum(resource.producers)),
@@ -309,11 +356,20 @@ export const completeRun = ({
 		return state;
 	}
 
-	const multiplier = getContinuousMultiplier({
+	const rtm = getRunTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+		isAutomated: resource.isAutomated && !resource.isPaused,
+	});
+	const continuousMul = getContinuousMultiplier({
 		resourceId,
 		producers: resource.producers,
+		runTimeMultiplier: rtm,
 	});
-	const produced = bnMul(bigNum(resource.producers), bigNum(multiplier));
+	const productionMul = state.shopBoosts["production-2x"] ? 2 : 1;
+	const produced = bnMul(
+		bigNum(resource.producers * productionMul),
+		bigNum(continuousMul),
+	);
 
 	return {
 		...state,
@@ -451,9 +507,11 @@ export const buyMaxProducers = ({
 export const getRunInputCost = ({
 	resourceId,
 	producers,
+	runTimeMultiplier = 1,
 }: {
 	resourceId: ResourceId;
 	producers: number;
+	runTimeMultiplier?: number;
 }): BigNum | null => {
 	const config = RESOURCE_CONFIGS[resourceId];
 	if (config.inputCostPerRun === null) {
@@ -462,9 +520,30 @@ export const getRunInputCost = ({
 	if (bnIsZero(config.inputCostPerRun)) {
 		return null;
 	}
-	const multiplier = getContinuousMultiplier({ resourceId, producers });
+	const multiplier = getContinuousMultiplier({
+		resourceId,
+		producers,
+		runTimeMultiplier,
+	});
 	return bnMul(
 		bnMul(config.inputCostPerRun, bigNum(producers)),
 		bigNum(multiplier),
 	);
+};
+
+/** Activate a shop boost */
+export const activateBoost = ({
+	state,
+	boostId,
+}: {
+	state: GameState;
+	boostId: ShopBoostId;
+}): GameState => {
+	if (state.shopBoosts[boostId]) {
+		return state;
+	}
+	return {
+		...state,
+		shopBoosts: { ...state.shopBoosts, [boostId]: true },
+	};
 };

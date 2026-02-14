@@ -6,7 +6,7 @@ import {
 	type SerializedGameState,
 	serializeGameState,
 } from "@/game/serialization";
-import type { GameState, ResourceId } from "@/game/types";
+import type { GameState, ResourceId, ShopBoostId } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
 import {
@@ -27,10 +27,21 @@ const VALID_RESOURCE_IDS: ReadonlySet<string> = new Set<string>([
 	"fused-modular-frame",
 ]);
 
+const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([
+	"production-2x",
+	"automation-2x",
+	"runtime-50",
+]);
+
 // --- Types ---
 
 type ResourceActionBody = {
 	resourceId: ResourceId;
+	serverVersion: number;
+};
+
+type BoostActionBody = {
+	boostId: ShopBoostId;
 	serverVersion: number;
 };
 
@@ -47,6 +58,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 
 const isValidResourceId = (value: unknown): value is ResourceId => {
 	return typeof value === "string" && VALID_RESOURCE_IDS.has(value);
+};
+
+const isValidBoostId = (value: unknown): value is ShopBoostId => {
+	return typeof value === "string" && VALID_BOOST_IDS.has(value);
 };
 
 const isNonNegativeInteger = (value: unknown): value is number => {
@@ -139,6 +154,20 @@ const validateSerializedGameState = (
 		}
 	}
 
+	if (state.shopBoosts !== undefined) {
+		if (!isRecord(state.shopBoosts)) {
+			return "Invalid shopBoosts";
+		}
+		for (const key of Object.keys(state.shopBoosts)) {
+			if (!VALID_BOOST_IDS.has(key)) {
+				return `Invalid boost id: ${key}`;
+			}
+			if (typeof state.shopBoosts[key] !== "boolean") {
+				return `Invalid boost value for ${key}`;
+			}
+		}
+	}
+
 	return null;
 };
 
@@ -174,6 +203,7 @@ export const stripServerVersion = (
 	stored: StoredGameState,
 ): SerializedGameState => ({
 	resources: stored.resources,
+	shopBoosts: stored.shopBoosts,
 	lastSavedAt: stored.lastSavedAt,
 	version: stored.version,
 });
@@ -393,6 +423,98 @@ export const executeAction = async ({
 
 	const currentState = deserializeGameState(stored);
 	const newState = action({ state: currentState, resourceId });
+
+	if (newState === currentState) {
+		return NextResponse.json(
+			{ error: "Action had no effect" },
+			{ status: 400 },
+		);
+	}
+
+	const newSerialized = serializeGameState(newState);
+	const newStored: StoredGameState = {
+		...newSerialized,
+		serverVersion: stored.serverVersion + 1,
+	};
+	await saveStoredGameState({ sessionId, stored: newStored });
+
+	return NextResponse.json({
+		state: newSerialized,
+		serverVersion: newStored.serverVersion,
+	});
+};
+
+// --- Boost action body parsing ---
+
+const parseBoostActionBody = async (
+	request: NextRequest,
+): Promise<BoostActionBody | NextResponse> => {
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+	}
+
+	if (!isRecord(body)) {
+		return NextResponse.json(
+			{ error: "Body must be an object" },
+			{ status: 400 },
+		);
+	}
+
+	if (!isValidBoostId(body.boostId)) {
+		return NextResponse.json({ error: "Invalid boostId" }, { status: 400 });
+	}
+
+	if (!isNonNegativeInteger(body.serverVersion)) {
+		return NextResponse.json(
+			{ error: "Invalid serverVersion" },
+			{ status: 400 },
+		);
+	}
+
+	return { boostId: body.boostId, serverVersion: body.serverVersion };
+};
+
+// --- Execute boost action pattern ---
+
+export const executeBoostAction = async ({
+	request,
+	action,
+}: {
+	request: NextRequest;
+	action: (args: { state: GameState; boostId: ShopBoostId }) => GameState;
+}): Promise<NextResponse> => {
+	const sessionResult = await getSessionFromRequest(request);
+	if (sessionResult instanceof NextResponse) {
+		return sessionResult;
+	}
+	const { sessionId } = sessionResult;
+
+	const body = await parseBoostActionBody(request);
+	if (body instanceof NextResponse) {
+		return body;
+	}
+	const { boostId, serverVersion } = body;
+
+	const stored = await loadStoredGameState(sessionId);
+	if (!stored) {
+		return NextResponse.json({ error: "No game state found" }, { status: 404 });
+	}
+
+	if (stored.serverVersion !== serverVersion) {
+		return NextResponse.json(
+			{
+				state: stripServerVersion(stored),
+				serverVersion: stored.serverVersion,
+			},
+			{ status: 409 },
+		);
+	}
+
+	const currentState = deserializeGameState(stored);
+	const newState = action({ state: currentState, boostId });
 
 	if (newState === currentState) {
 		return NextResponse.json(

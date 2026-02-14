@@ -58,5 +58,10 @@ export const createInitialGameState = (): GameState => ({
 			runStartedAt: null,
 		},
 	},
+	shopBoosts: {
+		"production-2x": false,
+		"automation-2x": false,
+		"runtime-50": false,
+	},
 	lastSavedAt: Date.now(),
 });

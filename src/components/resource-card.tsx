@@ -3,7 +3,12 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RESOURCE_CONFIGS } from "@/game/config";
-import { getEffectiveRunTime, getRunInputCost } from "@/game/logic";
+import { useGameState } from "@/game/game-state-context";
+import {
+	getEffectiveRunTime,
+	getRunInputCost,
+	getRunTimeMultiplier,
+} from "@/game/logic";
 import type { ResourceState } from "@/game/types";
 import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
 import { AutomateButton } from "./automate-button";
@@ -17,11 +22,17 @@ type Props = {
 };
 
 export const ResourceCard = ({ resource }: Props) => {
+	const { state } = useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isLocked = !resource.isUnlocked;
+	const rtm = getRunTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+		isAutomated: resource.isAutomated && !resource.isPaused,
+	});
 	const inputCost = getRunInputCost({
 		resourceId: resource.id,
 		producers: resource.producers,
+		runTimeMultiplier: rtm,
 	});
 	const isAutomatedActive = resource.isAutomated && !resource.isPaused;
 	const inputCostPerSecond =
@@ -33,6 +44,7 @@ export const ResourceCard = ({ resource }: Props) => {
 							getEffectiveRunTime({
 								resourceId: resource.id,
 								producers: resource.producers,
+								runTimeMultiplier: rtm,
 							}),
 					),
 				)

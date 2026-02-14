@@ -9,12 +9,14 @@ import { useGameState } from "@/game/game-state-context";
 import {
 	canStartRun,
 	getClampedRunTime,
+	getContinuousMultiplier,
 	getEffectiveRunTime,
+	getRunTimeMultiplier,
 } from "@/game/logic";
 import type { ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
 import { useRunProgress } from "@/game/use-run-progress";
-import { bigNum, bnFormat } from "@/lib/big-number";
+import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
 
 type Props = {
 	resource: ResourceState;
@@ -22,7 +24,14 @@ type Props = {
 
 export const ProgressBar = ({ resource }: Props) => {
 	const { state } = useGameState();
-	const { progress, isContinuous } = useRunProgress(resource);
+	const rtm = getRunTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+		isAutomated: resource.isAutomated && !resource.isPaused,
+	});
+	const { progress, isContinuous } = useRunProgress({
+		resource,
+		runTimeMultiplier: rtm,
+	});
 	const { particles, triggerBurst } = useParticleBurst();
 	const barRef = useRef<HTMLDivElement>(null);
 	const wasRunningRef = useRef(false);
@@ -51,16 +60,29 @@ export const ProgressBar = ({ resource }: Props) => {
 	const effectiveRunTime = getEffectiveRunTime({
 		resourceId: resource.id,
 		producers: resource.producers,
+		runTimeMultiplier: rtm,
 	});
 	const clampedRunTime = getClampedRunTime({
 		resourceId: resource.id,
 		producers: resource.producers,
+		runTimeMultiplier: rtm,
 	});
 	const remainingSeconds = isRunning
 		? isContinuous
 			? effectiveRunTime
 			: Math.max(0, clampedRunTime - Math.floor(progress * clampedRunTime))
 		: effectiveRunTime;
+
+	const productionMul = state.shopBoosts["production-2x"] ? 2 : 1;
+	const continuousMul = getContinuousMultiplier({
+		resourceId: resource.id,
+		producers: resource.producers,
+		runTimeMultiplier: rtm,
+	});
+	const perRun = bnMul(
+		bigNum(resource.producers * productionMul),
+		bigNum(continuousMul),
+	);
 
 	const inputResourceName = config.inputResourceId
 		? RESOURCE_CONFIGS[config.inputResourceId].name
@@ -96,10 +118,15 @@ export const ProgressBar = ({ resource }: Props) => {
 							? `Waiting for ${inputResourceName}...`
 							: isRunning
 								? isContinuous
-									? `${remainingSeconds}s/run · ${bnFormat(bigNum(resource.producers / effectiveRunTime))}/s`
+									? `${remainingSeconds}s/run · ${bnFormat(bigNum((resource.producers * productionMul) / effectiveRunTime))}/s`
 									: `${remainingSeconds}s`
 								: `${effectiveRunTime}s`}
 				</span>
+				{resource.producers > 0 && !isPaused && !isWaitingForInput && (
+					<span className="text-xs text-text-muted">
+						+{bnFormat(perRun)}/run
+					</span>
+				)}
 			</div>
 		</div>
 	);

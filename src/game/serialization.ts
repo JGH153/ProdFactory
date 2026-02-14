@@ -5,7 +5,7 @@ import {
 } from "@/lib/big-number";
 import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
-import type { GameState, ResourceId, ResourceState } from "./types";
+import type { GameState, ResourceId, ResourceState, ShopBoosts } from "./types";
 
 export const SAVE_VERSION = 3;
 
@@ -21,6 +21,7 @@ export type SerializedResourceState = {
 
 export type SerializedGameState = {
 	resources: Record<ResourceId, SerializedResourceState>;
+	shopBoosts?: ShopBoosts;
 	lastSavedAt: number;
 	version: number;
 };
@@ -54,6 +55,7 @@ export const serializeGameState = (state: GameState): SerializedGameState => {
 	}
 	return {
 		resources,
+		shopBoosts: state.shopBoosts,
 		lastSavedAt: Date.now(),
 		version: SAVE_VERSION,
 	};
@@ -71,6 +73,7 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 	}
 	return {
 		resources,
+		shopBoosts: data.shopBoosts ?? createInitialGameState().shopBoosts,
 		lastSavedAt: data.lastSavedAt,
 	};
 };

@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { SerializedGameState } from "@/game/serialization";
 import { serializeGameState } from "@/game/serialization";
-import type { GameState, ResourceId } from "@/game/types";
+import type { GameState, ResourceId, ShopBoostId } from "@/game/types";
 import {
 	loadGame as apiLoadGame,
 	postAction as apiPostAction,
@@ -19,7 +19,8 @@ const AUTO_SYNC_INTERVAL_MS = 15_000;
 
 type QueueItem = {
 	endpoint: string;
-	resourceId: ResourceId;
+	resourceId?: ResourceId;
+	boostId?: ShopBoostId;
 };
 
 type ReconcileCallback = (args: {
@@ -34,7 +35,11 @@ export const useServerSync = ({
 	stateRef: RefObject<GameState>;
 	reconcileState: ReconcileCallback;
 }): {
-	enqueueAction: (args: { endpoint: string; resourceId: ResourceId }) => void;
+	enqueueAction: (args: {
+		endpoint: string;
+		resourceId?: ResourceId;
+		boostId?: ShopBoostId;
+	}) => void;
 	resetOnServer: () => void;
 } => {
 	const serverVersionRef = useRef(0);
@@ -97,6 +102,7 @@ export const useServerSync = ({
 				const result = await executeAction({
 					endpoint: item.endpoint,
 					resourceId: item.resourceId,
+					boostId: item.boostId,
 					serverVersion: serverVersionRef.current,
 				});
 				serverVersionRef.current = result.serverVersion;
@@ -109,6 +115,7 @@ export const useServerSync = ({
 						const retryResult = await executeAction({
 							endpoint: item.endpoint,
 							resourceId: item.resourceId,
+							boostId: item.boostId,
 							serverVersion: serverVersionRef.current,
 						});
 						serverVersionRef.current = retryResult.serverVersion;
@@ -250,11 +257,13 @@ export const useServerSync = ({
 		({
 			endpoint,
 			resourceId,
+			boostId,
 		}: {
 			endpoint: string;
-			resourceId: ResourceId;
+			resourceId?: ResourceId;
+			boostId?: ShopBoostId;
 		}) => {
-			queueRef.current.push({ endpoint, resourceId });
+			queueRef.current.push({ endpoint, resourceId, boostId });
 			processQueue();
 		},
 		[processQueue],

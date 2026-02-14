@@ -12,6 +12,7 @@ import {
 import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
 import {
+	activateBoost,
 	buyAutomation,
 	buyMaxProducers,
 	buyProducer,
@@ -19,6 +20,7 @@ import {
 	canStartRun,
 	completeRun,
 	getClampedRunTime,
+	getRunTimeMultiplier,
 	isRunComplete,
 	SPEED_MILESTONE_INTERVAL,
 	startRun,
@@ -29,7 +31,12 @@ import { useMilestoneNotification } from "./milestone-context";
 import { clearSave, loadGame, saveGame } from "./persistence";
 import type { SerializedGameState } from "./serialization";
 import { deserializeGameState } from "./serialization";
-import type { GameState, ResourceId, ResourceState } from "./types";
+import type {
+	GameState,
+	ResourceId,
+	ResourceState,
+	ShopBoostId,
+} from "./types";
 import { useServerSync } from "./use-server-sync";
 
 type GameActions = {
@@ -40,6 +47,7 @@ type GameActions = {
 	buyResourceAutomation: (resourceId: ResourceId) => void;
 	toggleResourcePause: (resourceId: ResourceId) => void;
 	unlockResourceTier: (resourceId: ResourceId) => void;
+	activateShopBoost: (boostId: ShopBoostId) => void;
 	resetGame: () => void;
 };
 
@@ -84,7 +92,11 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 							runStartedAt: current.resources[id].runStartedAt,
 						};
 					}
-					return { resources, lastSavedAt: serverState.lastSavedAt };
+					return {
+						resources,
+						shopBoosts: serverState.shopBoosts,
+						lastSavedAt: serverState.lastSavedAt,
+					};
 				});
 			}
 			saveGame(serverState);
@@ -110,6 +122,10 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 				for (const resourceId of RESOURCE_ORDER) {
 					const resource = next.resources[resourceId];
+					const rtm = getRunTimeMultiplier({
+						shopBoosts: next.shopBoosts,
+						isAutomated: resource.isAutomated && !resource.isPaused,
+					});
 
 					if (
 						isRunComplete({
@@ -117,6 +133,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 							runTime: getClampedRunTime({
 								resourceId,
 								producers: resource.producers,
+								runTimeMultiplier: rtm,
 							}),
 						})
 					) {
@@ -213,6 +230,14 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[enqueueAction],
 	);
 
+	const activateShopBoost = useCallback(
+		(boostId: ShopBoostId) => {
+			setState((current) => activateBoost({ state: current, boostId }));
+			enqueueAction({ endpoint: "activate-boost", boostId });
+		},
+		[enqueueAction],
+	);
+
 	const resetGame = useCallback(() => {
 		clearSave();
 		setState(createInitialGameState());
@@ -227,6 +252,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		buyResourceAutomation,
 		toggleResourcePause,
 		unlockResourceTier,
+		activateShopBoost,
 		resetGame,
 	};
 

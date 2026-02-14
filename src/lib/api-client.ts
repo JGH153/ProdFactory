@@ -1,5 +1,5 @@
 import type { SerializedGameState } from "@/game/serialization";
-import type { ResourceId } from "@/game/types";
+import type { ResourceId, ShopBoostId } from "@/game/types";
 
 // --- Error classes ---
 
@@ -155,15 +155,24 @@ export const syncGame = async ({
 export const postAction = async ({
 	endpoint,
 	resourceId,
+	boostId,
 	serverVersion,
 }: {
 	endpoint: string;
-	resourceId: ResourceId;
+	resourceId?: ResourceId;
+	boostId?: ShopBoostId;
 	serverVersion: number;
 }): Promise<ActionResponse> => {
+	const body: Record<string, unknown> = { serverVersion };
+	if (resourceId) {
+		body.resourceId = resourceId;
+	}
+	if (boostId) {
+		body.boostId = boostId;
+	}
 	const response = await postJson({
 		url: `/api/game/${endpoint}`,
-		body: { resourceId, serverVersion },
+		body,
 	});
 	if (response.status === 409) {
 		return handleConflict(response);

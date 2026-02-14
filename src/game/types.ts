@@ -33,7 +33,12 @@ export type ResourceState = {
 	runStartedAt: number | null;
 };
 
+export type ShopBoostId = "production-2x" | "automation-2x" | "runtime-50";
+
+export type ShopBoosts = Record<ShopBoostId, boolean>;
+
 export type GameState = {
 	resources: Record<ResourceId, ResourceState>;
+	shopBoosts: ShopBoosts;
 	lastSavedAt: number;
 };
