@@ -26,6 +26,64 @@ const formatRunTime = (seconds: number): string => {
 	return `${seconds}s`;
 };
 
+const getRemainingSeconds = ({
+	isRunning,
+	isContinuous,
+	effectiveRunTime,
+	clampedRunTime,
+	progress,
+}: {
+	isRunning: boolean;
+	isContinuous: boolean;
+	effectiveRunTime: number;
+	clampedRunTime: number;
+	progress: number;
+}): number => {
+	if (!isRunning) {
+		return effectiveRunTime;
+	}
+	if (isContinuous) {
+		return effectiveRunTime;
+	}
+	return Math.max(0, clampedRunTime - Math.floor(progress * clampedRunTime));
+};
+
+const getStatusText = ({
+	isPaused,
+	isWaitingForInput,
+	inputResourceName,
+	isRunning,
+	isContinuous,
+	remainingSeconds,
+	effectiveRunTime,
+	producers,
+	productionMul,
+}: {
+	isPaused: boolean;
+	isWaitingForInput: boolean;
+	inputResourceName: string | null;
+	isRunning: boolean;
+	isContinuous: boolean;
+	remainingSeconds: number;
+	effectiveRunTime: number;
+	producers: number;
+	productionMul: number;
+}): string => {
+	if (isPaused) {
+		return "Paused";
+	}
+	if (isWaitingForInput && inputResourceName) {
+		return `Waiting for ${inputResourceName}...`;
+	}
+	if (isRunning && isContinuous) {
+		return `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((producers * productionMul) / effectiveRunTime))}/s`;
+	}
+	if (isRunning) {
+		return `${remainingSeconds}s`;
+	}
+	return `${formatRunTime(effectiveRunTime)}`;
+};
+
 type Props = {
 	resource: ResourceState;
 };
@@ -75,11 +133,13 @@ export const ProgressBar = ({ resource }: Props) => {
 		producers: resource.producers,
 		runTimeMultiplier: rtm,
 	});
-	const remainingSeconds = isRunning
-		? isContinuous
-			? effectiveRunTime
-			: Math.max(0, clampedRunTime - Math.floor(progress * clampedRunTime))
-		: effectiveRunTime;
+	const remainingSeconds = getRemainingSeconds({
+		isRunning,
+		isContinuous,
+		effectiveRunTime,
+		clampedRunTime,
+		progress,
+	});
 
 	const productionMul = state.shopBoosts["production-2x"] ? 2 : 1;
 	const continuousMul = getContinuousMultiplier({
@@ -120,15 +180,17 @@ export const ProgressBar = ({ resource }: Props) => {
 				<span
 					className={`text-xs ${isPaused || isWaitingForInput ? "text-accent-amber" : "text-text-muted"}`}
 				>
-					{isPaused
-						? "Paused"
-						: isWaitingForInput && inputResourceName
-							? `Waiting for ${inputResourceName}...`
-							: isRunning
-								? isContinuous
-									? `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((resource.producers * productionMul) / effectiveRunTime))}/s`
-									: `${remainingSeconds}s`
-								: `${formatRunTime(effectiveRunTime)}`}
+					{getStatusText({
+						isPaused,
+						isWaitingForInput,
+						inputResourceName,
+						isRunning,
+						isContinuous,
+						remainingSeconds,
+						effectiveRunTime,
+						producers: resource.producers,
+						productionMul,
+					})}
 				</span>
 				{resource.producers > 0 && !isPaused && !isWaitingForInput && (
 					<span className="text-xs text-text-muted">

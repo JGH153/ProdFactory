@@ -134,6 +134,7 @@ export const useGameState = (): GameState => {
 - **Readability first** — prioritize clear, readable code over clever or terse solutions.
 - **Avoid `useEffect`** — only use `useEffect` when no other React pattern can achieve the goal. Prefer derived state, event handlers, and `useSyncExternalStore` where applicable.
 - **Always use braces** — never write single-line `if` statements. Every `if` body must be wrapped in curly braces, even for single-statement returns or throws.
+- **No nested ternaries** — never nest ternary expressions more than one level deep. Extract the logic into a named helper function instead. A single ternary (`a ? b : c`) is fine; a nested one (`a ? b : c ? d : e`) is not.
 - **Named object parameters** — when a function or constructor has more than one parameter, pass them as a single destructured object for readability. BigNumber arithmetic functions (`bnAdd`, `bnSub`, `bnMul`, etc.) are excluded since they follow mathematical conventions.
 - **No lodash** — write utilities from scratch. Minimize external npm packages; only add a dependency when it provides substantial value.
 - **No outdated dependencies** — always use current, maintained versions of all packages.

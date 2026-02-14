@@ -14,6 +14,22 @@ import { canUnlock } from "@/game/logic";
 import type { ResourceId } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 
+const getUnlockStatusText = ({
+	isUnlocking,
+	affordable,
+}: {
+	isUnlocking: boolean;
+	affordable: boolean;
+}): string => {
+	if (isUnlocking) {
+		return "Unlocking...";
+	}
+	if (affordable) {
+		return "Ready to unlock!";
+	}
+	return "Locked";
+};
+
 type Props = {
 	resourceId: ResourceId;
 };
@@ -47,11 +63,7 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 			transition={{ duration: 0.3 }}
 		>
 			<p className="text-text-muted text-sm mb-3 font-medium">
-				{isUnlocking
-					? "Unlocking..."
-					: affordable
-						? "Ready to unlock!"
-						: "Locked"}
+				{getUnlockStatusText({ isUnlocking, affordable })}
 			</p>
 			<Button
 				onClick={handleUnlock}
