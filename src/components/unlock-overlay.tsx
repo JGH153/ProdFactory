@@ -71,7 +71,7 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 				className={
 					affordable && !isUnlocking
 						? "bg-accent-amber hover:bg-accent-amber/80 text-primary-foreground font-bold transition-all"
-						: "bg-primary/30 text-primary-foreground/50 font-bold"
+						: "bg-primary/30 text-primary-foreground/90 font-bold"
 				}
 			>
 				{isUnlocking ? (

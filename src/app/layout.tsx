@@ -29,7 +29,7 @@ export default function RootLayout({
 					href="/favicon-16x16.png"
 				/>
 			</head>
-			<body className="min-h-screen bg-background text-text-primary antialiased">
+			<body className="min-h-screen overflow-x-hidden bg-background text-text-primary antialiased">
 				<AppProviders>{children}</AppProviders>
 			</body>
 		</html>
