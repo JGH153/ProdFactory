@@ -1,123 +1,90 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { createInitialGameState } from "@/game/initial-state";
-import { serializeGameState } from "@/game/serialization";
-import { getSessionFromRequest, parseSaveActionBody } from "@/lib/api-helpers";
-import { buildSyncSnapshot, checkPlausibility } from "@/lib/plausibility";
+import type { SerializedGameState } from "@/game/serialization";
 import {
-	deleteSyncSnapshot,
-	getSyncSnapshot,
-	loadStoredGameState,
-	saveStoredGameState,
-	setSyncSnapshot,
-} from "@/lib/redis";
-import { incrementWarnings, resetWarnings } from "@/lib/session";
+	getSessionFromRequest,
+	type PlausibilitySaveResult,
+	parseSaveActionBody,
+	persistWithPlausibility,
+	stripServerVersion,
+} from "@/lib/api-helpers";
+import { loadStoredGameState } from "@/lib/redis";
 
-const MAX_WARNINGS = 10;
+type SyncGameResult =
+	| { type: "not_found" }
+	| { type: "conflict"; state: SerializedGameState; serverVersion: number }
+	| PlausibilitySaveResult;
+
+const syncGame = async ({
+	sessionId,
+	claimedState,
+	serverVersion,
+}: {
+	sessionId: string;
+	claimedState: SerializedGameState;
+	serverVersion: number;
+}): Promise<SyncGameResult> => {
+	const stored = await loadStoredGameState(sessionId);
+
+	if (!stored) {
+		return { type: "not_found" };
+	}
+
+	if (stored.serverVersion !== serverVersion) {
+		return {
+			type: "conflict",
+			state: stripServerVersion(stored),
+			serverVersion: stored.serverVersion,
+		};
+	}
+
+	return persistWithPlausibility({
+		sessionId,
+		claimedState,
+		newVersion: stored.serverVersion + 1,
+		updateSnapshotOnClean: true,
+	});
+};
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const sessionResult = await getSessionFromRequest(request);
 	if (sessionResult instanceof NextResponse) {
 		return sessionResult;
 	}
-	const { sessionId } = sessionResult;
 
 	const body = await parseSaveActionBody(request);
 	if (body instanceof NextResponse) {
 		return body;
 	}
 
-	const stored = await loadStoredGameState(sessionId);
-	if (!stored) {
+	const result = await syncGame({
+		sessionId: sessionResult.sessionId,
+		claimedState: body.state,
+		serverVersion: body.serverVersion,
+	});
+
+	if (result.type === "not_found") {
 		return NextResponse.json({ error: "No game state found" }, { status: 404 });
 	}
 
-	if (stored.serverVersion !== body.serverVersion) {
+	if (result.type === "conflict") {
 		return NextResponse.json(
-			{
-				state: {
-					resources: stored.resources,
-					lastSavedAt: stored.lastSavedAt,
-					version: stored.version,
-				},
-				serverVersion: stored.serverVersion,
-			},
+			{ state: result.state, serverVersion: result.serverVersion },
 			{ status: 409 },
 		);
 	}
 
-	const lastSnapshot = await getSyncSnapshot(sessionId);
-	const serverNow = Date.now();
-	const newVersion = stored.serverVersion + 1;
-
-	if (!lastSnapshot) {
-		const newStored = { ...body.state, serverVersion: newVersion };
-		await saveStoredGameState({ sessionId, stored: newStored });
-		const snapshot = buildSyncSnapshot({
-			state: body.state,
-			timestamp: serverNow,
-		});
-		await setSyncSnapshot({ sessionId, snapshot });
-
+	if (result.type === "corrected" || result.type === "reset_violation") {
 		return NextResponse.json({
-			state: null,
-			serverVersion: newVersion,
-			warning: null,
+			state: result.state,
+			serverVersion: result.serverVersion,
+			warning: result.warning,
 		});
 	}
-
-	const result = checkPlausibility({
-		claimedState: body.state,
-		lastSnapshot,
-		serverNow,
-	});
-
-	if (result.corrected && result.correctedState) {
-		const warningCount = await incrementWarnings(sessionId);
-
-		if (warningCount >= MAX_WARNINGS) {
-			const freshState = serializeGameState(createInitialGameState());
-			const resetStored = { ...freshState, serverVersion: newVersion };
-			await saveStoredGameState({ sessionId, stored: resetStored });
-			await deleteSyncSnapshot(sessionId);
-			await resetWarnings(sessionId);
-
-			return NextResponse.json({
-				state: freshState,
-				serverVersion: newVersion,
-				warning: "Too many plausibility violations — game state has been reset",
-			});
-		}
-
-		const correctedStored = {
-			...result.correctedState,
-			serverVersion: newVersion,
-		};
-		await saveStoredGameState({ sessionId, stored: correctedStored });
-		const snapshot = buildSyncSnapshot({
-			state: result.correctedState,
-			timestamp: serverNow,
-		});
-		await setSyncSnapshot({ sessionId, snapshot });
-
-		return NextResponse.json({
-			state: result.correctedState,
-			serverVersion: newVersion,
-			warning: result.warnings.join("; "),
-		});
-	}
-
-	const acceptedStored = { ...body.state, serverVersion: newVersion };
-	await saveStoredGameState({ sessionId, stored: acceptedStored });
-	const snapshot = buildSyncSnapshot({
-		state: body.state,
-		timestamp: serverNow,
-	});
-	await setSyncSnapshot({ sessionId, snapshot });
 
 	return NextResponse.json({
 		state: null,
-		serverVersion: newVersion,
+		serverVersion: result.serverVersion,
 		warning: null,
 	});
 };

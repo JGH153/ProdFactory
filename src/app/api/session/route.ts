@@ -6,10 +6,11 @@ import { buildSessionCookie, createSession } from "@/lib/session";
 const MAX_SESSIONS_PER_HOUR = 10;
 const ONE_HOUR = 60 * 60;
 
-export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	const ip =
-		request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+type CreateSessionResult =
+	| { type: "rate_limited" }
+	| { type: "created"; cookie: string };
 
+const createNewSession = async (ip: string): Promise<CreateSessionResult> => {
 	const { allowed } = await checkRateLimit({
 		key: `session:${ip}`,
 		maxRequests: MAX_SESSIONS_PER_HOUR,
@@ -17,17 +18,29 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	});
 
 	if (!allowed) {
+		return { type: "rate_limited" };
+	}
+
+	const sessionId = await createSession();
+	const cookie = buildSessionCookie(sessionId);
+	return { type: "created", cookie };
+};
+
+export const POST = async (request: NextRequest): Promise<NextResponse> => {
+	const ip =
+		request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+	const result = await createNewSession(ip);
+
+	if (result.type === "rate_limited") {
 		return NextResponse.json(
 			{ error: "Too many session requests" },
 			{ status: 429 },
 		);
 	}
 
-	const sessionId = await createSession();
-	const cookie = buildSessionCookie(sessionId);
-
 	return new NextResponse(null, {
 		status: 204,
-		headers: { "Set-Cookie": cookie },
+		headers: { "Set-Cookie": result.cookie },
 	});
 };
