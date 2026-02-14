@@ -18,6 +18,14 @@ import { useParticleBurst } from "@/game/use-particle-burst";
 import { useRunProgress } from "@/game/use-run-progress";
 import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
 
+const formatRunTime = (seconds: number): string => {
+	const ms = Math.round(seconds * 1000);
+	if (ms <= 10) {
+		return `${ms}ms`;
+	}
+	return `${seconds}s`;
+};
+
 type Props = {
 	resource: ResourceState;
 };
@@ -118,9 +126,9 @@ export const ProgressBar = ({ resource }: Props) => {
 							? `Waiting for ${inputResourceName}...`
 							: isRunning
 								? isContinuous
-									? `${remainingSeconds}s/run · ${bnFormat(bigNum((resource.producers * productionMul) / effectiveRunTime))}/s`
+									? `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((resource.producers * productionMul) / effectiveRunTime))}/s`
 									: `${remainingSeconds}s`
-								: `${effectiveRunTime}s`}
+								: `${formatRunTime(effectiveRunTime)}`}
 				</span>
 				{resource.producers > 0 && !isPaused && !isWaitingForInput && (
 					<span className="text-xs text-text-muted">
