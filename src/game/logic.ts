@@ -547,3 +547,19 @@ export const activateBoost = ({
 		shopBoosts: { ...state.shopBoosts, [boostId]: true },
 	};
 };
+
+/** Reset all shop boosts to inactive */
+export const resetShopBoosts = ({ state }: { state: GameState }): GameState => {
+	const hasActiveBoost = Object.values(state.shopBoosts).some(Boolean);
+	if (!hasActiveBoost) {
+		return state;
+	}
+	return {
+		...state,
+		shopBoosts: {
+			"production-2x": false,
+			"automation-2x": false,
+			"runtime-50": false,
+		},
+	};
+};

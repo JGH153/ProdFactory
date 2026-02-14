@@ -4,6 +4,7 @@ import { PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { NewGameButton } from "@/components/new-game-button";
+import { ResetShopButton } from "@/components/reset-shop-button";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -32,7 +33,10 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 					<h3 className="text-sm font-medium text-text-muted mb-2">
 						Danger Zone
 					</h3>
-					<NewGameButton onReset={onReset} />
+					<div className="space-y-2">
+						<ResetShopButton />
+						<NewGameButton onReset={onReset} />
+					</div>
 				</div>
 			</div>
 		</motion.div>

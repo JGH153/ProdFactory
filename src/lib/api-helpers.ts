@@ -477,6 +477,65 @@ const parseBoostActionBody = async (
 	return { boostId: body.boostId, serverVersion: body.serverVersion };
 };
 
+// --- Execute simple action pattern (no resourceId/boostId) ---
+
+export const executeSimpleAction = async ({
+	request,
+	action,
+}: {
+	request: NextRequest;
+	action: (args: { state: GameState }) => GameState;
+}): Promise<NextResponse> => {
+	const sessionResult = await getSessionFromRequest(request);
+	if (sessionResult instanceof NextResponse) {
+		return sessionResult;
+	}
+	const { sessionId } = sessionResult;
+
+	const body = await parseVersionOnlyBody(request);
+	if (body instanceof NextResponse) {
+		return body;
+	}
+	const { serverVersion } = body;
+
+	const stored = await loadStoredGameState(sessionId);
+	if (!stored) {
+		return NextResponse.json({ error: "No game state found" }, { status: 404 });
+	}
+
+	if (stored.serverVersion !== serverVersion) {
+		return NextResponse.json(
+			{
+				state: stripServerVersion(stored),
+				serverVersion: stored.serverVersion,
+			},
+			{ status: 409 },
+		);
+	}
+
+	const currentState = deserializeGameState(stored);
+	const newState = action({ state: currentState });
+
+	if (newState === currentState) {
+		return NextResponse.json(
+			{ error: "Action had no effect" },
+			{ status: 400 },
+		);
+	}
+
+	const newSerialized = serializeGameState(newState);
+	const newStored: StoredGameState = {
+		...newSerialized,
+		serverVersion: stored.serverVersion + 1,
+	};
+	await saveStoredGameState({ sessionId, stored: newStored });
+
+	return NextResponse.json({
+		state: newSerialized,
+		serverVersion: newStored.serverVersion,
+	});
+};
+
 // --- Execute boost action pattern ---
 
 export const executeBoostAction = async ({

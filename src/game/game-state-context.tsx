@@ -46,6 +46,7 @@ type GameActions = {
 	toggleResourcePause: (resourceId: ResourceId) => void;
 	unlockResourceTier: (resourceId: ResourceId) => Promise<boolean>;
 	activateShopBoost: (boostId: ShopBoostId) => Promise<boolean>;
+	resetShopBoosts: () => Promise<boolean>;
 	resetGame: () => void;
 };
 
@@ -252,6 +253,18 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[executeAwaitedAction, reconcileState],
 	);
 
+	const resetShopBoosts = useCallback(async (): Promise<boolean> => {
+		try {
+			const serverState = await executeAwaitedAction({
+				endpoint: "reset-shop-boosts",
+			});
+			reconcileState({ state: serverState, fullReplace: false });
+			return true;
+		} catch {
+			return false;
+		}
+	}, [executeAwaitedAction, reconcileState]);
+
 	const resetGame = useCallback(() => {
 		clearSave();
 		setState(createInitialGameState());
@@ -267,6 +280,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		toggleResourcePause,
 		unlockResourceTier,
 		activateShopBoost,
+		resetShopBoosts,
 		resetGame,
 	};
 
