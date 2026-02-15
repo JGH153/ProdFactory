@@ -13,7 +13,7 @@ import type { ResourceId } from "@/game/types";
 
 type Props = {
 	resourceId: ResourceId;
-	size?: number;
+	size: number;
 };
 
 const ICON_MAP = {
@@ -34,7 +34,7 @@ const COLOR_MAP: Record<ResourceId, string> = {
 	"fused-modular-frame": "var(--color-fused-modular-frame)",
 };
 
-export const ResourceIcon = ({ resourceId, size = 32 }: Props) => (
+export const ResourceIcon = ({ resourceId, size }: Props) => (
 	<HugeiconsIcon
 		icon={ICON_MAP[resourceId]}
 		size={size}

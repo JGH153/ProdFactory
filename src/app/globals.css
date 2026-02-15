@@ -32,6 +32,10 @@
 	--color-input: #2a2a4a;
 }
 
+html {
+	overflow-x: clip;
+}
+
 body {
 	background-color: var(--color-background);
 	color: var(--color-text-primary);
