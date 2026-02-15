@@ -46,7 +46,7 @@ export const BuyButton = ({ resource }: Props) => {
 		<div className="flex gap-1">
 			<motion.div
 				className="flex-1"
-				whileTap={canBuy ? { scale: 0.95 } : undefined}
+				{...(canBuy && { whileTap: { scale: 0.95 } })}
 			>
 				<Button
 					variant="outline"
@@ -59,7 +59,7 @@ export const BuyButton = ({ resource }: Props) => {
 					Buy x1 — {bnFormat(cost)} {config.name}
 				</Button>
 			</motion.div>
-			<motion.div whileTap={maxAffordable > 0 ? { scale: 0.95 } : undefined}>
+			<motion.div {...(maxAffordable > 0 && { whileTap: { scale: 0.95 } })}>
 				<Button
 					variant="outline"
 					size="sm"

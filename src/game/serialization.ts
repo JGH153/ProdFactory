@@ -21,7 +21,7 @@ export type SerializedResourceState = {
 
 export type SerializedGameState = {
 	resources: Record<ResourceId, SerializedResourceState>;
-	shopBoosts?: ShopBoosts;
+	shopBoosts?: ShopBoosts | undefined;
 	lastSavedAt: number;
 	version: number;
 };

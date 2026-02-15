@@ -96,12 +96,10 @@ export const RunButton = ({ resource }: Props) => {
 	const button = (
 		<motion.button
 			type="button"
-			whileTap={canRun && !isRunning ? { scale: 0.9 } : undefined}
-			onPointerDown={
-				insufficientInputMessage
-					? (e: React.PointerEvent) => e.preventDefault()
-					: undefined
-			}
+			{...(canRun && !isRunning && { whileTap: { scale: 0.9 } })}
+			{...(insufficientInputMessage && {
+				onPointerDown: (e: React.PointerEvent) => e.preventDefault(),
+			})}
 			onClick={handleClick}
 			disabled={isDisabled && !insufficientInputMessage}
 			aria-disabled={isDisabled}
@@ -114,12 +112,10 @@ export const RunButton = ({ resource }: Props) => {
 			</div>
 
 			<motion.div
-				animate={isRunning ? { rotate: [0, 5, -5, 0] } : undefined}
-				transition={
-					isRunning
-						? { repeat: Number.POSITIVE_INFINITY, duration: 0.5 }
-						: undefined
-				}
+				{...(isRunning && {
+					animate: { rotate: [0, 5, -5, 0] },
+					transition: { repeat: Number.POSITIVE_INFINITY, duration: 0.5 },
+				})}
 			>
 				<ResourceIcon resourceId={resource.id} size={36} />
 			</motion.div>

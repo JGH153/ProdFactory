@@ -43,7 +43,7 @@ export const AutomateButton = ({ resource }: Props) => {
 	};
 
 	return (
-		<motion.div whileTap={canBuy ? { scale: 0.95 } : undefined}>
+		<motion.div {...(canBuy && { whileTap: { scale: 0.95 } })}>
 			<Button
 				variant="outline"
 				size="sm"

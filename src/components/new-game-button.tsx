@@ -14,7 +14,7 @@ import {
 import { useGameState } from "@/game/game-state-context";
 
 type Props = {
-	onReset?: () => void;
+	onReset: () => void;
 };
 
 export const NewGameButton = ({ onReset }: Props) => {
@@ -24,7 +24,7 @@ export const NewGameButton = ({ onReset }: Props) => {
 	const handleReset = useCallback(() => {
 		resetGame();
 		setOpen(false);
-		onReset?.();
+		onReset();
 	}, [resetGame, onReset]);
 
 	return (

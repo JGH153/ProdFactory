@@ -8,7 +8,7 @@ import { ResetShopButton } from "@/components/reset-shop-button";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-	onReset?: () => void;
+	onReset: () => void;
 	onWatchIntro: () => void;
 };
 

@@ -19,8 +19,8 @@ const AUTO_SYNC_INTERVAL_MS = 15_000;
 
 type QueueItem = {
 	endpoint: string;
-	resourceId?: ResourceId;
-	boostId?: ShopBoostId;
+	resourceId?: ResourceId | undefined;
+	boostId?: ShopBoostId | undefined;
 };
 
 type ReconcileCallback = (args: {
@@ -37,13 +37,13 @@ export const useServerSync = ({
 }): {
 	enqueueAction: (args: {
 		endpoint: string;
-		resourceId?: ResourceId;
-		boostId?: ShopBoostId;
+		resourceId?: ResourceId | undefined;
+		boostId?: ShopBoostId | undefined;
 	}) => void;
 	executeAwaitedAction: (args: {
 		endpoint: string;
-		resourceId?: ResourceId;
-		boostId?: ShopBoostId;
+		resourceId?: ResourceId | undefined;
+		boostId?: ShopBoostId | undefined;
 	}) => Promise<SerializedGameState>;
 	resetOnServer: () => void;
 } => {
@@ -265,8 +265,8 @@ export const useServerSync = ({
 			boostId,
 		}: {
 			endpoint: string;
-			resourceId?: ResourceId;
-			boostId?: ShopBoostId;
+			resourceId?: ResourceId | undefined;
+			boostId?: ShopBoostId | undefined;
 		}): Promise<SerializedGameState> => {
 			// Wait for queue to drain
 			while (processingRef.current || queueRef.current.length > 0) {
@@ -319,8 +319,8 @@ export const useServerSync = ({
 			boostId,
 		}: {
 			endpoint: string;
-			resourceId?: ResourceId;
-			boostId?: ShopBoostId;
+			resourceId?: ResourceId | undefined;
+			boostId?: ShopBoostId | undefined;
 		}) => {
 			queueRef.current.push({ endpoint, resourceId, boostId });
 			processQueue();

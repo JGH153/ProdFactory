@@ -159,8 +159,8 @@ export const postAction = async ({
 	serverVersion,
 }: {
 	endpoint: string;
-	resourceId?: ResourceId;
-	boostId?: ShopBoostId;
+	resourceId?: ResourceId | undefined;
+	boostId?: ShopBoostId | undefined;
 	serverVersion: number;
 }): Promise<ActionResponse> => {
 	const body: Record<string, unknown> = { serverVersion };
