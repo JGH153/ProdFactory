@@ -15,11 +15,12 @@ import {
 	getRunInputCost,
 	getRunTimeMultiplier,
 	getSpeedMilestone,
+	SPEED_MILESTONE_INTERVAL,
 } from "@/game/logic";
 import { useSfx } from "@/game/sfx-context";
 import type { GameState, ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
-import { bnFormat, bnGte } from "@/lib/big-number";
+import { bigNum, bnFormat, bnGte, bnPow } from "@/lib/big-number";
 import { ParticleEffect } from "./particle-effect";
 import { ResourceIcon } from "./resource-icon";
 
@@ -125,6 +126,17 @@ export const RunButton = ({ resource }: Props) => {
 			<span className="text-sm font-bold text-primary">
 				{bnFormat(resource.amount)}
 			</span>
+			{resource.producers >= SPEED_MILESTONE_INTERVAL && (
+				<span className="text-[10px] text-text-muted">
+					x
+					{bnFormat(
+						bnPow(
+							bigNum(2),
+							Math.floor(resource.producers / SPEED_MILESTONE_INTERVAL),
+						),
+					)}
+				</span>
+			)}
 			{resource.producers > 0 && (
 				<div className="relative w-full">
 					<Progress
