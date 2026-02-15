@@ -19,9 +19,20 @@ import { useRunProgress } from "@/game/use-run-progress";
 import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
 
 const formatRunTime = (seconds: number): string => {
-	const ms = Math.round(seconds * 1000);
+	const ms = seconds * 1000;
+	if (ms < 0.001) {
+		const ns = ms * 1_000_000;
+		return `${parseFloat(ns.toPrecision(2))}ns`;
+	}
+	if (ms < 0.1) {
+		const us = ms * 1000;
+		return `${parseFloat(us.toPrecision(2))}µs`;
+	}
+	if (ms < 1) {
+		return `${parseFloat(ms.toPrecision(2))}ms`;
+	}
 	if (ms <= 10) {
-		return `${ms}ms`;
+		return `${Math.round(ms)}ms`;
 	}
 	return `${seconds}s`;
 };

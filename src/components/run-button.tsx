@@ -103,7 +103,7 @@ export const RunButton = ({ resource }: Props) => {
 			onClick={handleClick}
 			disabled={isDisabled && !insufficientInputMessage}
 			aria-disabled={isDisabled}
-			className={`relative flex flex-col items-center gap-1 w-20 shrink-0 select-none overflow-visible
+			className={`relative flex flex-col items-center gap-1 w-24 shrink-0 select-none overflow-visible
 				${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
 		>
 			{/* Particle container */}
