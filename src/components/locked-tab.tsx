@@ -25,7 +25,11 @@ export const LockedTab = ({ label, message }: Props) => {
 					role="tab"
 					aria-selected={false}
 					aria-disabled
-					onClick={() => setOpen((prev) => !prev)}
+					onPointerDown={(e) => e.preventDefault()}
+					onClick={(e) => {
+						e.preventDefault();
+						setOpen(true);
+					}}
 					className="relative flex flex-col items-center gap-1 px-6 py-2 opacity-50 cursor-not-allowed text-text-muted"
 				>
 					<HugeiconsIcon icon={SquareLock02Icon} size={24} />

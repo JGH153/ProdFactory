@@ -1,16 +1,58 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
-import { canStartRun, getSpeedMilestone } from "@/game/logic";
+import {
+	canStartRun,
+	getRunInputCost,
+	getRunTimeMultiplier,
+	getSpeedMilestone,
+} from "@/game/logic";
 import { useSfx } from "@/game/sfx-context";
-import type { ResourceState } from "@/game/types";
+import type { GameState, ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
-import { bnFormat } from "@/lib/big-number";
+import { bnFormat, bnGte } from "@/lib/big-number";
 import { ParticleEffect } from "./particle-effect";
 import { ResourceIcon } from "./resource-icon";
+
+const getInsufficientInputMessage = ({
+	state,
+	resource,
+}: {
+	state: GameState;
+	resource: ResourceState;
+}): string | null => {
+	const config = RESOURCE_CONFIGS[resource.id];
+	if (config.inputResourceId === null) {
+		return null;
+	}
+	const rtm = getRunTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+		isAutomated: resource.isAutomated && !resource.isPaused,
+	});
+	const cost = getRunInputCost({
+		resourceId: resource.id,
+		producers: resource.producers,
+		runTimeMultiplier: rtm,
+	});
+	if (cost === null) {
+		return null;
+	}
+	const inputResource = state.resources[config.inputResourceId];
+	if (bnGte(inputResource.amount, cost)) {
+		return null;
+	}
+	const inputName = RESOURCE_CONFIGS[config.inputResourceId].name;
+	return `Need ${bnFormat(cost)} ${inputName} (have ${bnFormat(inputResource.amount)})`;
+};
 
 type Props = {
 	resource: ResourceState;
@@ -24,8 +66,18 @@ export const RunButton = ({ resource }: Props) => {
 	const isRunning = resource.runStartedAt !== null;
 	const canRun = canStartRun({ state, resourceId: resource.id });
 	const milestone = getSpeedMilestone(resource.producers);
+	const [tooltipOpen, setTooltipOpen] = useState(false);
+	const insufficientInputMessage = getInsufficientInputMessage({
+		state,
+		resource,
+	});
 
 	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		if (insufficientInputMessage) {
+			e.preventDefault();
+			setTooltipOpen(true);
+			return;
+		}
 		if (canRun && !isRunning) {
 			playClickSfx();
 
@@ -39,14 +91,22 @@ export const RunButton = ({ resource }: Props) => {
 		}
 	};
 
-	return (
+	const isDisabled = !canRun || isRunning;
+
+	const button = (
 		<motion.button
 			type="button"
 			whileTap={canRun && !isRunning ? { scale: 0.9 } : undefined}
+			onPointerDown={
+				insufficientInputMessage
+					? (e: React.PointerEvent) => e.preventDefault()
+					: undefined
+			}
 			onClick={handleClick}
-			disabled={!canRun || isRunning}
-			className="relative flex flex-col items-center gap-1 w-20 shrink-0 cursor-pointer
-				disabled:cursor-not-allowed select-none overflow-visible"
+			disabled={isDisabled && !insufficientInputMessage}
+			aria-disabled={isDisabled}
+			className={`relative flex flex-col items-center gap-1 w-20 shrink-0 select-none overflow-visible
+				${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
 		>
 			{/* Particle container */}
 			<div className="absolute inset-0 pointer-events-none">
@@ -87,5 +147,18 @@ export const RunButton = ({ resource }: Props) => {
 				</div>
 			)}
 		</motion.button>
+	);
+
+	if (!insufficientInputMessage) {
+		return button;
+	}
+
+	return (
+		<Tooltip open={tooltipOpen} onOpenChange={setTooltipOpen}>
+			<TooltipTrigger asChild>{button}</TooltipTrigger>
+			<TooltipContent side="top" sideOffset={8}>
+				{insufficientInputMessage}
+			</TooltipContent>
+		</Tooltip>
 	);
 };
