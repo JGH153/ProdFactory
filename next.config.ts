@@ -20,6 +20,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+	reactCompiler: true,
 	headers: async () => [
 		{
 			source: "/(.*)",

@@ -36,6 +36,7 @@
 		"@types/node": "^22",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
+		"babel-plugin-react-compiler": "^1.0.0",
 		"knip": "latest",
 		"tailwindcss": "^4",
 		"typescript": "^5"

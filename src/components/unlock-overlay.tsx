@@ -55,8 +55,7 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 
 	return (
 		<motion.div
-			className="absolute inset-0 flex flex-col items-center justify-center
-				bg-background/80 backdrop-blur-sm z-10 rounded-xl"
+			className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10 rounded-xl"
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0, scale: 1.05 }}
