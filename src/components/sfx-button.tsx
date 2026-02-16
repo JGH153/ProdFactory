@@ -12,17 +12,12 @@ export const SfxButton = () => {
 	useMuteShortcut(toggleSfx);
 
 	return (
-		<Button
-			variant="ghost"
-			size="icon-sm"
-			onClick={toggleSfx}
-			title={sfxEnabled ? "Mute sound effects (M)" : "Unmute sound effects (M)"}
-			className="text-text-muted hover:text-primary"
-		>
+		<Button variant="secondary" onClick={toggleSfx} className="w-full">
 			<HugeiconsIcon
 				icon={sfxEnabled ? VolumeHighIcon : VolumeOffIcon}
 				size={20}
 			/>
+			{sfxEnabled ? "Mute SFX" : "Unmute SFX"}
 		</Button>
 	);
 };

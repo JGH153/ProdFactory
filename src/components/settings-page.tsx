@@ -3,8 +3,10 @@
 import { PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
+import { MusicButton } from "@/components/music-button";
 import { NewGameButton } from "@/components/new-game-button";
 import { ResetShopButton } from "@/components/reset-shop-button";
+import { SfxButton } from "@/components/sfx-button";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -22,6 +24,13 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 		>
 			<h2 className="text-lg font-semibold mb-4">Settings</h2>
 			<div className="space-y-4">
+				<div>
+					<h3 className="text-sm font-medium text-text-muted mb-2">Audio</h3>
+					<div className="space-y-2">
+						<MusicButton />
+						<SfxButton />
+					</div>
+				</div>
 				<div>
 					<h3 className="text-sm font-medium text-text-muted mb-2">General</h3>
 					<Button variant="secondary" onClick={onWatchIntro} className="w-full">
