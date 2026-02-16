@@ -11,7 +11,6 @@ import { Logo } from "@/components/logo";
 import { SettingsPage } from "@/components/settings-page";
 import { ShopPage } from "@/components/shop-page";
 import { MusicProvider } from "@/game/music-context";
-import { SfxProvider } from "@/game/sfx-context";
 
 type ActiveTab = "game" | "shop" | "settings";
 
@@ -27,21 +26,19 @@ export default function Home() {
 
 	return (
 		<MusicProvider>
-			<SfxProvider>
-				<main className="min-h-screen flex flex-col items-center px-4 pt-8 pb-24">
-					<Logo />
-					{activeTab === "game" && <GameBoard />}
-					{activeTab === "shop" && <ShopPage />}
-					{activeTab === "settings" && (
-						<SettingsPage
-							onReset={() => setActiveTab("game")}
-							onWatchIntro={() => setIntroOpen(true)}
-						/>
-					)}
-					<IntroVideoDialog open={introOpen} onOpenChange={setIntroOpen} />
-				</main>
-				<BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-			</SfxProvider>
+			<main className="min-h-screen flex flex-col items-center px-4 pt-8 pb-24">
+				<Logo />
+				{activeTab === "game" && <GameBoard />}
+				{activeTab === "shop" && <ShopPage />}
+				{activeTab === "settings" && (
+					<SettingsPage
+						onReset={() => setActiveTab("game")}
+						onWatchIntro={() => setIntroOpen(true)}
+					/>
+				)}
+				<IntroVideoDialog open={introOpen} onOpenChange={setIntroOpen} />
+			</main>
+			<BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 		</MusicProvider>
 	);
 }

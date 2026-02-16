@@ -84,7 +84,19 @@ export const MilestoneNotificationProvider = ({
 							<ResourceIcon resourceId={current.resourceId} size={48} />
 							<span className="text-xl font-bold text-text-primary">
 								{RESOURCE_CONFIGS[current.resourceId].name} speed is{" "}
-								{current.multiplier}x now!
+								<motion.span
+									className="inline-block text-accent-amber"
+									animate={{
+										x: [0, -3, 3, -3, 3, -2, 2, 0],
+									}}
+									transition={{
+										duration: 0.5,
+										ease: "easeInOut",
+									}}
+								>
+									{current.multiplier}x
+								</motion.span>{" "}
+								now!
 							</span>
 						</motion.div>
 					)}

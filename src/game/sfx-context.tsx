@@ -31,6 +31,7 @@ type SfxContextValue = {
 	sfxEnabled: boolean;
 	toggleSfx: () => void;
 	playClickSfx: () => void;
+	playMilestoneSfx: () => void;
 };
 
 const SfxContext = createContext<SfxContextValue | null>(null);
@@ -61,8 +62,21 @@ export const SfxProvider = ({ children }: PropsWithChildren) => {
 		});
 	}, [sfxEnabled]);
 
+	const playMilestoneSfx = useCallback(() => {
+		if (!sfxEnabled) {
+			return;
+		}
+		const audio = new Audio("/high-speed.mp3");
+		audio.volume = 0.5;
+		audio.play().catch(() => {
+			// Autoplay blocked by browser
+		});
+	}, [sfxEnabled]);
+
 	return (
-		<SfxContext value={{ sfxEnabled, toggleSfx, playClickSfx }}>
+		<SfxContext
+			value={{ sfxEnabled, toggleSfx, playClickSfx, playMilestoneSfx }}
+		>
 			{children}
 		</SfxContext>
 	);

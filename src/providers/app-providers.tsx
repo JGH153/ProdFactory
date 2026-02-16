@@ -5,6 +5,7 @@ import type { PropsWithChildren } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GameStateProvider } from "@/game/game-state-context";
 import { MilestoneNotificationProvider } from "@/game/milestone-context";
+import { SfxProvider } from "@/game/sfx-context";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -22,9 +23,11 @@ const queryClient = new QueryClient({
 export const AppProviders = ({ children }: PropsWithChildren) => (
 	<QueryClientProvider client={queryClient}>
 		<TooltipProvider>
-			<MilestoneNotificationProvider>
-				<GameStateProvider>{children}</GameStateProvider>
-			</MilestoneNotificationProvider>
+			<SfxProvider>
+				<MilestoneNotificationProvider>
+					<GameStateProvider>{children}</GameStateProvider>
+				</MilestoneNotificationProvider>
+			</SfxProvider>
 		</TooltipProvider>
 	</QueryClientProvider>
 );
