@@ -1,6 +1,7 @@
 {
 	"entry": ["src/app/**/*.{ts,tsx}"],
 	"project": ["src/**/*.{ts,tsx}"],
+	"ignoreBinaries": ["npm-check-updates"],
 	"ignoreDependencies": ["tailwindcss", "postcss", "postcss-load-config"],
 	"ignore": ["src/components/ui/**"]
 }
