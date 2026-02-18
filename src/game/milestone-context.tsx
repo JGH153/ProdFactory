@@ -6,14 +6,17 @@ import {
 	type PropsWithChildren,
 	use,
 	useCallback,
+	useEffect,
 	useRef,
 	useState,
 } from "react";
 import { ResourceIcon } from "@/components/resource-icon";
 import { RESOURCE_CONFIGS } from "./config";
+import { useSfx } from "./sfx-context";
 import type { ResourceId } from "./types";
 
 type MilestoneNotification = {
+	id: number;
 	resourceId: ResourceId;
 	multiplier: number;
 };
@@ -25,24 +28,30 @@ type MilestoneContextValue = {
 const MilestoneContext = createContext<MilestoneContextValue | null>(null);
 
 const DISMISS_DELAY = 5000;
+const MAX_VISIBLE = 3;
+const EXIT_ANIMATION_MS = 500;
 
 export const MilestoneNotificationProvider = ({
 	children,
 }: PropsWithChildren) => {
 	const [queue, setQueue] = useState<MilestoneNotification[]>([]);
-	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [exitingCount, setExitingCount] = useState(0);
+	const nextIdRef = useRef(0);
+	const timerMapRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+		new Map(),
+	);
+	const seenIdsRef = useRef<Set<number>>(new Set());
+	const { playMilestoneSfx } = useSfx();
 
-	const dismissCurrent = useCallback(() => {
-		setQueue((prev) => prev.slice(1));
-		timerRef.current = null;
+	const dismissById = useCallback((id: number) => {
+		setExitingCount((c) => c + 1);
+		setQueue((prev) => prev.filter((n) => n.id !== id));
+		timerMapRef.current.delete(id);
+		seenIdsRef.current.delete(id);
+		setTimeout(() => {
+			setExitingCount((c) => c - 1);
+		}, EXIT_ANIMATION_MS);
 	}, []);
-
-	const scheduleAutoDismiss = useCallback(() => {
-		if (timerRef.current !== null) {
-			return;
-		}
-		timerRef.current = setTimeout(dismissCurrent, DISMISS_DELAY);
-	}, [dismissCurrent]);
 
 	const showMilestone = useCallback(
 		({
@@ -52,25 +61,45 @@ export const MilestoneNotificationProvider = ({
 			resourceId: ResourceId;
 			multiplier: number;
 		}) => {
-			setQueue((prev) => [...prev, { resourceId, multiplier }]);
+			const id = nextIdRef.current++;
+			setQueue((prev) => [...prev, { id, resourceId, multiplier }]);
 		},
 		[],
 	);
 
-	const current = queue[0] ?? null;
+	const visible = queue.slice(0, MAX_VISIBLE - exitingCount);
 
-	if (current && timerRef.current === null) {
-		scheduleAutoDismiss();
-	}
+	useEffect(() => {
+		for (const item of visible) {
+			if (!seenIdsRef.current.has(item.id)) {
+				seenIdsRef.current.add(item.id);
+				playMilestoneSfx();
+				timerMapRef.current.set(
+					item.id,
+					setTimeout(() => dismissById(item.id), DISMISS_DELAY),
+				);
+			}
+		}
+	}, [visible, playMilestoneSfx, dismissById]);
+
+	useEffect(() => {
+		const timers = timerMapRef.current;
+		return () => {
+			for (const timer of timers.values()) {
+				clearTimeout(timer);
+			}
+		};
+	}, []);
 
 	return (
 		<MilestoneContext value={{ showMilestone }}>
 			{children}
-			<div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2">
-				<AnimatePresence mode="wait">
-					{current && (
+			<div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 flex-col-reverse gap-2">
+				<AnimatePresence>
+					{visible.map((item) => (
 						<motion.div
-							key={`${current.resourceId}-${current.multiplier}`}
+							key={item.id}
+							layout
 							initial={{ y: 100, opacity: 0 }}
 							animate={{ y: 0, opacity: 1 }}
 							exit={{ y: 100, opacity: 0 }}
@@ -81,9 +110,9 @@ export const MilestoneNotificationProvider = ({
 							}}
 							className="flex items-center gap-5 rounded-xl border border-border bg-card px-8 py-6 shadow-lg"
 						>
-							<ResourceIcon resourceId={current.resourceId} size={48} />
+							<ResourceIcon resourceId={item.resourceId} size={48} />
 							<span className="text-xl font-bold text-text-primary">
-								{RESOURCE_CONFIGS[current.resourceId].name} speed is{" "}
+								{RESOURCE_CONFIGS[item.resourceId].name} speed is{" "}
 								<motion.span
 									className="inline-block text-accent-amber"
 									animate={{
@@ -94,12 +123,12 @@ export const MilestoneNotificationProvider = ({
 										ease: "easeInOut",
 									}}
 								>
-									{current.multiplier}x
+									{item.multiplier}x
 								</motion.span>{" "}
 								now!
 							</span>
 						</motion.div>
-					)}
+					))}
 				</AnimatePresence>
 			</div>
 		</MilestoneContext>

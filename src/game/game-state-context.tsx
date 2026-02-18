@@ -29,7 +29,6 @@ import { useMilestoneNotification } from "./milestone-context";
 import { clearSave, loadGame, saveGame } from "./persistence";
 import type { SerializedGameState } from "./serialization";
 import { deserializeGameState } from "./serialization";
-import { useSfx } from "./sfx-context";
 import type {
 	GameState,
 	ResourceId,
@@ -58,7 +57,6 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
 	const { showMilestone } = useMilestoneNotification();
-	const { playMilestoneSfx } = useSfx();
 
 	// Load from localStorage on mount (client-only, instant render)
 	useEffect(() => {
@@ -183,12 +181,11 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 				const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
 				if (milestoneAfter > milestoneBefore) {
 					showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
-					playMilestoneSfx();
 				}
 			}
 			enqueueAction({ endpoint: "buy-producer", resourceId });
 		},
-		[enqueueAction, showMilestone, playMilestoneSfx],
+		[enqueueAction, showMilestone],
 	);
 
 	const buyMaxResourceProducers = useCallback(
@@ -200,13 +197,12 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 			setState((current) => buyMaxProducers({ state: current, resourceId }));
 			const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
 			const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
-			if (milestoneAfter > milestoneBefore) {
-				showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
-				playMilestoneSfx();
+			for (let m = milestoneBefore + 1; m <= milestoneAfter; m++) {
+				showMilestone({ resourceId, multiplier: 2 ** m });
 			}
 			enqueueAction({ endpoint: "buy-max-producers", resourceId });
 		},
-		[enqueueAction, showMilestone, playMilestoneSfx],
+		[enqueueAction, showMilestone],
 	);
 
 	const buyResourceAutomation = useCallback(
