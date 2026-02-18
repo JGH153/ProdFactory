@@ -7,6 +7,7 @@ import { MusicButton } from "@/components/music-button";
 import { NewGameButton } from "@/components/new-game-button";
 import { ResetShopButton } from "@/components/reset-shop-button";
 import { SfxButton } from "@/components/sfx-button";
+import { TrackSelector } from "@/components/track-selector";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -28,6 +29,7 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 					<h3 className="text-sm font-medium text-text-muted mb-2">Audio</h3>
 					<div className="space-y-2">
 						<MusicButton />
+						<TrackSelector />
 						<SfxButton />
 					</div>
 				</div>

@@ -9,11 +9,11 @@ import {
 	useState,
 } from "react";
 
-const SFX_PREF_KEY = "prodfactory-sfx-enabled";
+const SFX_PREFERENCE_KEY = "prodfactory-sfx-enabled";
 
 const getSfxPreference = (): boolean => {
 	try {
-		return localStorage.getItem(SFX_PREF_KEY) !== "false";
+		return localStorage.getItem(SFX_PREFERENCE_KEY) !== "false";
 	} catch {
 		return true;
 	}
@@ -21,7 +21,7 @@ const getSfxPreference = (): boolean => {
 
 const setSfxPreference = (enabled: boolean): void => {
 	try {
-		localStorage.setItem(SFX_PREF_KEY, enabled ? "true" : "false");
+		localStorage.setItem(SFX_PREFERENCE_KEY, enabled ? "true" : "false");
 	} catch {
 		// localStorage might be unavailable
 	}
