@@ -59,7 +59,7 @@ export const createInitialGameState = (): GameState => ({
 		},
 	},
 	shopBoosts: {
-		"production-2x": false,
+		"production-20x": false,
 		"automation-2x": false,
 		"runtime-50": false,
 	},

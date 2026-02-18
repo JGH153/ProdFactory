@@ -152,7 +152,7 @@ export const ProgressBar = ({ resource }: Props) => {
 		progress,
 	});
 
-	const productionMul = state.shopBoosts["production-2x"] ? 2 : 1;
+	const productionMul = state.shopBoosts["production-20x"] ? 20 : 1;
 	const continuousMul = getContinuousMultiplier({
 		resourceId: resource.id,
 		producers: resource.producers,

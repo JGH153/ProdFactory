@@ -33,7 +33,7 @@ export type ResourceState = {
 	runStartedAt: number | null;
 };
 
-export type ShopBoostId = "production-2x" | "automation-2x" | "runtime-50";
+export type ShopBoostId = "production-20x" | "automation-2x" | "runtime-50";
 
 export type ShopBoosts = Record<ShopBoostId, boolean>;
 

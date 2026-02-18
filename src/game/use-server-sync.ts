@@ -282,6 +282,27 @@ export const useServerSync = ({
 			processingRef.current = true;
 
 			try {
+				// Flush current client state so the server has latest run-accumulated resources
+				const serialized = serializeGameState(stateRef.current);
+				try {
+					const saveResult = await executeSave({
+						state: serialized,
+						serverVersion: serverVersionRef.current,
+					});
+					serverVersionRef.current = saveResult.serverVersion;
+				} catch (saveError) {
+					if (saveError instanceof ConflictError) {
+						serverVersionRef.current = saveError.serverVersion;
+						const retrySave = await executeSave({
+							state: serialized,
+							serverVersion: serverVersionRef.current,
+						});
+						serverVersionRef.current = retrySave.serverVersion;
+					} else {
+						throw saveError;
+					}
+				}
+
 				const result = await executeAction({
 					endpoint,
 					resourceId,
@@ -307,7 +328,7 @@ export const useServerSync = ({
 				processingRef.current = false;
 			}
 		},
-		[executeAction],
+		[executeAction, executeSave, stateRef],
 	);
 
 	// --- Exported methods ---

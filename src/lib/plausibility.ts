@@ -44,7 +44,7 @@ export const checkPlausibility = ({
 
 	const defaultBoosts = createInitialGameState().shopBoosts;
 	const shopBoosts = claimedState.shopBoosts ?? defaultBoosts;
-	const productionMul = shopBoosts["production-2x"] ? 2 : 1;
+	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
 
 	let corrected = false;
 	const warnings: string[] = [];

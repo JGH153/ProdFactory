@@ -28,7 +28,7 @@ const VALID_RESOURCE_IDS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([
-	"production-2x",
+	"production-20x",
 	"automation-2x",
 	"runtime-50",
 ]);

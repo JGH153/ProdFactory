@@ -27,9 +27,9 @@ const SHOP_MULTIPLIERS: ReadonlyArray<{
 	colorClass: string;
 }> = [
 	{
-		id: "production-2x",
-		name: "2x All Production",
-		description: "Double the output of all resource production runs.",
+		id: "production-20x",
+		name: "20x All Production",
+		description: "Multiply the output of all resource production runs by 20.",
 		icon: Rocket01Icon,
 		colorClass: "text-primary",
 	},

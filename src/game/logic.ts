@@ -365,7 +365,7 @@ export const completeRun = ({
 		producers: resource.producers,
 		runTimeMultiplier: rtm,
 	});
-	const productionMul = state.shopBoosts["production-2x"] ? 2 : 1;
+	const productionMul = state.shopBoosts["production-20x"] ? 20 : 1;
 	const produced = bnMul(
 		bigNum(resource.producers * productionMul),
 		bigNum(continuousMul),
@@ -557,7 +557,7 @@ export const resetShopBoosts = ({ state }: { state: GameState }): GameState => {
 	return {
 		...state,
 		shopBoosts: {
-			"production-2x": false,
+			"production-20x": false,
 			"automation-2x": false,
 			"runtime-50": false,
 		},
