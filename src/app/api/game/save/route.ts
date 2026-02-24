@@ -3,19 +3,16 @@ import { NextResponse } from "next/server";
 import type { SerializedGameState } from "@/game/serialization";
 import {
 	getSessionFromRequest,
+	type PlausibilitySaveResult,
 	parseSaveActionBody,
+	persistWithPlausibility,
 	stripServerVersion,
 } from "@/lib/api-helpers";
-import { buildSyncSnapshot } from "@/lib/plausibility";
-import {
-	loadStoredGameState,
-	saveStoredGameState,
-	setSyncSnapshot,
-} from "@/lib/redis";
+import { loadStoredGameState } from "@/lib/redis";
 
 type SaveGameResult =
 	| { type: "conflict"; state: SerializedGameState; serverVersion: number }
-	| { type: "accepted"; serverVersion: number };
+	| PlausibilitySaveResult;
 
 const saveGame = async ({
 	sessionId,
@@ -38,18 +35,12 @@ const saveGame = async ({
 
 	const newVersion = stored ? stored.serverVersion + 1 : 1;
 
-	await saveStoredGameState({
+	return persistWithPlausibility({
 		sessionId,
-		stored: { ...claimedState, serverVersion: newVersion },
+		claimedState,
+		newVersion,
+		updateSnapshotOnClean: true,
 	});
-
-	const snapshot = buildSyncSnapshot({
-		state: claimedState,
-		timestamp: Date.now(),
-	});
-	await setSyncSnapshot({ sessionId, snapshot });
-
-	return { type: "accepted", serverVersion: newVersion };
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
@@ -74,6 +65,14 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 			{ state: result.state, serverVersion: result.serverVersion },
 			{ status: 409 },
 		);
+	}
+
+	if (result.type === "corrected") {
+		return NextResponse.json({
+			serverVersion: result.serverVersion,
+			state: result.state,
+			warning: result.warning,
+		});
 	}
 
 	return NextResponse.json({

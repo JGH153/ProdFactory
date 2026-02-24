@@ -6,7 +6,7 @@ ProdFactory is an incremental/idle game that combines the layout and mechanics o
 
 ### Core Mechanics
 
-- **Runs**: A run is how long it takes to produce one batch of a resource. The base run time starts at 4 seconds and doubles (2x) for each subsequent resource tier.
+- **Runs**: A run is how long it takes to produce one batch of a resource. The base run time starts at 1 second and doubles (2x) for each subsequent resource tier.
 - **Resource chaining**: The output of one resource tier is consumed as input for the next tier.
 - **Automation**: Players can unlock automation for each resource tier to eliminate manual clicking.
 - **Upgrades**: Spend produced resources to increase per-run output.
@@ -16,12 +16,14 @@ ProdFactory is an incremental/idle game that combines the layout and mechanics o
 
 1. Iron Ore
 2. Plates
-3. Reinforced Iron Plate
+3. Reinforced Plate
 4. Modular Frame
 5. Heavy Modular Frame
 6. Fused Modular Frame
+7. Pressure Conversion Cube
+8. Nuclear Pasta
 
-Each tier feeds into the next. Iron Ore is the base resource produced from nothing; Plates require Iron Ore; Reinforced Iron Plates require Plates; and so on.
+Each tier feeds into the next. Iron Ore is the base resource produced from nothing; Plates require Iron Ore; Reinforced Plates require Plates; and so on.
 
 ---
 
@@ -198,16 +200,18 @@ The custom implementation must support:
 
 ### Run Timing
 
-| Resource Tier          | Run Time |
-| ---------------------- | -------- |
-| Iron Ore               | 4s       |
-| Plates                 | 8s       |
-| Reinforced Iron Plate  | 16s      |
-| Modular Frame          | 32s      |
-| Heavy Modular Frame    | 64s      |
-| Fused Modular Frame    | 128s     |
+| Resource Tier              | Run Time |
+| -------------------------- | -------- |
+| Iron Ore                   | 1s       |
+| Plates                     | 2s       |
+| Reinforced Plate           | 4s       |
+| Modular Frame              | 8s       |
+| Heavy Modular Frame        | 16s      |
+| Fused Modular Frame        | 32s      |
+| Pressure Conversion Cube   | 64s      |
+| Nuclear Pasta              | 128s     |
 
-Each tier's base run time is `4 * 2^(tier_index)` seconds.
+Each tier's base run time is `2^(tier_index)` seconds.
 
 ---
 

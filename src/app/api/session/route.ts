@@ -28,7 +28,9 @@ const createNewSession = async (ip: string): Promise<CreateSessionResult> => {
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const ip =
-		request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+		request.headers.get("x-real-ip")?.trim() ??
+		request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ??
+		"unknown";
 
 	const result = await createNewSession(ip);
 

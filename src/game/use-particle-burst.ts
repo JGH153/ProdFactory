@@ -15,17 +15,22 @@ export const useParticleBurst = () => {
 		[],
 	);
 
-	// Auto-cleanup: remove particles after animation completes
+	// Auto-cleanup: remove particles after animation completes.
+	// Schedule based on when the oldest particle expires so rapid bursts
+	// don't reset the timer and delay cleanup of earlier particles.
 	useEffect(() => {
 		if (particles.length === 0) {
 			return;
 		}
 
+		const oldest = Math.min(...particles.map((p) => p.createdAt));
+		const delay = Math.max(0, oldest + 600 - Date.now());
+
 		const timerId = setTimeout(() => {
 			setParticles((prev) =>
 				prev.filter((p) => Date.now() - p.createdAt < 600),
 			);
-		}, 600);
+		}, delay);
 
 		return () => clearTimeout(timerId);
 	}, [particles]);
