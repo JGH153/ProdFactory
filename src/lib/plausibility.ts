@@ -21,11 +21,13 @@ import type { SyncSnapshot } from "@/lib/redis";
 
 const PLAUSIBILITY_TOLERANCE = 1.1;
 
-type PlausibilityResult = {
-	corrected: boolean;
-	correctedState: SerializedGameState | null;
-	warnings: string[];
-};
+type PlausibilityResult =
+	| { corrected: false; correctedState: null; warnings: string[] }
+	| {
+			corrected: true;
+			correctedState: SerializedGameState;
+			warnings: string[];
+	  };
 
 export const checkPlausibility = ({
 	claimedState,
