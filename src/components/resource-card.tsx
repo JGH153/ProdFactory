@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
-import { RESOURCE_CONFIGS } from "@/game/config";
+import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { useGameState } from "@/game/game-state-context";
 import {
 	getEffectiveRunTime,
@@ -25,6 +25,8 @@ export const ResourceCard = ({ resource }: Props) => {
 	const { state } = useGameState();
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isLocked = !resource.isUnlocked;
+	const isNuclearPasta =
+		resource.id === RESOURCE_ORDER[RESOURCE_ORDER.length - 1];
 	const rtm = getRunTimeMultiplier({
 		shopBoosts: state.shopBoosts,
 		isAutomated: resource.isAutomated && !resource.isPaused,
@@ -59,7 +61,8 @@ export const ResourceCard = ({ resource }: Props) => {
 		>
 			<Card
 				className={`relative border-border bg-card select-none
-					${isLocked ? "opacity-50" : ""}`}
+					${isLocked ? "opacity-50" : ""}
+					${isNuclearPasta && !isLocked ? "animate-nuclear-pulse" : ""}`}
 			>
 				<CardContent className="flex items-center gap-4 p-4">
 					{/* LEFT: Icon + Name + Count (clickable to start run) */}

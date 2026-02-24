@@ -53,6 +53,24 @@ body {
 	}
 }
 
+@keyframes nuclear-pulse {
+	0%,
+	100% {
+		box-shadow:
+			0 0 6px rgba(158, 212, 74, 0.25),
+			0 0 12px rgba(158, 212, 74, 0.1);
+	}
+	50% {
+		box-shadow:
+			0 0 20px rgba(158, 212, 74, 0.55),
+			0 0 40px rgba(158, 212, 74, 0.25);
+	}
+}
+
+.animate-nuclear-pulse {
+	animation: nuclear-pulse 6s ease-in-out infinite;
+}
+
 .animate-shimmer [data-slot="progress-indicator"] {
 	background: repeating-linear-gradient(
 		-45deg,
