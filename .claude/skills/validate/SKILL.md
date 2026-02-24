@@ -1,6 +1,6 @@
 ---
 name: validate
-description: Run the full validation suite (Biome check + TypeScript + Knip) and fix any issues. Use at the end of a development session before committing.
+description: Run the full validation suite (tests + Biome check + TypeScript + Knip) and fix any issues. Use at the end of a development session before committing.
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Grep, Glob
 ---
@@ -11,8 +11,9 @@ Run the full validation suite and fix any issues found.
 
 ## Steps
 
-1. Run `pnpm validate` (this runs Biome check, TypeScript type checking, and Knip for dead code detection)
+1. Run `pnpm validate` (this runs Vitest tests, Biome check, TypeScript type checking, and Knip for dead code detection)
 2. If there are errors, fix them:
+   - **Test failures**: Fix logic errors in the reported source or test files
    - **Biome errors**: Fix lint and formatting issues in the reported files
    - **Type errors**: Fix TypeScript type errors in the reported files
    - **Knip errors**: Remove unused exports, dependencies, or dead code

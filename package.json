@@ -12,7 +12,9 @@
 		"check": "biome check --write .",
 		"typecheck": "tsc --noEmit",
 		"knip": "knip",
-		"validate": "biome check . && tsc --noEmit && knip",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"validate": "pnpm test && biome check . && tsc --noEmit && knip",
 		"update-deps": "npx npm-check-updates -i -p pnpm"
 	},
 	"dependencies": {
@@ -39,6 +41,7 @@
 		"babel-plugin-react-compiler": "^1.0.0",
 		"knip": "latest",
 		"tailwindcss": "^4",
-		"typescript": "^5"
+		"typescript": "^5",
+		"vitest": "^4.0.18"
 	}
 }
