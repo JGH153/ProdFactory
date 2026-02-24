@@ -1,3 +1,5 @@
+This plan is already implemented and only serve as documentation for the current server-side validation system.
+
 # Feature Recommendation: Offline Progress
 
 ## Summary

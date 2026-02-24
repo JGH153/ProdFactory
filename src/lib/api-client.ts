@@ -1,5 +1,6 @@
 import type { SerializedGameState } from "@/game/serialization";
 import type { ResourceId, ShopBoostId } from "@/game/types";
+import type { SerializedOfflineSummary } from "@/lib/offline-progress";
 
 // --- Error classes ---
 
@@ -33,6 +34,7 @@ class ActionFailedError extends Error {
 type LoadGameResponse = {
 	state: SerializedGameState;
 	serverVersion: number;
+	offlineSummary?: SerializedOfflineSummary;
 };
 
 type SaveGameResponse = {

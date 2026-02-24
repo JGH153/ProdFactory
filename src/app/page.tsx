@@ -8,8 +8,10 @@ import {
 	IntroVideoDialog,
 } from "@/components/intro-video-dialog";
 import { Logo } from "@/components/logo";
+import { OfflineSummaryModal } from "@/components/offline-summary-modal";
 import { SettingsPage } from "@/components/settings-page";
 import { ShopPage } from "@/components/shop-page";
+import { useGameState } from "@/game/game-state-context";
 import { MusicProvider } from "@/game/music-context";
 
 type ActiveTab = "game" | "shop" | "settings";
@@ -17,6 +19,7 @@ type ActiveTab = "game" | "shop" | "settings";
 export default function Home() {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
 	const [introOpen, setIntroOpen] = useState(false);
+	const { offlineSummary, collectOfflineProgress } = useGameState();
 
 	useEffect(() => {
 		if (!hasSeenIntro()) {
@@ -37,6 +40,10 @@ export default function Home() {
 					/>
 				)}
 				<IntroVideoDialog open={introOpen} onOpenChange={setIntroOpen} />
+				<OfflineSummaryModal
+					summary={offlineSummary}
+					onCollect={collectOfflineProgress}
+				/>
 			</main>
 			<BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 		</MusicProvider>

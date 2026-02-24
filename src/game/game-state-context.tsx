@@ -31,6 +31,7 @@ import type { SerializedGameState } from "./serialization";
 import { deserializeGameState } from "./serialization";
 import type {
 	GameState,
+	OfflineSummary,
 	ResourceId,
 	ResourceState,
 	ShopBoostId,
@@ -39,6 +40,8 @@ import { useServerSync } from "./use-server-sync";
 
 type GameActions = {
 	state: GameState;
+	offlineSummary: OfflineSummary | null;
+	collectOfflineProgress: () => void;
 	startResourceRun: (resourceId: ResourceId) => void;
 	buyResourceProducer: (resourceId: ResourceId) => void;
 	buyMaxResourceProducers: (resourceId: ResourceId) => void;
@@ -54,6 +57,9 @@ const GameStateContext = createContext<GameActions | null>(null);
 
 export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	const [state, setState] = useState<GameState>(createInitialGameState);
+	const [offlineSummary, setOfflineSummary] = useState<OfflineSummary | null>(
+		null,
+	);
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
 	const { showMilestone } = useMilestoneNotification();
@@ -105,9 +111,18 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	// --- Server sync hook (save/sync intervals, action queue) ---
 
+	const onOfflineSummary = useCallback((summary: OfflineSummary) => {
+		setOfflineSummary(summary);
+	}, []);
+
+	const collectOfflineProgress = useCallback(() => {
+		setOfflineSummary(null);
+	}, []);
+
 	const { enqueueAction, executeAwaitedAction, resetOnServer } = useServerSync({
 		stateRef,
 		reconcileState,
+		onOfflineSummary,
 	});
 
 	// Game tick: check run completions via requestAnimationFrame
@@ -273,6 +288,8 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 	const value: GameActions = {
 		state,
+		offlineSummary,
+		collectOfflineProgress,
 		startResourceRun,
 		buyResourceProducer,
 		buyMaxResourceProducers,

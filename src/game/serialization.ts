@@ -3,9 +3,16 @@ import {
 	bnSerialize,
 	type SerializedBigNum,
 } from "@/lib/big-number";
+import type { SerializedOfflineSummary } from "@/lib/offline-progress";
 import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
-import type { GameState, ResourceId, ResourceState, ShopBoosts } from "./types";
+import type {
+	GameState,
+	OfflineSummary,
+	ResourceId,
+	ResourceState,
+	ShopBoosts,
+} from "./types";
 
 export const SAVE_VERSION = 4;
 
@@ -60,6 +67,17 @@ export const serializeGameState = (state: GameState): SerializedGameState => {
 		version: SAVE_VERSION,
 	};
 };
+
+export const deserializeOfflineSummary = (
+	summary: SerializedOfflineSummary,
+): OfflineSummary => ({
+	elapsedSeconds: summary.elapsedSeconds,
+	gains: summary.gains.map(({ resourceId, amount }) => ({
+		resourceId,
+		amount: bnDeserialize(amount),
+	})),
+	wasCapped: summary.wasCapped,
+});
 
 export const deserializeGameState = (data: SerializedGameState): GameState => {
 	const initialState = createInitialGameState();

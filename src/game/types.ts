@@ -44,3 +44,9 @@ export type GameState = {
 	shopBoosts: ShopBoosts;
 	lastSavedAt: number;
 };
+
+export type OfflineSummary = {
+	elapsedSeconds: number;
+	gains: { resourceId: ResourceId; amount: BigNum }[];
+	wasCapped: boolean;
+};

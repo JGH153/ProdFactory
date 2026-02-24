@@ -3,8 +3,16 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { SerializedGameState } from "@/game/serialization";
-import { serializeGameState } from "@/game/serialization";
-import type { GameState, ResourceId, ShopBoostId } from "@/game/types";
+import {
+	deserializeOfflineSummary,
+	serializeGameState,
+} from "@/game/serialization";
+import type {
+	GameState,
+	OfflineSummary,
+	ResourceId,
+	ShopBoostId,
+} from "@/game/types";
 import {
 	loadGame as apiLoadGame,
 	postAction as apiPostAction,
@@ -31,9 +39,11 @@ type ReconcileCallback = (args: {
 export const useServerSync = ({
 	stateRef,
 	reconcileState,
+	onOfflineSummary,
 }: {
 	stateRef: RefObject<GameState>;
 	reconcileState: ReconcileCallback;
+	onOfflineSummary: (summary: OfflineSummary) => void;
 }): {
 	enqueueAction: (args: {
 		endpoint: string;
@@ -152,6 +162,9 @@ export const useServerSync = ({
 			serverVersionRef.current = initialData.serverVersion;
 			isReadyRef.current = true;
 			reconcileState({ state: initialData.state, fullReplace: false });
+			if (initialData.offlineSummary) {
+				onOfflineSummary(deserializeOfflineSummary(initialData.offlineSummary));
+			}
 		} else {
 			// No server state (404) — migrate localStorage state to server
 			const serialized = serializeGameState(stateRef.current);
@@ -165,7 +178,7 @@ export const useServerSync = ({
 					// Next interval will retry
 				});
 		}
-	}, [initialData, reconcileState, executeSave, stateRef]);
+	}, [initialData, reconcileState, executeSave, stateRef, onOfflineSummary]);
 
 	// --- Auto-save interval (5s) ---
 
