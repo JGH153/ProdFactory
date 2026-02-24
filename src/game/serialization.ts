@@ -7,7 +7,7 @@ import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
 import type { GameState, ResourceId, ResourceState, ShopBoosts } from "./types";
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export type SerializedResourceState = {
 	id: ResourceId;

@@ -1,7 +1,9 @@
 "use client";
 
 import {
+	Atom02Icon,
 	AtomicPowerIcon,
+	CubeIcon,
 	GemIcon,
 	GridIcon,
 	Layers01Icon,
@@ -23,6 +25,8 @@ const ICON_MAP = {
 	"modular-frame": GridIcon,
 	"heavy-modular-frame": WeightIcon,
 	"fused-modular-frame": AtomicPowerIcon,
+	"pressure-conversion-cube": CubeIcon,
+	"nuclear-pasta": Atom02Icon,
 } as const;
 
 const COLOR_MAP: Record<ResourceId, string> = {
@@ -32,6 +36,8 @@ const COLOR_MAP: Record<ResourceId, string> = {
 	"modular-frame": "var(--color-modular-frame)",
 	"heavy-modular-frame": "var(--color-heavy-modular-frame)",
 	"fused-modular-frame": "var(--color-fused-modular-frame)",
+	"pressure-conversion-cube": "var(--color-pressure-conversion-cube)",
+	"nuclear-pasta": "var(--color-nuclear-pasta)",
 };
 
 export const ResourceIcon = ({ resourceId, size }: Props) => (

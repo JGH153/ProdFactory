@@ -6,7 +6,9 @@ export type ResourceId =
 	| "reinforced-plate"
 	| "modular-frame"
 	| "heavy-modular-frame"
-	| "fused-modular-frame";
+	| "fused-modular-frame"
+	| "pressure-conversion-cube"
+	| "nuclear-pasta";
 
 export type ResourceConfig = {
 	id: ResourceId;

@@ -25,6 +25,8 @@ const VALID_RESOURCE_IDS: ReadonlySet<string> = new Set<string>([
 	"modular-frame",
 	"heavy-modular-frame",
 	"fused-modular-frame",
+	"pressure-conversion-cube",
+	"nuclear-pasta",
 ]);
 
 const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([

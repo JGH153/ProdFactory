@@ -88,6 +88,34 @@ export const RESOURCE_CONFIGS: Record<ResourceId, ResourceConfig> = {
 		automationCost: bigNum(10),
 		tier: 5,
 	},
+	"pressure-conversion-cube": {
+		id: "pressure-conversion-cube",
+		name: "Pressure Conversion Cube",
+		description: "Matter compressed under extreme pressure",
+		baseRunTime: 64,
+		baseCost: bigNum(128),
+		costScaling: COST_SCALING,
+		unlockCost: bigNum(20),
+		unlockCostResourceId: "fused-modular-frame",
+		inputResourceId: "fused-modular-frame",
+		inputCostPerRun: bigNum(4),
+		automationCost: bigNum(10),
+		tier: 6,
+	},
+	"nuclear-pasta": {
+		id: "nuclear-pasta",
+		name: "Nuclear Pasta",
+		description: "An exotic state of matter found only in neutron stars",
+		baseRunTime: 128,
+		baseCost: bigNum(256),
+		costScaling: COST_SCALING,
+		unlockCost: bigNum(20),
+		unlockCostResourceId: "pressure-conversion-cube",
+		inputResourceId: "pressure-conversion-cube",
+		inputCostPerRun: bigNum(4),
+		automationCost: bigNum(10),
+		tier: 7,
+	},
 };
 
 export const RESOURCE_ORDER: ResourceId[] = [
@@ -97,4 +125,6 @@ export const RESOURCE_ORDER: ResourceId[] = [
 	"modular-frame",
 	"heavy-modular-frame",
 	"fused-modular-frame",
+	"pressure-conversion-cube",
+	"nuclear-pasta",
 ];
