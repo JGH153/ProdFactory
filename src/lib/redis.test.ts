@@ -1,5 +1,5 @@
 const { mockGet, mockSet, mockDel, mockIncr, mockExpire } = vi.hoisted(() => {
-	process.env.REDIS_URL = "redis://localhost:6379";
+	process.env.REDIS_URL = "redis://localhost:6380";
 	return {
 		mockGet: vi.fn(),
 		mockSet: vi.fn(),
