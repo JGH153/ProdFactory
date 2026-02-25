@@ -26,6 +26,7 @@ import {
 	bnSerialize,
 	bnSub,
 } from "@/lib/big-number";
+import { logger } from "./logger";
 import type { SyncSnapshot } from "./redis";
 
 const PLAUSIBILITY_TOLERANCE = 1.1;
@@ -309,7 +310,10 @@ export const checkPlausibility = ({
 	}
 
 	if (corrected) {
-		console.warn("[plausibility]", warnings, `elapsed=${elapsed}ms`);
+		logger.warn(
+			{ warnings, elapsedMs: elapsed },
+			"Plausibility correction applied",
+		);
 		return {
 			corrected: true,
 			correctedState: {

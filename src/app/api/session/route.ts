@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/server/logger";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { buildSessionCookie, createSession } from "@/lib/server/session";
 
@@ -35,6 +36,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const result = await createNewSession(ip);
 
 	if (result.type === "rate_limited") {
+		logger.warn({ ip }, "Session creation rate limited");
 		return NextResponse.json(
 			{ error: "Too many session requests" },
 			{ status: 429 },

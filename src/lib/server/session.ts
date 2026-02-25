@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import { getSessionData, type SessionData, setSessionData } from "./redis";
 
 export const COOKIE_NAME = "pf-session";
@@ -35,11 +36,9 @@ export const incrementWarnings = async (sessionId: string): Promise<number> => {
 	if (!data) {
 		return 0;
 	}
-	console.warn(
+	logger.warn(
+		{ sessionId, currentCount: data.warnings },
 		"Incrementing warnings for session",
-		sessionId,
-		"current count:",
-		data.warnings,
 	);
 	const newCount = data.warnings + 1;
 	const updated: SessionData = {

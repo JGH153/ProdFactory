@@ -20,6 +20,7 @@ import type {
 	ShopBoostId,
 } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
+import { logger } from "./logger";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
 import {
 	getSyncSnapshot,
@@ -255,6 +256,7 @@ export const getSessionFromRequest = async (
 		return NextResponse.json({ error: "No session cookie" }, { status: 401 });
 	}
 	if (!UUID_REGEX.test(sessionId)) {
+		logger.debug({ sessionId }, "Invalid session format");
 		return NextResponse.json(
 			{ error: "Invalid session format" },
 			{ status: 401 },
@@ -262,6 +264,7 @@ export const getSessionFromRequest = async (
 	}
 	const session = await validateSession(sessionId);
 	if (!session) {
+		logger.debug({ sessionId }, "Invalid or expired session");
 		return NextResponse.json(
 			{ error: "Invalid or expired session" },
 			{ status: 401 },
@@ -425,6 +428,10 @@ export const persistWithPlausibility = async ({
 	});
 
 	if (result.corrected && result.correctedState) {
+		logger.warn(
+			{ sessionId, warnings: result.warnings },
+			"State corrected by plausibility check",
+		);
 		await incrementWarnings(sessionId);
 
 		await saveStoredGameState({
@@ -509,6 +516,14 @@ export const executeAction = async ({
 	}
 
 	if (stored.serverVersion !== serverVersion) {
+		logger.debug(
+			{
+				sessionId,
+				clientVersion: serverVersion,
+				serverVersion: stored.serverVersion,
+			},
+			"Version conflict",
+		);
 		return NextResponse.json(
 			{
 				state: stripServerVersion(stored),
@@ -602,6 +617,14 @@ export const executeSimpleAction = async ({
 	}
 
 	if (stored.serverVersion !== serverVersion) {
+		logger.debug(
+			{
+				sessionId,
+				clientVersion: serverVersion,
+				serverVersion: stored.serverVersion,
+			},
+			"Version conflict",
+		);
 		return NextResponse.json(
 			{
 				state: stripServerVersion(stored),
@@ -745,6 +768,14 @@ export const executeLabAction = async ({
 	}
 
 	if (stored.serverVersion !== serverVersion) {
+		logger.debug(
+			{
+				sessionId,
+				clientVersion: serverVersion,
+				serverVersion: stored.serverVersion,
+			},
+			"Version conflict",
+		);
 		return NextResponse.json(
 			{
 				state: stripServerVersion(stored),
@@ -805,6 +836,14 @@ export const executeBoostAction = async ({
 	}
 
 	if (stored.serverVersion !== serverVersion) {
+		logger.debug(
+			{
+				sessionId,
+				clientVersion: serverVersion,
+				serverVersion: stored.serverVersion,
+			},
+			"Version conflict",
+		);
 		return NextResponse.json(
 			{
 				state: stripServerVersion(stored),
