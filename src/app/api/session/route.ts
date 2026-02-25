@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { buildSessionCookie, createSession } from "@/lib/session";
+import { checkRateLimit } from "@/lib/server/rate-limit";
+import { buildSessionCookie, createSession } from "@/lib/server/session";
 
 const MAX_SESSIONS_PER_HOUR = 10;
 const ONE_HOUR = 60 * 60;

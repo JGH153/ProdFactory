@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BottomNav } from "@/components/bottom-nav";
-import { GameBoard } from "@/components/game-board";
 import {
 	hasSeenIntro,
 	IntroVideoDialog,
 } from "@/components/intro-video-dialog";
-import { Logo } from "@/components/logo";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { GameBoard } from "@/components/layout/game-board";
+import { Logo } from "@/components/layout/logo";
 import { OfflineSummaryModal } from "@/components/offline-summary-modal";
-import { ResearchPage } from "@/components/research-page";
-import { SettingsPage } from "@/components/settings-page";
+import { ResearchPage } from "@/components/research/research-page";
+import { SettingsPage } from "@/components/settings/settings-page";
 import { ShopPage } from "@/components/shop-page";
-import { useGameState } from "@/game/game-state-context";
-import { useMilestoneNotification } from "@/game/milestone-context";
-import { MusicProvider } from "@/game/music-context";
+import { useGameState } from "@/game/state/game-state-context";
+import { useMilestoneNotification } from "@/game/state/milestone-context";
+import { MusicProvider } from "@/game/state/music-context";
 
 type ActiveTab = "game" | "shop" | "research" | "settings";
 

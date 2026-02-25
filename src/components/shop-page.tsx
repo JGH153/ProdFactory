@@ -17,7 +17,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { useGameState } from "@/game/game-state-context";
+import { useGameState } from "@/game/state/game-state-context";
 import type { ShopBoostId } from "@/game/types";
 
 const SHOP_MULTIPLIERS: ReadonlyArray<{

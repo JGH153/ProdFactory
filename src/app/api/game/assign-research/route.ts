@@ -1,17 +1,20 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { assignResearch, getAssignResearchError } from "@/game/research-logic";
-import { deserializeGameState, serializeGameState } from "@/game/serialization";
+import {
+	deserializeGameState,
+	serializeGameState,
+} from "@/game/state/serialization";
 import {
 	getSessionFromRequest,
 	parseLabResearchActionBody,
 	patchSnapshotMetadata,
-} from "@/lib/api-helpers";
+} from "@/lib/server/api-helpers";
 import {
 	loadStoredGameState,
 	type StoredGameState,
 	saveStoredGameState,
-} from "@/lib/redis";
+} from "@/lib/server/redis";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const sessionResult = await getSessionFromRequest(request);

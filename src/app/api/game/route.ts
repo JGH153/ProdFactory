@@ -1,12 +1,15 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { SerializedGameState } from "@/game/serialization";
-import { getSessionFromRequest, stripServerVersion } from "@/lib/api-helpers";
+import type { SerializedGameState } from "@/game/state/serialization";
+import {
+	getSessionFromRequest,
+	stripServerVersion,
+} from "@/lib/server/api-helpers";
 import {
 	computeOfflineProgress,
 	type SerializedOfflineSummary,
-} from "@/lib/offline-progress";
-import { loadStoredGameState, saveStoredGameState } from "@/lib/redis";
+} from "@/lib/server/offline-progress";
+import { loadStoredGameState, saveStoredGameState } from "@/lib/server/redis";
 
 type LoadGameResult =
 	| { type: "not_found" }

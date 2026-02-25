@@ -1,14 +1,14 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { SerializedGameState } from "@/game/serialization";
+import type { SerializedGameState } from "@/game/state/serialization";
 import {
 	getSessionFromRequest,
 	type PlausibilitySaveResult,
 	parseSaveActionBody,
 	persistWithPlausibility,
 	stripServerVersion,
-} from "@/lib/api-helpers";
-import { loadStoredGameState } from "@/lib/redis";
+} from "@/lib/server/api-helpers";
+import { loadStoredGameState } from "@/lib/server/redis";
 
 type SaveGameResult =
 	| { type: "conflict"; state: SerializedGameState; serverVersion: number }

@@ -3,9 +3,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { GameStateProvider } from "@/game/game-state-context";
-import { MilestoneNotificationProvider } from "@/game/milestone-context";
-import { SfxProvider } from "@/game/sfx-context";
+import { GameStateProvider } from "@/game/state/game-state-context";
+import { MilestoneNotificationProvider } from "@/game/state/milestone-context";
+import { SfxProvider } from "@/game/state/sfx-context";
 
 const queryClient = new QueryClient({
 	defaultOptions: {

@@ -1,6 +1,6 @@
-import type { SerializedGameState } from "@/game/serialization";
+import type { SerializedGameState } from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId, ShopBoostId } from "@/game/types";
-import type { SerializedOfflineSummary } from "@/lib/offline-progress";
+import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 
 // --- Error classes ---
 

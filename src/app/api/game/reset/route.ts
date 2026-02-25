@@ -1,18 +1,18 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createInitialGameState } from "@/game/initial-state";
-import type { SerializedGameState } from "@/game/serialization";
-import { serializeGameState } from "@/game/serialization";
+import type { SerializedGameState } from "@/game/state/serialization";
+import { serializeGameState } from "@/game/state/serialization";
 import {
 	getSessionFromRequest,
 	parseVersionOnlyBody,
 	stripServerVersion,
-} from "@/lib/api-helpers";
+} from "@/lib/server/api-helpers";
 import {
 	deleteSyncSnapshot,
 	loadStoredGameState,
 	saveStoredGameState,
-} from "@/lib/redis";
+} from "@/lib/server/redis";
 
 type ResetGameResult =
 	| { type: "conflict"; state: SerializedGameState; serverVersion: number }
