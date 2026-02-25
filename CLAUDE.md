@@ -2,66 +2,63 @@
 
 ## Project Overview
 
-ProdFactory is an incremental/idle game that combines the layout and mechanics of Adventure Capitalist with the resource chain from Satisfactory. Players click to produce resources, which can later be automated. Produced resources can be spent on upgrades that increase the gain from each run.
+ProdFactory is an incremental/idle game combining Adventure Capitalist mechanics with Satisfactory's resource chain. Players click to produce resources, automate production, research efficiency upgrades, and purchase shop boosts.
 
 ### Core Mechanics
 
-- **Runs**: A run is how long it takes to produce one batch of a resource. The base run time starts at 1 second and doubles (2x) for each subsequent resource tier.
-- **Resource chaining**: The output of one resource tier is consumed as input for the next tier.
-- **Automation**: Players can unlock automation for each resource tier to eliminate manual clicking.
-- **Upgrades**: Spend produced resources to increase per-run output.
-- **Big numbers**: Production values grow extremely large over time, surpassing what JavaScript's `Number` type can represent. A custom BigNumber system handles this (see Architecture section).
+- **Runs**: Producing one batch of a resource takes `2^tier_index` seconds (1s for Iron Ore, 2s for Plates, ... 128s for Nuclear Pasta).
+- **Resource chaining**: Each tier's output feeds the next. Input cost: 4 units per run, scaling with producer count.
+- **Producers**: Buy producers to increase per-run output. Cost scales exponentially (1.15x per producer).
+- **Speed milestones**: Every 10 producers halves that tier's run time.
+- **Continuous mode**: When effective run time drops below 0.5s, it clamps there and a continuous multiplier compensates production.
+- **Automation**: Unlock per-tier automation to eliminate manual clicking. Can be paused without losing the unlock.
+- **Shop boosts**: Four one-time multipliers — `production-20x`, `automation-2x` (halves run time), `runtime-50` (50% faster), `research-2x` (halves research time).
+- **Research**: 2 labs run independently. 8 research types (one per resource) each give +10% production per level, max level 10. Time per level: `10s x 2^level`.
+- **Offline progress**: On return, the server computes up to 8 hours of offline production and research advancement.
+- **Big numbers**: Custom BigNumber system (`BigNum = {mantissa, exponent}`) handles values beyond `Number.MAX_SAFE_INTEGER`. Displays as digits up to 999,999, then million/billion/trillion, then letter notation (aa, ab, ...).
 
-### Resource Chain (in order)
+### Resource Chain
 
-1. Iron Ore
-2. Plates
-3. Reinforced Plate
-4. Modular Frame
-5. Heavy Modular Frame
-6. Fused Modular Frame
-7. Pressure Conversion Cube
-8. Nuclear Pasta
-
-Each tier feeds into the next. Iron Ore is the base resource produced from nothing; Plates require Iron Ore; Reinforced Plates require Plates; and so on.
+Iron Ore → Plates → Reinforced Plate → Modular Frame → Heavy Modular Frame → Fused Modular Frame → Pressure Conversion Cube → Nuclear Pasta
 
 ---
 
 ## Tech Stack
 
-| Category        | Technology                                  |
-| --------------- | ------------------------------------------- |
-| Framework       | Next.js (client-side rendering only, no SSR/caching) |
-| UI library      | React                                       |
-| Language        | TypeScript (strict mode, no `any`)          |
-| Styling         | Tailwind CSS                                |
-| Animations      | motion                                      |
-| UI components   | Shadcn                                      |
-| Icons           | Hugeicons (free tier)                       |
-| Data fetching   | TanStack Query                              |
-| Backend storage | Redis (ioredis locally, Upstash in production) |
-| Sessions        | Anonymous UUID, HttpOnly cookies             |
-| Linting/format  | Biome                                       |
-| Dead code       | Knip                                        |
-| E2E testing     | Playwright (to be added later)              |
-| Package manager | pnpm                                        |
-| Deployment      | Vercel                                      |
+| Category        | Technology                                           |
+| --------------- | ---------------------------------------------------- |
+| Framework       | Next.js 16 (client-side rendering only, no SSR)      |
+| UI library      | React 19                                             |
+| Language        | TypeScript (strict mode, no `any`)                   |
+| Styling         | Tailwind CSS 4                                       |
+| Animations      | motion                                               |
+| UI components   | Shadcn + Radix UI                                    |
+| Icons           | Hugeicons (free tier)                                |
+| Data fetching   | TanStack Query                                       |
+| Backend storage | Redis (ioredis locally, Upstash in production)       |
+| Sessions        | Anonymous UUID, HttpOnly cookies                      |
+| Testing         | Vitest (Node-only, no jsdom)                         |
+| Linting/format  | Biome                                                |
+| Dead code       | Knip                                                 |
+| Monitoring      | LogRocket                                            |
+| Package manager | pnpm                                                 |
+| Deployment      | Vercel                                               |
 
 ---
 
 ## Commands
 
 ```bash
-pnpm install        # Install dependencies
-pnpm dev            # Start development server
+pnpm dev            # Start dev server (port 3001)
+pnpm dev:db         # Start Redis via Docker Compose
 pnpm build          # Production build
-pnpm lint           # Run Biome linter
-pnpm format         # Run Biome formatter
-pnpm check          # Run Biome check (lint + format combined)
-pnpm typecheck      # Run tsc --noEmit
-pnpm knip           # Run Knip for unused exports/dependencies
-pnpm validate       # Run biome check + typecheck + knip (end-of-session command)
-pnpm start:db       # Start Redis via Docker Compose
+pnpm test           # Run tests once
+pnpm test:watch     # Run tests in watch mode
+pnpm check          # Biome check (lint + format)
+pnpm typecheck      # tsc --noEmit
+pnpm knip           # Knip unused exports/dependencies
+pnpm validate       # check + typecheck + knip (end-of-session)
+pnpm update-deps    # Interactive dependency updater
 ```
 
 ---
@@ -70,204 +67,88 @@ pnpm start:db       # Start Redis via Docker Compose
 
 ### Exports and Declarations
 
-- **Named exports only** — never use default exports unless a framework requires it (e.g., Next.js page/layout files).
-- **Const arrow functions** over function declarations for all functions and components.
-
-```typescript
-// Correct
-export const calculateProduction = (base: number, multiplier: number): BigNum => {
-  // ...
-};
-
-export const ResourceButton = ({ resource }: Props) => {
-  // ...
-};
-
-// Incorrect
-export default function calculateProduction(base, multiplier) { ... }
-```
+- **Named exports only** — default exports only for Next.js page/layout files.
+- **Const arrow functions** for all functions and components.
 
 ### Types
 
-- **Types over interfaces** — use `type` for all type definitions.
-- **Co-locate types** with the code that owns them. Only extract to shared type files when a type is used across multiple modules.
-- **Use `Props` for co-located prop types** — when a component's props type is private to its file (not exported), name it simply `Props` instead of `ComponentNameProps`. If a file contains multiple components with their own props types (e.g., an internal helper), keep the helper's type named and use `Props` only for the primary exported component.
-
-```typescript
-// Co-located type — lives in the same file as the component that uses it
-type Props = {
-  resource: Resource;
-  onUpgrade: (id: string) => void;
-};
-
-export const ResourceCard = ({ resource, onUpgrade }: Props) => {
-  // ...
-};
-```
+- **`type` over `interface`** for all type definitions.
+- **Co-locate types** with the code that owns them. Only extract to shared files when used across multiple modules.
+- **Use `Props`** as the name for a component's private prop type. Use named types only when a file has multiple components.
 
 ### Components and Files
 
-- **One component per file** — each React component gets its own file.
-- **Single-file contexts** — when creating a React context, put the context, provider, and hook in a single file.
-
-```typescript
-// game-state-context.tsx — single file context pattern
-const GameStateContext = createContext<GameState | null>(null);
-
-export const GameStateProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  // state logic here
-  return <GameStateContext value={value}>{children}</GameStateContext>;
-};
-
-export const useGameState = (): GameState => {
-  const context = use(GameStateContext);
-  if (!context) {
-    throw new Error("useGameState must be used within GameStateProvider");
-  }
-  return context;
-};
-```
+- **One component per file**.
+- **Single-file contexts** — context, provider, and hook in one file.
 
 ### Programming Style
 
-- **Functional programming** over object-oriented — prefer pure functions, immutable data, and composition.
-- **Readability first** — prioritize clear, readable code over clever or terse solutions.
-- **Avoid `useEffect`** — only use `useEffect` when no other React pattern can achieve the goal. Prefer derived state, event handlers, and `useSyncExternalStore` where applicable.
-- **Always use braces** — never write single-line `if` statements. Every `if` body must be wrapped in curly braces, even for single-statement returns or throws.
-- **No nested ternaries** — never nest ternary expressions more than one level deep. Extract the logic into a named helper function instead. A single ternary (`a ? b : c`) is fine; a nested one (`a ? b : c ? d : e`) is not.
-- **Named object parameters** — when a function or constructor has more than one parameter, pass them as a single destructured object for readability. BigNumber arithmetic functions (`bnAdd`, `bnSub`, `bnMul`, etc.) are excluded since they follow mathematical conventions.
-- **No self-executing functions** — never use IIFEs (`(() => { ... })()`) to compute values. Extract the logic into a named function instead.
-- **No lodash** — write utilities from scratch. Minimize external npm packages; only add a dependency when it provides substantial value.
-- **No outdated dependencies** — always use current, maintained versions of all packages.
-
-### Next.js Specifics
-
-- **Client-side rendering only** — all pages and components use `'use client'` directives. No server-side rendering, no server components, no caching.
-- Page and layout files must use default exports (Next.js requirement). These are the only exception to the named-export rule.
+- **Functional programming** — pure functions, immutable data, composition.
+- **Readability first** — clear code over clever code.
+- **Avoid `useEffect`** — prefer derived state, event handlers, `useSyncExternalStore`.
+- **Always use braces** on `if` bodies, even single statements.
+- **No nested ternaries** — extract into a named helper.
+- **Named object parameters** when a function has more than one parameter. BigNumber arithmetic excluded.
+- **No IIFEs** — extract into named functions.
+- **No lodash** — write utilities from scratch. Minimize external dependencies.
+- **Client-side rendering only** — all pages use `'use client'`.
 
 ---
 
 ## Architecture
 
-### Custom BigNumber System
+### Game State & Persistence
 
-Production values in idle games grow far beyond `Number.MAX_SAFE_INTEGER`. ProdFactory uses a custom BigNumber implementation (not a third-party library) to handle this.
-
-**Display format progression**: numbers are displayed as standard digits up to 999,999, then abbreviated:
-
-- 1,000,000 → 1.00 million
-- 1,000,000,000 → 1.00 billion
-- 1,000,000,000,000 → 1.00 trillion
-- Beyond standard names: aa, ab, ac, ... az, ba, bb, ... and so on
-
-The custom implementation must support:
-
-- Addition, subtraction, multiplication, and division
-- Comparison operators
-- Formatting/display with the abbreviation system above
-- Serialization to/from JSON for localStorage persistence
-
-### Game State Persistence
-
-- **Primary storage**: Redis via server API routes. Game state is stored at `game:{sessionId}` with a 30-day TTL.
-- **localStorage cache**: On every server response, state is also written to localStorage. On mount, the client renders from localStorage immediately (no loading screen) while fetching the authoritative state from the server.
-- **Serialization**: Shared `serialization.ts` module used by both the frontend (localStorage) and backend (Redis). `SerializedGameState` is the wire format for all API communication.
-
-### Backend Integration
-
-- **Sessions**: Anonymous UUID sessions created automatically on first API call. The `pf-session` cookie is `HttpOnly; SameSite=Strict` with a 30-day TTL. The client detects a missing session via 401 response and retries after creating one.
-- **Server-validated actions**: Purchases, unlocks, automation, and pause toggles are applied optimistically on the client, then confirmed by the server. Successful action responses only update the `serverVersion` — the client trusts its own optimistic state (since identical pure logic functions run on both sides). Only conflict (409) responses trigger state reconciliation. Runs (startRun/completeRun) are client-only.
-- **Mutation queue**: Action requests are enqueued and processed serially. Each request uses the `serverVersion` from the previous response, preventing 409 conflicts from rapid clicking.
-- **Auto-save**: Every 5 seconds via `POST /api/game/save` (replaces localStorage-only save). Save and sync requests are guarded against racing with the action queue — responses are ignored if actions were enqueued while the request was in-flight.
-- **Plausibility sync**: Every 15 seconds via `POST /api/game/sync`. The server compares claimed production against maximum possible rates (10% tolerance) and corrects if needed.
-- **Optimistic concurrency**: Every state-changing API call includes a `serverVersion` number. On mismatch (409), the client adopts the server's state.
-- **Run preservation**: When reconciling server state, the client preserves its own `runStartedAt` values since runs are client-managed.
+- **Redis** stores game state at `game:{sessionId}` with 30-day TTL. `SerializedGameState` is the wire format for all API and localStorage communication.
+- **localStorage cache**: Client renders from localStorage immediately on mount (no loading screen), then fetches authoritative state from the server.
+- **Optimistic concurrency**: All state-changing API calls include `serverVersion`. On mismatch (409), the client adopts the server's state while preserving client-managed `runStartedAt` values.
+- **Mutation queue**: Actions are enqueued and processed serially using the `serverVersion` from the previous response.
+- **Auto-save** every 5s (`POST /api/game/save`). **Plausibility sync** every 15s (`POST /api/game/sync`) — server compares claimed production against maximum possible rates (10% tolerance) and corrects if needed.
+- **Sessions**: Anonymous UUID via `pf-session` HttpOnly cookie (30-day TTL). Rate-limited to 10 creations per IP per hour.
 
 ### API Routes
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/session` | POST | Create anonymous session |
-| `/api/game` | GET | Load game state |
-| `/api/game/save` | POST | Persist state (auto-save) |
-| `/api/game/sync` | POST | Persist + plausibility check |
-| `/api/game/buy-producer` | POST | Buy producer (server-validated) |
-| `/api/game/buy-max-producers` | POST | Buy max producers |
+| `/api/session` | POST | Create session |
+| `/api/game` | GET | Load state + offline progress |
+| `/api/game/save` | POST | Auto-save |
+| `/api/game/sync` | POST | Save + plausibility check |
+| `/api/game/buy-producer` | POST | Buy one producer |
+| `/api/game/buy-max-producers` | POST | Buy max affordable |
 | `/api/game/buy-automation` | POST | Buy automation |
 | `/api/game/unlock` | POST | Unlock resource tier |
-| `/api/game/toggle-pause` | POST | Toggle automation pause |
-| `/api/game/reset` | POST | Reset to initial state |
-
-### Run Timing
-
-| Resource Tier              | Run Time |
-| -------------------------- | -------- |
-| Iron Ore                   | 1s       |
-| Plates                     | 2s       |
-| Reinforced Plate           | 4s       |
-| Modular Frame              | 8s       |
-| Heavy Modular Frame        | 16s      |
-| Fused Modular Frame        | 32s      |
-| Pressure Conversion Cube   | 64s      |
-| Nuclear Pasta              | 128s     |
-
-Each tier's base run time is `2^(tier_index)` seconds.
+| `/api/game/toggle-pause` | POST | Pause/unpause automation |
+| `/api/game/activate-boost` | POST | Activate shop boost |
+| `/api/game/reset-shop-boosts` | POST | Reset all boosts |
+| `/api/game/assign-research` | POST | Start research in a lab |
+| `/api/game/unassign-research` | POST | Stop lab research |
+| `/api/game/unlock-lab` | POST | Unlock a lab |
+| `/api/game/reset-research` | POST | Reset all research |
+| `/api/game/reset` | POST | Full game reset |
 
 ---
 
-## Design and Art Direction
+## Design
 
-### Visual Style
-
-- **Satisfactory-inspired 2D art** — the game draws from Satisfactory's industrial aesthetic but rendered in a flat 2D style.
-- Use a color palette inspired by Satisfactory:
-  - Industrial oranges and warm amber tones
-  - Dark charcoal and gunmetal greys
-  - Metallic blues and steel accents
-  - Deep backgrounds with lighter foreground elements
-
-### Animations
-
-- **Popping animations** on resource clicks (feedback for manual production).
-- **Completion animations** when a run timer finishes.
-- All animations implemented with the `motion` library.
-- Animations should feel satisfying and responsive but not block gameplay.
-
-### Future Plans
-
-- Music and sound effects will be added in a later iteration.
+- **Satisfactory-inspired 2D art** — industrial oranges/amber, dark charcoal/gunmetal, metallic blues, deep backgrounds.
+- **Animations** via `motion` — popping on clicks, completion effects on run timers. Satisfying but non-blocking.
+- **Music and SFX** — implemented with track selector and per-category toggles in settings.
 
 ---
 
 ## Development Workflow
 
-1. **Ask clarifying questions** when requirements are ambiguous — do not proceed until 98% confident of the intent.
-2. Write modular, extendable code that follows the conventions above.
-3. **Always end sessions** by running `/validate` to catch lint errors, type errors, and dead code before committing.
-4. Keep the codebase clean — no unused exports, no dead code, no type errors.
-5. **No mutating git commands** — never run `git commit`, `git fetch`, `git branch`, `git push`, or `git pull`. Read-only commands like `git log`, `git status`, and `git diff` are fine. The user manages all git mutations manually.
+1. **Ask clarifying questions** when requirements are ambiguous.
+2. **Always end sessions** by running `/validate`.
+3. **No mutating git commands** — never run `git commit`, `git fetch`, `git branch`, `git push`, or `git pull`. Read-only git commands are fine.
 
 ---
 
-## Testing Strategy
+## Testing
 
-The test suite prioritizes **speed and reliability** over extensive coverage.
+Vitest, Node-only (no jsdom). Co-located: `foo.test.ts` next to `foo.ts`.
 
-### What to test
-
-- **Pure logic and state transitions** — deterministic functions that drive game mechanics (production math, serialization, BigNumber arithmetic).
-- **API boundary handling** — HTTP status codes, error classes, request/response shaping.
-- **Server-side validation** — plausibility checks, input parsing, session handling.
-
-### What not to test
-
-- React components and hooks (no jsdom/browser environment configured).
-- Visual/animation behavior — verified manually.
-- Integration flows that duplicate logic already covered by unit tests.
-
-### Conventions
-
-- **Co-located files** — `foo.test.ts` lives next to `foo.ts`.
-- **No `any`** — test helpers and fixtures are fully typed.
-- **Mock at the boundary** — mock `fetch`, `ioredis`, or `next/server`; never mock internal utility functions.
-- **Fast by default** — all tests run in Node (no jsdom), no network, no disk I/O.
+- **Test**: pure logic, state transitions, BigNumber arithmetic, serialization, API boundaries, plausibility checks.
+- **Don't test**: React components/hooks, visual/animation behavior, integration flows that duplicate unit tests.
+- **Mock at the boundary** — mock `fetch`, `ioredis`, `next/server`; never mock internal utilities.
