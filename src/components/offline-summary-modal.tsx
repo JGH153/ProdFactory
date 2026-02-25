@@ -92,7 +92,7 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 				</ul>
 
 				<div className="flex justify-end mt-2">
-					<Button onClick={onCollect}>
+					<Button className="cursor-pointer" onClick={onCollect}>
 						<HugeiconsIcon icon={Download01Icon} size={16} />
 						Collect
 					</Button>
