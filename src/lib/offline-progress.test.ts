@@ -11,6 +11,7 @@ const noBoosts: ShopBoosts = {
 	"production-20x": false,
 	"automation-2x": false,
 	"runtime-50": false,
+	"research-2x": false,
 };
 
 const makeState = (
@@ -219,6 +220,7 @@ describe("computeOfflineProgress", () => {
 						"production-20x": true,
 						"automation-2x": false,
 						"runtime-50": false,
+						"research-2x": false,
 					},
 				},
 			);
@@ -242,6 +244,7 @@ describe("computeOfflineProgress", () => {
 						"production-20x": false,
 						"automation-2x": false,
 						"runtime-50": true,
+						"research-2x": false,
 					},
 				},
 			);
@@ -265,6 +268,7 @@ describe("computeOfflineProgress", () => {
 						"production-20x": false,
 						"automation-2x": true,
 						"runtime-50": false,
+						"research-2x": false,
 					},
 				},
 			);

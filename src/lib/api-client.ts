@@ -1,5 +1,5 @@
 import type { SerializedGameState } from "@/game/serialization";
-import type { ResourceId, ShopBoostId } from "@/game/types";
+import type { LabId, ResearchId, ResourceId, ShopBoostId } from "@/game/types";
 import type { SerializedOfflineSummary } from "@/lib/offline-progress";
 
 // --- Error classes ---
@@ -158,11 +158,15 @@ export const postAction = async ({
 	endpoint,
 	resourceId,
 	boostId,
+	labId,
+	researchId,
 	serverVersion,
 }: {
 	endpoint: string;
 	resourceId?: ResourceId | undefined;
 	boostId?: ShopBoostId | undefined;
+	labId?: LabId | undefined;
+	researchId?: ResearchId | undefined;
 	serverVersion: number;
 }): Promise<ActionResponse> => {
 	const body: Record<string, unknown> = { serverVersion };
@@ -171,6 +175,12 @@ export const postAction = async ({
 	}
 	if (boostId) {
 		body.boostId = boostId;
+	}
+	if (labId) {
+		body.labId = labId;
+	}
+	if (researchId) {
+		body.researchId = researchId;
 	}
 	const response = await postJson({
 		url: `/api/game/${endpoint}`,

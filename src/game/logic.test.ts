@@ -248,6 +248,7 @@ describe("getRunTimeMultiplier", () => {
 		"production-20x": false,
 		"automation-2x": false,
 		"runtime-50": false,
+		"research-2x": false,
 	};
 
 	it("no active boosts → 1", () => {
@@ -545,12 +546,14 @@ describe("resetShopBoosts", () => {
 				"production-20x": true,
 				"automation-2x": true,
 				"runtime-50": true,
+				"research-2x": true,
 			},
 		};
 		const next = resetShopBoosts({ state: withBoosts });
 		expect(next.shopBoosts["production-20x"]).toBe(false);
 		expect(next.shopBoosts["automation-2x"]).toBe(false);
 		expect(next.shopBoosts["runtime-50"]).toBe(false);
+		expect(next.shopBoosts["research-2x"]).toBe(false);
 	});
 
 	it("no active boosts → returns same state (short-circuit)", () => {

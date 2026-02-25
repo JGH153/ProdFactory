@@ -1,11 +1,19 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
+import {
+	getResearchTime,
+	getResearchTimeMultiplier,
+	LAB_ORDER,
+	MAX_RESEARCH_LEVEL,
+	RESEARCH_BONUS_PER_LEVEL,
+} from "@/game/research-config";
 import type {
 	SerializedGameState,
+	SerializedLabState,
 	SerializedResourceState,
 } from "@/game/serialization";
-import type { ResourceId } from "@/game/types";
+import type { LabId, ResearchId, ResourceId } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
 import {
 	type BigNum,
@@ -23,6 +31,7 @@ const MIN_OFFLINE_SECONDS = 10;
 export type SerializedOfflineSummary = {
 	elapsedSeconds: number;
 	gains: { resourceId: ResourceId; amount: SerializedBigNum }[];
+	researchLevelUps: { researchId: ResearchId; newLevel: number }[];
 	wasCapped: boolean;
 };
 
@@ -53,6 +62,58 @@ export const computeOfflineProgress = ({
 	const defaultBoosts = createInitialGameState().shopBoosts;
 	const shopBoosts = state.shopBoosts ?? defaultBoosts;
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
+
+	// Advance research before computing resource production
+	const initialResearch = state.research ?? createInitialGameState().research;
+	const research = { ...initialResearch } as Record<ResearchId, number>;
+	const initialLabs = state.labs ?? createInitialGameState().labs;
+	const updatedLabs = { ...initialLabs } as Record<LabId, SerializedLabState>;
+
+	const researchLevelUps: SerializedOfflineSummary["researchLevelUps"] = [];
+	const rtm = getResearchTimeMultiplier({ shopBoosts });
+
+	for (const labId of LAB_ORDER) {
+		const lab = updatedLabs[labId];
+		if (
+			!lab.isUnlocked ||
+			lab.activeResearchId === null ||
+			lab.researchStartedAt === null
+		) {
+			continue;
+		}
+
+		const researchId = lab.activeResearchId;
+		let currentLevel = research[researchId];
+		let elapsedMs = serverNow - lab.researchStartedAt;
+		let advanced = false;
+
+		while (currentLevel < MAX_RESEARCH_LEVEL) {
+			const levelTimeMs = getResearchTime(currentLevel) * 1000 * rtm;
+			if (elapsedMs < levelTimeMs) {
+				break;
+			}
+			elapsedMs -= levelTimeMs;
+			currentLevel++;
+			advanced = true;
+			researchLevelUps.push({ researchId, newLevel: currentLevel });
+		}
+
+		if (advanced) {
+			research[researchId] = currentLevel;
+			if (currentLevel >= MAX_RESEARCH_LEVEL) {
+				updatedLabs[labId] = {
+					...lab,
+					activeResearchId: null,
+					researchStartedAt: null,
+				};
+			} else {
+				updatedLabs[labId] = {
+					...lab,
+					researchStartedAt: serverNow - elapsedMs,
+				};
+			}
+		}
+	}
 
 	// netAvailable tracks savedAmount + offlineGain for each tier (used to cap next tier's input)
 	const netAvailable = {} as Record<ResourceId, BigNum>;
@@ -113,7 +174,12 @@ export const computeOfflineProgress = ({
 			continue;
 		}
 
-		const gain = bigNum(actualRuns * resource.producers * productionMul);
+		const researchMul =
+			1 +
+			research[`more-${resourceId}` as ResearchId] * RESEARCH_BONUS_PER_LEVEL;
+		const gain = bigNum(
+			actualRuns * resource.producers * productionMul * researchMul,
+		);
 		netAvailable[resourceId] = bnAdd(savedAmount, gain);
 		gains.push({ resourceId, amount: bnSerialize(gain) });
 		updatedResources[resourceId] = {
@@ -122,12 +188,19 @@ export const computeOfflineProgress = ({
 		};
 	}
 
-	if (gains.length === 0) {
+	if (gains.length === 0 && researchLevelUps.length === 0) {
 		return { updatedState: state, summary: null };
 	}
 
 	return {
-		updatedState: { ...state, resources: updatedResources },
-		summary: { elapsedSeconds, gains, wasCapped },
+		updatedState: {
+			...state,
+			...(gains.length > 0 && { resources: updatedResources }),
+			...(researchLevelUps.length > 0 && {
+				labs: updatedLabs,
+				research,
+			}),
+		},
+		summary: { elapsedSeconds, gains, researchLevelUps, wasCapped },
 	};
 };

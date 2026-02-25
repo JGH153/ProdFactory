@@ -2,11 +2,23 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { RESOURCE_ORDER } from "@/game/config";
 import {
+	LAB_ORDER,
+	MAX_RESEARCH_LEVEL,
+	RESEARCH_ORDER,
+} from "@/game/research-config";
+import { advanceResearch } from "@/game/research-logic";
+import {
 	deserializeGameState,
 	type SerializedGameState,
 	serializeGameState,
 } from "@/game/serialization";
-import type { GameState, ResourceId, ShopBoostId } from "@/game/types";
+import type {
+	GameState,
+	LabId,
+	ResearchId,
+	ResourceId,
+	ShopBoostId,
+} from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
 import {
@@ -33,7 +45,12 @@ const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([
 	"production-20x",
 	"automation-2x",
 	"runtime-50",
+	"research-2x",
 ]);
+
+const VALID_LAB_IDS: ReadonlySet<string> = new Set<string>(LAB_ORDER);
+
+const VALID_RESEARCH_IDS: ReadonlySet<string> = new Set<string>(RESEARCH_ORDER);
 
 // --- Types ---
 
@@ -64,6 +81,14 @@ const isValidResourceId = (value: unknown): value is ResourceId => {
 
 const isValidBoostId = (value: unknown): value is ShopBoostId => {
 	return typeof value === "string" && VALID_BOOST_IDS.has(value);
+};
+
+const isValidLabId = (value: unknown): value is LabId => {
+	return typeof value === "string" && VALID_LAB_IDS.has(value);
+};
+
+const isValidResearchId = (value: unknown): value is ResearchId => {
+	return typeof value === "string" && VALID_RESEARCH_IDS.has(value);
 };
 
 const isNonNegativeInteger = (value: unknown): value is number => {
@@ -170,6 +195,50 @@ const validateSerializedGameState = (
 		}
 	}
 
+	if (state.labs !== undefined) {
+		if (!isRecord(state.labs)) {
+			return "Invalid labs";
+		}
+		for (const id of LAB_ORDER) {
+			const lab = (state.labs as Record<string, unknown>)[id];
+			if (lab !== undefined) {
+				if (!isRecord(lab)) {
+					return `Invalid lab shape: ${id}`;
+				}
+				if (typeof lab.isUnlocked !== "boolean") {
+					return `Invalid isUnlocked for lab ${id}`;
+				}
+				if (
+					lab.activeResearchId !== null &&
+					!isValidResearchId(lab.activeResearchId)
+				) {
+					return `Invalid activeResearchId for lab ${id}`;
+				}
+				if (
+					lab.researchStartedAt !== null &&
+					typeof lab.researchStartedAt !== "number"
+				) {
+					return `Invalid researchStartedAt for lab ${id}`;
+				}
+			}
+		}
+	}
+
+	if (state.research !== undefined) {
+		if (!isRecord(state.research)) {
+			return "Invalid research";
+		}
+		for (const id of RESEARCH_ORDER) {
+			const level = (state.research as Record<string, unknown>)[id];
+			if (level !== undefined && !isNonNegativeInteger(level)) {
+				return `Invalid research level for ${id}`;
+			}
+			if (typeof level === "number" && level > MAX_RESEARCH_LEVEL) {
+				return `Research level exceeds maximum for ${id}`;
+			}
+		}
+	}
+
 	return null;
 };
 
@@ -206,6 +275,8 @@ export const stripServerVersion = (
 ): SerializedGameState => ({
 	resources: stored.resources,
 	shopBoosts: stored.shopBoosts,
+	labs: stored.labs,
+	research: stored.research,
 	lastSavedAt: stored.lastSavedAt,
 	version: stored.version,
 });
@@ -387,6 +458,30 @@ export const persistWithPlausibility = async ({
 	return { type: "accepted", serverVersion: newVersion };
 };
 
+// --- Snapshot metadata patch for action routes ---
+
+export const patchSnapshotMetadata = async ({
+	sessionId,
+	state,
+}: {
+	sessionId: string;
+	state: SerializedGameState;
+}): Promise<void> => {
+	const existing = await getSyncSnapshot(sessionId);
+	if (!existing) {
+		return;
+	}
+	const fresh = buildSyncSnapshot({ state, timestamp: 0 });
+	await setSyncSnapshot({
+		sessionId,
+		snapshot: {
+			...existing,
+			...(fresh.research && { research: fresh.research }),
+			...(fresh.labs && { labs: fresh.labs }),
+		},
+	});
+};
+
 // --- Execute action pattern ---
 
 export const executeAction = async ({
@@ -439,6 +534,7 @@ export const executeAction = async ({
 		serverVersion: stored.serverVersion + 1,
 	};
 	await saveStoredGameState({ sessionId, stored: newStored });
+	await patchSnapshotMetadata({ sessionId, state: newSerialized });
 
 	return NextResponse.json({
 		state: newSerialized,
@@ -531,6 +627,150 @@ export const executeSimpleAction = async ({
 		serverVersion: stored.serverVersion + 1,
 	};
 	await saveStoredGameState({ sessionId, stored: newStored });
+	await patchSnapshotMetadata({ sessionId, state: newSerialized });
+
+	return NextResponse.json({
+		state: newSerialized,
+		serverVersion: newStored.serverVersion,
+	});
+};
+
+// --- Lab action body parsing ---
+
+type LabActionBody = {
+	labId: LabId;
+	serverVersion: number;
+};
+
+type LabResearchActionBody = {
+	labId: LabId;
+	researchId: ResearchId;
+	serverVersion: number;
+};
+
+const parseLabActionBody = async (
+	request: NextRequest,
+): Promise<LabActionBody | NextResponse> => {
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+	}
+
+	if (!isRecord(body)) {
+		return NextResponse.json(
+			{ error: "Body must be an object" },
+			{ status: 400 },
+		);
+	}
+
+	if (!isValidLabId(body.labId)) {
+		return NextResponse.json({ error: "Invalid labId" }, { status: 400 });
+	}
+
+	if (!isNonNegativeInteger(body.serverVersion)) {
+		return NextResponse.json(
+			{ error: "Invalid serverVersion" },
+			{ status: 400 },
+		);
+	}
+
+	return { labId: body.labId, serverVersion: body.serverVersion };
+};
+
+export const parseLabResearchActionBody = async (
+	request: NextRequest,
+): Promise<LabResearchActionBody | NextResponse> => {
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+	}
+
+	if (!isRecord(body)) {
+		return NextResponse.json(
+			{ error: "Body must be an object" },
+			{ status: 400 },
+		);
+	}
+
+	if (!isValidLabId(body.labId)) {
+		return NextResponse.json({ error: "Invalid labId" }, { status: 400 });
+	}
+
+	if (!isValidResearchId(body.researchId)) {
+		return NextResponse.json({ error: "Invalid researchId" }, { status: 400 });
+	}
+
+	if (!isNonNegativeInteger(body.serverVersion)) {
+		return NextResponse.json(
+			{ error: "Invalid serverVersion" },
+			{ status: 400 },
+		);
+	}
+
+	return {
+		labId: body.labId,
+		researchId: body.researchId,
+		serverVersion: body.serverVersion,
+	};
+};
+
+// --- Execute lab action pattern ---
+
+export const executeLabAction = async ({
+	request,
+	action,
+}: {
+	request: NextRequest;
+	action: (args: { state: GameState; labId: LabId }) => GameState;
+}): Promise<NextResponse> => {
+	const sessionResult = await getSessionFromRequest(request);
+	if (sessionResult instanceof NextResponse) {
+		return sessionResult;
+	}
+	const { sessionId } = sessionResult;
+
+	const body = await parseLabActionBody(request);
+	if (body instanceof NextResponse) {
+		return body;
+	}
+	const { labId, serverVersion } = body;
+
+	const stored = await loadStoredGameState(sessionId);
+	if (!stored) {
+		return NextResponse.json({ error: "No game state found" }, { status: 404 });
+	}
+
+	if (stored.serverVersion !== serverVersion) {
+		return NextResponse.json(
+			{
+				state: stripServerVersion(stored),
+				serverVersion: stored.serverVersion,
+			},
+			{ status: 409 },
+		);
+	}
+
+	const currentState = deserializeGameState(stored);
+	const newState = action({ state: currentState, labId });
+
+	if (newState === currentState) {
+		return NextResponse.json(
+			{ error: "Action had no effect" },
+			{ status: 400 },
+		);
+	}
+
+	const newSerialized = serializeGameState(newState);
+	const newStored: StoredGameState = {
+		...newSerialized,
+		serverVersion: stored.serverVersion + 1,
+	};
+	await saveStoredGameState({ sessionId, stored: newStored });
+	await patchSnapshotMetadata({ sessionId, state: newSerialized });
 
 	return NextResponse.json({
 		state: newSerialized,
@@ -575,14 +815,19 @@ export const executeBoostAction = async ({
 	}
 
 	const currentState = deserializeGameState(stored);
-	const newState = action({ state: currentState, boostId });
+	const boostedState = action({ state: currentState, boostId });
 
-	if (newState === currentState) {
+	if (boostedState === currentState) {
 		return NextResponse.json(
 			{ error: "Action had no effect" },
 			{ status: 400 },
 		);
 	}
+
+	// Advance any research that may now be past its completion time after the
+	// boost (e.g. research-2x halves level time, so in-progress research that
+	// was >50% done is now complete).
+	const newState = advanceResearch({ state: boostedState, now: Date.now() });
 
 	const newSerialized = serializeGameState(newState);
 	const newStored: StoredGameState = {
@@ -590,6 +835,7 @@ export const executeBoostAction = async ({
 		serverVersion: stored.serverVersion + 1,
 	};
 	await saveStoredGameState({ sessionId, stored: newStored });
+	await patchSnapshotMetadata({ sessionId, state: newSerialized });
 
 	return NextResponse.json({
 		state: newSerialized,

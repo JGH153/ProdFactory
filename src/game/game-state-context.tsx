@@ -27,11 +27,23 @@ import {
 } from "./logic";
 import { useMilestoneNotification } from "./milestone-context";
 import { clearSave, loadGame, saveGame } from "./persistence";
+import {
+	LAB_ORDER,
+	RESEARCH_BONUS_PER_LEVEL,
+	RESEARCH_CONFIGS,
+} from "./research-config";
+import {
+	advanceResearchWithReport,
+	type ResearchLevelUp,
+} from "./research-logic";
 import type { SerializedGameState } from "./serialization";
 import { deserializeGameState } from "./serialization";
 import type {
 	GameState,
+	LabId,
+	LabState,
 	OfflineSummary,
+	ResearchId,
 	ResourceId,
 	ResourceState,
 	ShopBoostId,
@@ -50,6 +62,13 @@ type GameActions = {
 	unlockResourceTier: (resourceId: ResourceId) => Promise<boolean>;
 	activateShopBoost: (boostId: ShopBoostId) => Promise<boolean>;
 	resetShopBoosts: () => Promise<boolean>;
+	resetResearch: () => Promise<boolean>;
+	assignLabResearch: (args: {
+		labId: LabId;
+		researchId: ResearchId;
+	}) => Promise<boolean>;
+	unassignLabResearch: (labId: LabId) => Promise<boolean>;
+	unlockLab: (labId: LabId) => Promise<boolean>;
 	resetGame: () => void;
 };
 
@@ -62,7 +81,8 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	);
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
-	const { showMilestone } = useMilestoneNotification();
+	const { showMilestone, showResearchLevelUp } = useMilestoneNotification();
+	const pendingLevelUpsRef = useRef<ResearchLevelUp[]>([]);
 
 	// Load from localStorage on mount (client-only, instant render)
 	useEffect(() => {
@@ -97,9 +117,15 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 							runStartedAt: current.resources[id].runStartedAt,
 						};
 					}
+					const labs = {} as Record<LabId, LabState>;
+					for (const id of LAB_ORDER) {
+						labs[id] = serverState.labs[id];
+					}
 					return {
 						resources,
 						shopBoosts: serverState.shopBoosts,
+						labs,
+						research: serverState.research,
 						lastSavedAt: serverState.lastSavedAt,
 					};
 				});
@@ -168,8 +194,42 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 					}
 				}
 
+				// Advance research levels
+				const researchResult = advanceResearchWithReport({
+					state: next,
+					now: Date.now(),
+				});
+				if (researchResult.state !== next) {
+					next = researchResult.state;
+					changed = true;
+					pendingLevelUpsRef.current.push(...researchResult.levelUps);
+				}
+
 				return changed ? next : current;
 			});
+
+			// Dispatch research level-up notifications outside setState
+			if (pendingLevelUpsRef.current.length > 0) {
+				// Deduplicate: if a single tick jumped multiple levels for the same
+				// research, only show the highest level reached.
+				const best = new Map<ResearchId, number>();
+				for (const { researchId, newLevel } of pendingLevelUpsRef.current) {
+					const existing = best.get(researchId);
+					if (existing === undefined || newLevel > existing) {
+						best.set(researchId, newLevel);
+					}
+				}
+				pendingLevelUpsRef.current = [];
+				for (const [researchId, newLevel] of best) {
+					const config = RESEARCH_CONFIGS[researchId];
+					showResearchLevelUp({
+						researchId,
+						researchName: config.name,
+						newLevel,
+						bonusPercent: Math.round(newLevel * RESEARCH_BONUS_PER_LEVEL * 100),
+					});
+				}
+			}
 
 			rafId = requestAnimationFrame(tick);
 		};
@@ -177,7 +237,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		rafId = requestAnimationFrame(tick);
 
 		return () => cancelAnimationFrame(rafId);
-	}, []);
+	}, [showResearchLevelUp]);
 
 	// --- Action callbacks (optimistic + server) ---
 
@@ -280,6 +340,73 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		}
 	}, [executeAwaitedAction, reconcileState]);
 
+	const resetResearch = useCallback(async (): Promise<boolean> => {
+		try {
+			const serverState = await executeAwaitedAction({
+				endpoint: "reset-research",
+			});
+			reconcileState({ state: serverState, fullReplace: false });
+			return true;
+		} catch {
+			return false;
+		}
+	}, [executeAwaitedAction, reconcileState]);
+
+	const assignLabResearch = useCallback(
+		async ({
+			labId,
+			researchId,
+		}: {
+			labId: LabId;
+			researchId: ResearchId;
+		}): Promise<boolean> => {
+			try {
+				const serverState = await executeAwaitedAction({
+					endpoint: "assign-research",
+					labId,
+					researchId,
+				});
+				reconcileState({ state: serverState, fullReplace: false });
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		[executeAwaitedAction, reconcileState],
+	);
+
+	const unassignLabResearch = useCallback(
+		async (labId: LabId): Promise<boolean> => {
+			try {
+				const serverState = await executeAwaitedAction({
+					endpoint: "unassign-research",
+					labId,
+				});
+				reconcileState({ state: serverState, fullReplace: false });
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		[executeAwaitedAction, reconcileState],
+	);
+
+	const unlockLab = useCallback(
+		async (labId: LabId): Promise<boolean> => {
+			try {
+				const serverState = await executeAwaitedAction({
+					endpoint: "unlock-lab",
+					labId,
+				});
+				reconcileState({ state: serverState, fullReplace: false });
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		[executeAwaitedAction, reconcileState],
+	);
+
 	const resetGame = useCallback(() => {
 		clearSave();
 		setState(createInitialGameState());
@@ -298,6 +425,10 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		unlockResourceTier,
 		activateShopBoost,
 		resetShopBoosts,
+		resetResearch,
+		assignLabResearch,
+		unassignLabResearch,
+		unlockLab,
 		resetGame,
 	};
 

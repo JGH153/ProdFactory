@@ -15,6 +15,7 @@ const securityHeaders = [
 			"img-src 'self' data: blob:",
 			"font-src 'self' data:",
 			"connect-src 'self' https://*.logrocket.io https://*.lr-ingest.io https://*.lr-in.com https://*.lr-in-prod.com https://*.logr-in.com",
+			"worker-src 'self' blob:",
 			"media-src 'self'",
 			"frame-ancestors 'none'",
 		].join("; "),

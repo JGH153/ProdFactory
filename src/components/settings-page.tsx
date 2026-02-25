@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { MusicButton } from "@/components/music-button";
 import { NewGameButton } from "@/components/new-game-button";
+import { ResetResearchButton } from "@/components/reset-research-button";
 import { ResetShopButton } from "@/components/reset-shop-button";
 import { SfxButton } from "@/components/sfx-button";
 import { TrackSelector } from "@/components/track-selector";
@@ -46,6 +47,7 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 					</h3>
 					<div className="space-y-2">
 						<ResetShopButton />
+						<ResetResearchButton />
 						<NewGameButton onReset={onReset} />
 					</div>
 				</div>

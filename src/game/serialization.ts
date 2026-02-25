@@ -6,15 +6,19 @@ import {
 import type { SerializedOfflineSummary } from "@/lib/offline-progress";
 import { RESOURCE_ORDER } from "./config";
 import { createInitialGameState } from "./initial-state";
+import { LAB_ORDER, RESEARCH_ORDER } from "./research-config";
 import type {
 	GameState,
+	LabId,
+	LabState,
 	OfflineSummary,
+	ResearchId,
 	ResourceId,
 	ResourceState,
 	ShopBoosts,
 } from "./types";
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export type SerializedResourceState = {
 	id: ResourceId;
@@ -26,9 +30,17 @@ export type SerializedResourceState = {
 	runStartedAt: number | null;
 };
 
+export type SerializedLabState = {
+	isUnlocked: boolean;
+	activeResearchId: ResearchId | null;
+	researchStartedAt: number | null;
+};
+
 export type SerializedGameState = {
 	resources: Record<ResourceId, SerializedResourceState>;
 	shopBoosts?: ShopBoosts | undefined;
+	labs?: Record<LabId, SerializedLabState> | undefined;
+	research?: Record<ResearchId, number> | undefined;
 	lastSavedAt: number;
 	version: number;
 };
@@ -55,14 +67,32 @@ const deserializeResource = (data: SerializedResourceState): ResourceState => ({
 	runStartedAt: data.runStartedAt,
 });
 
+const serializeLab = (lab: LabState): SerializedLabState => ({
+	isUnlocked: lab.isUnlocked,
+	activeResearchId: lab.activeResearchId,
+	researchStartedAt: lab.researchStartedAt,
+});
+
+const deserializeLab = (data: SerializedLabState): LabState => ({
+	isUnlocked: data.isUnlocked,
+	activeResearchId: data.activeResearchId,
+	researchStartedAt: data.researchStartedAt,
+});
+
 export const serializeGameState = (state: GameState): SerializedGameState => {
 	const resources = {} as Record<ResourceId, SerializedResourceState>;
 	for (const id of RESOURCE_ORDER) {
 		resources[id] = serializeResource(state.resources[id]);
 	}
+	const labs = {} as Record<LabId, SerializedLabState>;
+	for (const id of LAB_ORDER) {
+		labs[id] = serializeLab(state.labs[id]);
+	}
 	return {
 		resources,
 		shopBoosts: state.shopBoosts,
+		labs,
+		research: { ...state.research },
 		lastSavedAt: Date.now(),
 		version: SAVE_VERSION,
 	};
@@ -76,6 +106,7 @@ export const deserializeOfflineSummary = (
 		resourceId,
 		amount: bnDeserialize(amount),
 	})),
+	researchLevelUps: summary.researchLevelUps ?? [],
 	wasCapped: summary.wasCapped,
 });
 
@@ -89,9 +120,23 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 			resources[id] = initialState.resources[id];
 		}
 	}
+	const labs = {} as Record<LabId, LabState>;
+	for (const id of LAB_ORDER) {
+		if (data.labs?.[id]) {
+			labs[id] = deserializeLab(data.labs[id]);
+		} else {
+			labs[id] = initialState.labs[id];
+		}
+	}
+	const research = {} as Record<ResearchId, number>;
+	for (const id of RESEARCH_ORDER) {
+		research[id] = data.research?.[id] ?? 0;
+	}
 	return {
 		resources,
-		shopBoosts: data.shopBoosts ?? createInitialGameState().shopBoosts,
+		shopBoosts: data.shopBoosts ?? initialState.shopBoosts,
+		labs,
+		research,
 		lastSavedAt: data.lastSavedAt,
 	};
 };

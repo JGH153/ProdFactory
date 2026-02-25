@@ -9,7 +9,9 @@ import {
 } from "@/game/serialization";
 import type {
 	GameState,
+	LabId,
 	OfflineSummary,
+	ResearchId,
 	ResourceId,
 	ShopBoostId,
 } from "@/game/types";
@@ -29,6 +31,8 @@ type QueueItem = {
 	endpoint: string;
 	resourceId?: ResourceId | undefined;
 	boostId?: ShopBoostId | undefined;
+	labId?: LabId | undefined;
+	researchId?: ResearchId | undefined;
 };
 
 type ReconcileCallback = (args: {
@@ -49,11 +53,15 @@ export const useServerSync = ({
 		endpoint: string;
 		resourceId?: ResourceId | undefined;
 		boostId?: ShopBoostId | undefined;
+		labId?: LabId | undefined;
+		researchId?: ResearchId | undefined;
 	}) => void;
 	executeAwaitedAction: (args: {
 		endpoint: string;
 		resourceId?: ResourceId | undefined;
 		boostId?: ShopBoostId | undefined;
+		labId?: LabId | undefined;
+		researchId?: ResearchId | undefined;
 	}) => Promise<SerializedGameState>;
 	resetOnServer: () => void;
 } => {
@@ -118,6 +126,8 @@ export const useServerSync = ({
 					endpoint: item.endpoint,
 					resourceId: item.resourceId,
 					boostId: item.boostId,
+					labId: item.labId,
+					researchId: item.researchId,
 					serverVersion: serverVersionRef.current,
 				});
 				serverVersionRef.current = result.serverVersion;
@@ -131,6 +141,8 @@ export const useServerSync = ({
 							endpoint: item.endpoint,
 							resourceId: item.resourceId,
 							boostId: item.boostId,
+							labId: item.labId,
+							researchId: item.researchId,
 							serverVersion: serverVersionRef.current,
 						});
 						serverVersionRef.current = retryResult.serverVersion;
@@ -276,11 +288,20 @@ export const useServerSync = ({
 			endpoint,
 			resourceId,
 			boostId,
+			labId,
+			researchId,
 		}: {
 			endpoint: string;
 			resourceId?: ResourceId | undefined;
 			boostId?: ShopBoostId | undefined;
+			labId?: LabId | undefined;
+			researchId?: ResearchId | undefined;
 		}): Promise<SerializedGameState> => {
+			// Wait for initial server data to be reconciled
+			while (!isReadyRef.current) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+
 			// Wait for queue to drain
 			while (processingRef.current || queueRef.current.length > 0) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
@@ -320,6 +341,8 @@ export const useServerSync = ({
 					endpoint,
 					resourceId,
 					boostId,
+					labId,
+					researchId,
 					serverVersion: serverVersionRef.current,
 				});
 				serverVersionRef.current = result.serverVersion;
@@ -331,6 +354,8 @@ export const useServerSync = ({
 						endpoint,
 						resourceId,
 						boostId,
+						labId,
+						researchId,
 						serverVersion: serverVersionRef.current,
 					});
 					serverVersionRef.current = retryResult.serverVersion;
@@ -351,12 +376,22 @@ export const useServerSync = ({
 			endpoint,
 			resourceId,
 			boostId,
+			labId,
+			researchId,
 		}: {
 			endpoint: string;
 			resourceId?: ResourceId | undefined;
 			boostId?: ShopBoostId | undefined;
+			labId?: LabId | undefined;
+			researchId?: ResearchId | undefined;
 		}) => {
-			queueRef.current.push({ endpoint, resourceId, boostId });
+			queueRef.current.push({
+				endpoint,
+				resourceId,
+				boostId,
+				labId,
+				researchId,
+			});
 			processQueue();
 		},
 		[processQueue],

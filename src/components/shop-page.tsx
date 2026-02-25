@@ -3,6 +3,7 @@
 import {
 	DashboardSpeed01Icon,
 	Rocket01Icon,
+	TestTubeIcon,
 	Timer01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -46,6 +47,13 @@ const SHOP_MULTIPLIERS: ReadonlyArray<{
 		description: "All run timers are cut in half.",
 		icon: Timer01Icon,
 		colorClass: "text-success",
+	},
+	{
+		id: "research-2x",
+		name: "2x Research Speed",
+		description: "All research completes twice as fast.",
+		icon: TestTubeIcon,
+		colorClass: "text-accent-amber",
 	},
 ];
 

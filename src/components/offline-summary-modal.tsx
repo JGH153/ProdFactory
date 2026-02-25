@@ -1,6 +1,6 @@
 "use client";
 
-import { Download01Icon } from "@hugeicons/core-free-icons";
+import { Download01Icon, MicroscopeIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ResourceIcon } from "@/components/resource-icon";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { RESOURCE_CONFIGS } from "@/game/config";
-import type { OfflineSummary } from "@/game/types";
+import { RESEARCH_CONFIGS } from "@/game/research-config";
+import type {
+	OfflineResearchLevelUp,
+	OfflineSummary,
+	ResearchId,
+} from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
 
 const MAX_OFFLINE_SECONDS = 8 * 3600;
@@ -32,6 +37,22 @@ const formatElapsed = (seconds: number): string => {
 	return `${m}m`;
 };
 
+const dedupeResearchLevelUps = (
+	levelUps: OfflineResearchLevelUp[],
+): OfflineResearchLevelUp[] => {
+	const best = new Map<ResearchId, number>();
+	for (const { researchId, newLevel } of levelUps) {
+		const existing = best.get(researchId);
+		if (existing === undefined || newLevel > existing) {
+			best.set(researchId, newLevel);
+		}
+	}
+	return Array.from(best, ([researchId, newLevel]) => ({
+		researchId,
+		newLevel,
+	}));
+};
+
 type Props = {
 	summary: OfflineSummary | null;
 	onCollect: () => void;
@@ -41,6 +62,10 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 	const progressPct = summary
 		? Math.min((summary.elapsedSeconds / MAX_OFFLINE_SECONDS) * 100, 100)
 		: 0;
+
+	const researchLevelUps = summary
+		? dedupeResearchLevelUps(summary.researchLevelUps)
+		: [];
 
 	return (
 		<Dialog open={summary !== null}>
@@ -74,22 +99,52 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 					</p>
 				)}
 
-				<ul className="flex flex-col gap-2 my-1">
-					{summary?.gains.map(({ resourceId, amount }) => (
-						<li
-							key={resourceId}
-							className="flex items-center justify-between text-sm"
-						>
-							<span className="flex items-center gap-2 text-text-secondary">
-								<ResourceIcon resourceId={resourceId} size={16} />
-								{RESOURCE_CONFIGS[resourceId].name}
-							</span>
-							<span className="font-semibold text-accent-amber">
-								+{bnFormat(amount)}
-							</span>
-						</li>
-					))}
-				</ul>
+				{summary && summary.gains.length > 0 && (
+					<ul className="flex flex-col gap-2 my-1">
+						{summary.gains.map(({ resourceId, amount }) => (
+							<li
+								key={resourceId}
+								className="flex items-center justify-between text-sm"
+							>
+								<span className="flex items-center gap-2 text-text-secondary">
+									<ResourceIcon resourceId={resourceId} size={16} />
+									{RESOURCE_CONFIGS[resourceId].name}
+								</span>
+								<span className="font-semibold text-accent-amber">
+									+{bnFormat(amount)}
+								</span>
+							</li>
+						))}
+					</ul>
+				)}
+
+				{researchLevelUps.length > 0 && (
+					<>
+						<p className="text-sm font-semibold text-text-secondary mt-1">
+							Research Progress
+						</p>
+						<ul className="flex flex-col gap-2 my-1">
+							{researchLevelUps.map(({ researchId, newLevel }) => (
+								<li
+									key={researchId}
+									className="flex items-center justify-between text-sm"
+								>
+									<span className="flex items-center gap-2 text-text-secondary">
+										<HugeiconsIcon
+											icon={MicroscopeIcon}
+											size={16}
+											className="text-accent-amber"
+										/>
+										{RESEARCH_CONFIGS[researchId].name}
+									</span>
+									<span className="font-semibold text-accent-amber">
+										Level {newLevel}
+									</span>
+								</li>
+							))}
+						</ul>
+					</>
+				)}
 
 				<div className="flex justify-end mt-2">
 					<Button className="cursor-pointer" onClick={onCollect}>

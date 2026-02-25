@@ -13,6 +13,7 @@ import {
 	getEffectiveRunTime,
 	getRunTimeMultiplier,
 } from "@/game/logic";
+import { getResearchMultiplier } from "@/game/research-config";
 import type { ResourceState } from "@/game/types";
 import { useParticleBurst } from "@/game/use-particle-burst";
 import { useRunProgress } from "@/game/use-run-progress";
@@ -69,6 +70,7 @@ const getStatusText = ({
 	effectiveRunTime,
 	producers,
 	productionMul,
+	researchMul,
 }: {
 	isPaused: boolean;
 	isWaitingForInput: boolean;
@@ -79,6 +81,7 @@ const getStatusText = ({
 	effectiveRunTime: number;
 	producers: number;
 	productionMul: number;
+	researchMul: number;
 }): string => {
 	if (isPaused) {
 		return "Paused";
@@ -87,7 +90,7 @@ const getStatusText = ({
 		return `Waiting for ${inputResourceName}...`;
 	}
 	if (isRunning && isContinuous) {
-		return `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((producers * productionMul) / effectiveRunTime))}/s`;
+		return `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((producers * productionMul * researchMul) / effectiveRunTime))}/s`;
 	}
 	if (isRunning) {
 		return `${remainingSeconds}s`;
@@ -158,9 +161,13 @@ export const ProgressBar = ({ resource }: Props) => {
 		producers: resource.producers,
 		runTimeMultiplier: rtm,
 	});
+	const researchMul = getResearchMultiplier({
+		research: state.research,
+		resourceId: resource.id,
+	});
 	const perRun = bnMul(
-		bigNum(resource.producers * productionMul),
-		bigNum(continuousMul),
+		bnMul(bigNum(resource.producers * productionMul), bigNum(continuousMul)),
+		bigNum(researchMul),
 	);
 
 	const inputResourceName = config.inputResourceId
@@ -201,6 +208,7 @@ export const ProgressBar = ({ resource }: Props) => {
 						effectiveRunTime,
 						producers: resource.producers,
 						productionMul,
+						researchMul,
 					})}
 				</span>
 				{resource.producers > 0 && !isPaused && !isWaitingForInput && (

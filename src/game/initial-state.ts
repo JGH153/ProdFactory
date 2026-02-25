@@ -80,6 +80,29 @@ export const createInitialGameState = (): GameState => ({
 		"production-20x": false,
 		"automation-2x": false,
 		"runtime-50": false,
+		"research-2x": false,
+	},
+	labs: {
+		"lab-1": {
+			isUnlocked: false,
+			activeResearchId: null,
+			researchStartedAt: null,
+		},
+		"lab-2": {
+			isUnlocked: false,
+			activeResearchId: null,
+			researchStartedAt: null,
+		},
+	},
+	research: {
+		"more-iron-ore": 0,
+		"more-plates": 0,
+		"more-reinforced-plate": 0,
+		"more-modular-frame": 0,
+		"more-heavy-modular-frame": 0,
+		"more-fused-modular-frame": 0,
+		"more-pressure-conversion-cube": 0,
+		"more-nuclear-pasta": 0,
 	},
 	lastSavedAt: Date.now(),
 });

@@ -10,6 +10,7 @@ import {
 	bnSub,
 } from "@/lib/big-number";
 import { RESOURCE_CONFIGS } from "./config";
+import { getResearchMultiplier } from "./research-config";
 import type {
 	GameState,
 	ResourceId,
@@ -366,9 +367,13 @@ export const completeRun = ({
 		runTimeMultiplier: rtm,
 	});
 	const productionMul = state.shopBoosts["production-20x"] ? 20 : 1;
+	const researchMul = getResearchMultiplier({
+		research: state.research,
+		resourceId,
+	});
 	const produced = bnMul(
-		bigNum(resource.producers * productionMul),
-		bigNum(continuousMul),
+		bnMul(bigNum(resource.producers * productionMul), bigNum(continuousMul)),
+		bigNum(researchMul),
 	);
 
 	return {
@@ -560,6 +565,7 @@ export const resetShopBoosts = ({ state }: { state: GameState }): GameState => {
 			"production-20x": false,
 			"automation-2x": false,
 			"runtime-50": false,
+			"research-2x": false,
 		},
 	};
 };

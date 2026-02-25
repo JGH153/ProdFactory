@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import type { SerializedGameState } from "@/game/serialization";
-import type { ResourceId } from "@/game/types";
+import type { LabId, ResearchId, ResourceId } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
 
 const TTL_30_DAYS = 60 * 60 * 24 * 30;
@@ -35,9 +35,16 @@ type SyncSnapshotResource = {
 	producers: number;
 };
 
+type SyncSnapshotLab = {
+	activeResearchId: ResearchId | null;
+	researchStartedAt: number | null;
+};
+
 export type SyncSnapshot = {
 	timestamp: number;
 	resources: Record<ResourceId, SyncSnapshotResource>;
+	research?: Record<ResearchId, number>;
+	labs?: Record<LabId, SyncSnapshotLab>;
 };
 
 // --- Game state ---

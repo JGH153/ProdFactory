@@ -2,6 +2,7 @@
 
 import {
 	GameController01Icon,
+	MicroscopeIcon,
 	Settings01Icon,
 	Store01Icon,
 } from "@hugeicons/core-free-icons";
@@ -12,7 +13,7 @@ import { LockedTab } from "@/components/locked-tab";
 import { useGameState } from "@/game/game-state-context";
 import type { ResourceId } from "@/game/types";
 
-type BottomNavTab = "game" | "shop" | "settings";
+type BottomNavTab = "game" | "shop" | "research" | "settings";
 
 type TabConfig = {
 	id: BottomNavTab;
@@ -35,6 +36,7 @@ const TABS: TabConfig[] = [
 			message: "Unlock Plates to access the Shop",
 		},
 	},
+	{ id: "research", label: "Research", icon: MicroscopeIcon },
 	{ id: "settings", label: "Settings", icon: Settings01Icon },
 ];
 
