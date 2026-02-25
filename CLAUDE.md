@@ -246,3 +246,28 @@ Each tier's base run time is `2^(tier_index)` seconds.
 3. **Always end sessions** by running `/validate` to catch lint errors, type errors, and dead code before committing.
 4. Keep the codebase clean — no unused exports, no dead code, no type errors.
 5. **No mutating git commands** — never run `git commit`, `git fetch`, `git branch`, `git push`, or `git pull`. Read-only commands like `git log`, `git status`, and `git diff` are fine. The user manages all git mutations manually.
+
+---
+
+## Testing Strategy
+
+The test suite prioritizes **speed and reliability** over extensive coverage.
+
+### What to test
+
+- **Pure logic and state transitions** — deterministic functions that drive game mechanics (production math, serialization, BigNumber arithmetic).
+- **API boundary handling** — HTTP status codes, error classes, request/response shaping.
+- **Server-side validation** — plausibility checks, input parsing, session handling.
+
+### What not to test
+
+- React components and hooks (no jsdom/browser environment configured).
+- Visual/animation behavior — verified manually.
+- Integration flows that duplicate logic already covered by unit tests.
+
+### Conventions
+
+- **Co-located files** — `foo.test.ts` lives next to `foo.ts`.
+- **No `any`** — test helpers and fixtures are fully typed.
+- **Mock at the boundary** — mock `fetch`, `ioredis`, or `next/server`; never mock internal utility functions.
+- **Fast by default** — all tests run in Node (no jsdom), no network, no disk I/O.
