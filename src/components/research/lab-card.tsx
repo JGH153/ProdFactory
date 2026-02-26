@@ -152,7 +152,7 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 				</span>
 				<button
 					type="button"
-					className="text-text-muted hover:text-red-400 transition-colors disabled:opacity-40"
+					className="cursor-pointer text-text-muted hover:text-red-400 transition-colors disabled:opacity-40"
 					onClick={handleCancel}
 					disabled={isCancelling}
 				>

@@ -88,7 +88,7 @@ export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 							<button
 								key={researchId}
 								type="button"
-								className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-card"
+								className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 text-left transition-colors cursor-pointer hover:border-primary/50 hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-card"
 								disabled={isDisabled || assigningId !== null}
 								onClick={() => handleSelect(researchId)}
 							>
