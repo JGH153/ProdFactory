@@ -1,0 +1,39 @@
+// @vitest-environment happy-dom
+import { describe, expect, it } from "vitest";
+import { ResearchPage } from "@/components/research/research-page";
+import { renderWithProviders, screen } from "@/test/render-with-providers";
+
+describe("ResearchPage", () => {
+	it("renders the Research heading", () => {
+		renderWithProviders(<ResearchPage />);
+
+		expect(
+			screen.getByRole("heading", { level: 2, name: /research/i }),
+		).toBeInTheDocument();
+	});
+
+	it("renders Labs section with lab cards", () => {
+		renderWithProviders(<ResearchPage />);
+
+		expect(screen.getByText("Labs")).toBeInTheDocument();
+		expect(screen.getByText("Lab 1")).toBeInTheDocument();
+		expect(screen.getByText("Lab 2")).toBeInTheDocument();
+	});
+
+	it("renders Available Research section", () => {
+		renderWithProviders(<ResearchPage />);
+
+		expect(screen.getByText("Available Research")).toBeInTheDocument();
+		expect(screen.getByText("Iron Ore Efficiency")).toBeInTheDocument();
+		expect(screen.getByText("Plate Efficiency")).toBeInTheDocument();
+	});
+
+	it("shows Unlock (Free) button for locked labs", () => {
+		renderWithProviders(<ResearchPage />);
+
+		const unlockButtons = screen.getAllByRole("button", {
+			name: /unlock \(free\)/i,
+		});
+		expect(unlockButtons).toHaveLength(2);
+	});
+});

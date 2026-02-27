@@ -37,7 +37,7 @@ Iron Ore → Plates → Reinforced Plate → Modular Frame → Heavy Modular Fra
 | Data fetching   | TanStack Query                                       |
 | Backend storage | Redis (ioredis locally, Upstash in production)       |
 | Sessions        | Anonymous UUID, HttpOnly cookies                      |
-| Testing         | Vitest (Node-only, no jsdom)                         |
+| Testing         | Vitest + React Testing Library + MSW                 |
 | Linting/format  | Biome                                                |
 | Dead code       | Knip                                                 |
 | Monitoring      | LogRocket                                            |
@@ -147,8 +147,20 @@ pnpm update-deps    # Interactive dependency updater
 
 ## Testing
 
-Vitest, Node-only (no jsdom). Co-located: `foo.test.ts` next to `foo.ts`.
+Vitest with two test types. Co-located: `foo.test.ts` / `foo.test.tsx` next to source files.
+
+### Unit tests (`.test.ts`) — Node environment
 
 - **Test**: pure logic, state transitions, BigNumber arithmetic, serialization, API boundaries, plausibility checks.
-- **Don't test**: React components/hooks, visual/animation behavior, integration flows that duplicate unit tests.
 - **Mock at the boundary** — mock `fetch`, `ioredis`, `next/server`; never mock internal utilities.
+
+### Component tests (`.test.tsx`) — happy-dom environment
+
+- **Every `.test.tsx` file must start with** `// @vitest-environment happy-dom` (first line).
+- **Use `renderWithProviders`** from `src/test/render-with-providers.tsx` — wraps in the full provider stack. Use `renderWithMusic` from `src/test/render-with-music.tsx` for components that need `MusicProvider`.
+- **Query priority**: `getByRole` → `getByLabelText` → `getByText`. Prefer accessible queries.
+- **Use `fireEvent.click`** for click interactions (`userEvent.click` has issues with the RAF game loop).
+- **MSW**: Default happy-path handlers in `src/test/msw-handlers.ts`. Override per-test with `server.use()`.
+- **motion/react** is globally mocked — renders semantic HTML, strips animation props.
+- **`vitest-fail-on-console`** is enabled for component tests (errors and warnings fail the test).
+- **Don't test**: animation details, exact styles, implementation internals.
