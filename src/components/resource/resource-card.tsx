@@ -60,7 +60,7 @@ export const ResourceCard = ({ resource }: Props) => {
 			}}
 		>
 			<Card
-				className={`relative border-border bg-card select-none
+				className={`relative overflow-hidden border-border bg-card select-none
 					${isLocked ? "opacity-50" : ""}
 					${isNuclearPasta && !isLocked ? "animate-nuclear-pulse" : ""}`}
 			>
