@@ -84,9 +84,13 @@ export const checkPlausibility = ({
 	const defaultBoosts = createInitialGameState().shopBoosts;
 	const shopBoosts = claimedState.shopBoosts ?? defaultBoosts;
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
-	const prestigeMul = claimedState.prestige?.lifetimeCoupons
+	// Use snapshot's lifetime coupons (trusted) rather than the client's claimed value.
+	// Falls back to claimed state for snapshots created before this field was added.
+	const trustedLifetimeCoupons =
+		lastSnapshot.lifetimeCoupons ?? claimedState.prestige?.lifetimeCoupons;
+	const prestigeMul = trustedLifetimeCoupons
 		? getPrestigePassiveMultiplier({
-				lifetimeCoupons: bnDeserialize(claimedState.prestige.lifetimeCoupons),
+				lifetimeCoupons: bnDeserialize(trustedLifetimeCoupons),
 			})
 		: 1;
 
@@ -241,6 +245,46 @@ export const checkPlausibility = ({
 		SerializedResourceState
 	>;
 
+	// Compute max production per resource for both resource validation and
+	// nuclear-pasta-produced-this-run validation below.
+	const computeMaxProduction = (resourceId: ResourceId): BigNum => {
+		const snapshotResource = lastSnapshot.resources[resourceId];
+		const claimedResource = claimedState.resources[resourceId];
+		if (!snapshotResource || !claimedResource) {
+			return bigNum(0);
+		}
+		if (!claimedResource.isUnlocked || (claimedResource.isPaused ?? false)) {
+			return bigNum(0);
+		}
+		const producers = Math.max(
+			snapshotResource.producers,
+			claimedResource.producers,
+		);
+		const rtm = getRunTimeMultiplier({
+			shopBoosts,
+			isAutomated:
+				claimedResource.isAutomated && !(claimedResource.isPaused ?? false),
+			speedResearchMultiplier: getSpeedResearchMultiplier({
+				research: validatedResearch,
+				resourceId,
+			}),
+		});
+		const runTimeMs =
+			getEffectiveRunTime({
+				resourceId,
+				producers,
+				runTimeMultiplier: rtm,
+			}) * 1000;
+		const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
+		const researchMul = getResearchMultiplier({
+			research: validatedResearch,
+			resourceId,
+		});
+		return bigNum(
+			maxRuns * producers * productionMul * researchMul * prestigeMul,
+		);
+	};
+
 	for (const resourceId of RESOURCE_ORDER) {
 		const snapshotResource = lastSnapshot.resources[resourceId];
 		const claimedResource = claimedState.resources[resourceId];
@@ -264,41 +308,7 @@ export const checkPlausibility = ({
 			continue;
 		}
 
-		let maxProduction: BigNum;
-
-		if (!claimedResource.isUnlocked || (claimedResource.isPaused ?? false)) {
-			maxProduction = bigNum(0);
-		} else {
-			const producers = Math.max(
-				snapshotResource.producers,
-				claimedResource.producers,
-			);
-			const rtm = getRunTimeMultiplier({
-				shopBoosts,
-				isAutomated:
-					claimedResource.isAutomated && !(claimedResource.isPaused ?? false),
-				speedResearchMultiplier: getSpeedResearchMultiplier({
-					research: validatedResearch,
-					resourceId,
-				}),
-			});
-			const runTimeMs =
-				getEffectiveRunTime({
-					resourceId,
-					producers,
-					runTimeMultiplier: rtm,
-				}) * 1000;
-			// +1 accounts for a run already in-progress when the snapshot was taken
-			const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
-			const researchMul = getResearchMultiplier({
-				research: validatedResearch,
-				resourceId,
-			});
-			maxProduction = bigNum(
-				maxRuns * producers * productionMul * researchMul * prestigeMul,
-			);
-		}
-
+		const maxProduction = computeMaxProduction(resourceId);
 		const elapsedSec = (elapsed / 1000).toFixed(1);
 
 		if (bnIsZero(maxProduction) && !bnIsZero(actualGain)) {
@@ -332,6 +342,37 @@ export const checkPlausibility = ({
 		}
 	}
 
+	// Validate nuclearPastaProducedThisRun against plausible nuclear pasta production
+	let correctedPrestige = claimedState.prestige;
+	if (claimedState.prestige && lastSnapshot.nuclearPastaProducedThisRun) {
+		const snapshotNpProduced = bnDeserialize(
+			lastSnapshot.nuclearPastaProducedThisRun,
+		);
+		const claimedNpProduced = bnDeserialize(
+			claimedState.prestige.nuclearPastaProducedThisRun,
+		);
+		const npGain = bnSub(claimedNpProduced, snapshotNpProduced);
+
+		if (!bnIsZero(npGain) && bnGte(claimedNpProduced, snapshotNpProduced)) {
+			const maxNpProduction = computeMaxProduction("nuclear-pasta");
+			const npTolerance = bnMul(
+				maxNpProduction,
+				bigNum(PLAUSIBILITY_TOLERANCE),
+			);
+			if (!bnGte(npTolerance, npGain)) {
+				const correctedNpProduced = bnAdd(snapshotNpProduced, maxNpProduction);
+				correctedPrestige = {
+					...claimedState.prestige,
+					nuclearPastaProducedThisRun: bnSerialize(correctedNpProduced),
+				};
+				corrected = true;
+				warnings.push(
+					`nuclearPastaProducedThisRun exceeded plausible rate (gained: ${bnFormat(npGain)}, max: ${bnFormat(maxNpProduction)})`,
+				);
+			}
+		}
+	}
+
 	if (corrected) {
 		logger.warn(
 			{ warnings, elapsedMs: elapsed },
@@ -344,6 +385,9 @@ export const checkPlausibility = ({
 				resources: correctedResources,
 				...(researchCorrected && { research: validatedResearch }),
 				...(labsCorrected && { labs: correctedLabs }),
+				...(correctedPrestige !== claimedState.prestige && {
+					prestige: correctedPrestige,
+				}),
 			},
 			warnings,
 		};
@@ -389,5 +433,14 @@ export const buildSyncSnapshot = ({
 		};
 	}
 
-	return { timestamp, resources, research, labs };
+	return {
+		timestamp,
+		resources,
+		research,
+		labs,
+		...(state.prestige && {
+			nuclearPastaProducedThisRun: state.prestige.nuclearPastaProducedThisRun,
+			lifetimeCoupons: state.prestige.lifetimeCoupons,
+		}),
+	};
 };

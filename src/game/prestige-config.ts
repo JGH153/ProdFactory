@@ -48,7 +48,11 @@ export const getPrestigePassiveMultiplier = ({
 }: {
 	lifetimeCoupons: BigNum;
 }): number => {
-	return 1 + bnToNumber(lifetimeCoupons) * COUPON_BONUS_PER_UNIT;
+	const coupons = Math.min(
+		bnToNumber(lifetimeCoupons),
+		Number.MAX_SAFE_INTEGER,
+	);
+	return 1 + coupons * COUPON_BONUS_PER_UNIT;
 };
 
 export const isMilestoneEarned = ({

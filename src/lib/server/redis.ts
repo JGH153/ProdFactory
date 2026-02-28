@@ -45,6 +45,8 @@ export type SyncSnapshot = {
 	resources: Record<ResourceId, SyncSnapshotResource>;
 	research?: Record<ResearchId, number>;
 	labs?: Record<LabId, SyncSnapshotLab>;
+	nuclearPastaProducedThisRun?: SerializedBigNum;
+	lifetimeCoupons?: SerializedBigNum;
 };
 
 // --- Game state ---

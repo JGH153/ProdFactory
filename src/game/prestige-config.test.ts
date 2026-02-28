@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bigNum, bigNumZero } from "@/lib/big-number";
+import { type BigNum, bigNum, bigNumZero } from "@/lib/big-number";
 import {
 	COUPON_BONUS_PER_UNIT,
 	getPrestigePassiveMultiplier,
@@ -23,6 +23,17 @@ describe("getPrestigePassiveMultiplier", () => {
 		expect(
 			getPrestigePassiveMultiplier({ lifetimeCoupons: bigNum(50) }),
 		).toBeCloseTo(2.0);
+	});
+
+	it("does not return Infinity for very large coupon counts", () => {
+		// BigNum with exponent > 308 would cause bnToNumber to return Infinity
+		// without the Math.min cap
+		const hugeCoupons: BigNum = { mantissa: 1, exponent: 500 };
+		const result = getPrestigePassiveMultiplier({
+			lifetimeCoupons: hugeCoupons,
+		});
+		expect(Number.isFinite(result)).toBe(true);
+		expect(result).toBeGreaterThan(1);
 	});
 
 	it("scales linearly with coupon count", () => {

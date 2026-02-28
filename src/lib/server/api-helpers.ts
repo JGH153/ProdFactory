@@ -4,6 +4,7 @@ import { advanceResearch } from "@/game/research-logic";
 import {
 	deserializeGameState,
 	type SerializedGameState,
+	type SerializedPrestigeState,
 	serializeGameState,
 } from "@/game/state/serialization";
 import type {
@@ -208,24 +209,42 @@ export type PlausibilitySaveResult =
 export const persistWithPlausibility = async ({
 	sessionId,
 	claimedState,
+	storedPrestige,
 	newVersion,
 	updateSnapshotOnClean,
 }: {
 	sessionId: string;
 	claimedState: SerializedGameState;
+	storedPrestige: SerializedPrestigeState | undefined;
 	newVersion: number;
 	updateSnapshotOnClean: boolean;
 }): Promise<PlausibilitySaveResult> => {
+	// Protect prestige fields that should only change through server-authoritative
+	// endpoints (prestige, reset). The client may only update nuclearPastaProducedThisRun
+	// (tracked during normal gameplay), which is validated by the plausibility check.
+	const protectedState: SerializedGameState =
+		storedPrestige && claimedState.prestige
+			? {
+					...claimedState,
+					prestige: {
+						...claimedState.prestige,
+						prestigeCount: storedPrestige.prestigeCount,
+						couponBalance: storedPrestige.couponBalance,
+						lifetimeCoupons: storedPrestige.lifetimeCoupons,
+					},
+				}
+			: claimedState;
+
 	const serverNow = Date.now();
 	const lastSnapshot = await getSyncSnapshot(sessionId);
 
 	if (!lastSnapshot) {
 		await saveStoredGameState({
 			sessionId,
-			stored: { ...claimedState, serverVersion: newVersion },
+			stored: { ...protectedState, serverVersion: newVersion },
 		});
 		const snapshot = buildSyncSnapshot({
-			state: claimedState,
+			state: protectedState,
 			timestamp: serverNow,
 		});
 		await setSyncSnapshot({ sessionId, snapshot });
@@ -233,7 +252,7 @@ export const persistWithPlausibility = async ({
 	}
 
 	const result = checkPlausibility({
-		claimedState,
+		claimedState: protectedState,
 		lastSnapshot,
 		serverNow,
 	});
@@ -264,11 +283,11 @@ export const persistWithPlausibility = async ({
 
 	await saveStoredGameState({
 		sessionId,
-		stored: { ...claimedState, serverVersion: newVersion },
+		stored: { ...protectedState, serverVersion: newVersion },
 	});
 	if (updateSnapshotOnClean) {
 		const snapshot = buildSyncSnapshot({
-			state: claimedState,
+			state: protectedState,
 			timestamp: serverNow,
 		});
 		await setSyncSnapshot({ sessionId, snapshot });

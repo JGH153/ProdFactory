@@ -41,6 +41,7 @@ const syncGame = async ({
 	return persistWithPlausibility({
 		sessionId,
 		claimedState,
+		storedPrestige: stored.prestige,
 		newVersion: stored.serverVersion + 1,
 		updateSnapshotOnClean: true,
 	});

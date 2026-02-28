@@ -5,11 +5,17 @@ import { LAB_ORDER, RESEARCH_ORDER } from "@/game/research-config";
 import type {
 	SerializedGameState,
 	SerializedLabState,
+	SerializedPrestigeState,
 	SerializedResourceState,
 } from "@/game/state/serialization";
 import { serializeGameState } from "@/game/state/serialization";
 import type { LabId, ResearchId, ShopBoosts } from "@/game/types";
-import { bigNum, bnDeserialize, bnSerialize } from "@/lib/big-number";
+import {
+	bigNum,
+	bigNumZero,
+	bnDeserialize,
+	bnSerialize,
+} from "@/lib/big-number";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
 import type { SyncSnapshot } from "./redis";
 
@@ -165,6 +171,15 @@ describe("buildSyncSnapshot", () => {
 });
 
 describe("checkPlausibility", () => {
+	const assertCorrected = (
+		result: ReturnType<typeof checkPlausibility>,
+	): NonNullable<ReturnType<typeof checkPlausibility>["correctedState"]> => {
+		if (!result.correctedState) {
+			throw new Error("Expected correctedState to be non-null");
+		}
+		return result.correctedState;
+	};
+
 	describe("early returns", () => {
 		it("elapsed <= 0 returns no correction", () => {
 			const t0 = 1000;
@@ -558,15 +573,6 @@ describe("checkPlausibility", () => {
 				research: { ...snapshot.research, ...researchOverrides },
 				labs: { ...snapshot.labs, ...labOverrides },
 			};
-		};
-
-		const assertCorrected = (
-			result: ReturnType<typeof checkPlausibility>,
-		): NonNullable<ReturnType<typeof checkPlausibility>["correctedState"]> => {
-			if (!result.correctedState) {
-				throw new Error("Expected correctedState to be non-null");
-			}
-			return result.correctedState;
 		};
 
 		it("skips research validation for old snapshots without research field", () => {
@@ -1079,6 +1085,166 @@ describe("checkPlausibility", () => {
 			expect(state.research).toBeDefined();
 			expect(state.resources).toBeDefined();
 			expect(state.research?.["more-iron-ore"]).toBe(0);
+		});
+	});
+
+	describe("prestige plausibility", () => {
+		const defaultPrestige: SerializedPrestigeState = {
+			prestigeCount: 0,
+			couponBalance: bnSerialize(bigNumZero),
+			lifetimeCoupons: bnSerialize(bigNumZero),
+			nuclearPastaProducedThisRun: bnSerialize(bigNumZero),
+		};
+
+		it("buildSyncSnapshot includes nuclearPastaProducedThisRun from prestige", () => {
+			const base = serializeGameState(createInitialGameState());
+			const state: SerializedGameState = {
+				...base,
+				prestige: {
+					...defaultPrestige,
+					nuclearPastaProducedThisRun: bnSerialize(bigNum(42)),
+				},
+			};
+			const snapshot = buildSyncSnapshot({ state, timestamp: 0 });
+			if (!snapshot.nuclearPastaProducedThisRun) {
+				throw new Error("Expected nuclearPastaProducedThisRun in snapshot");
+			}
+			const np = bnDeserialize(snapshot.nuclearPastaProducedThisRun);
+			expect(np.mantissa).toBeCloseTo(4.2, 10);
+			expect(np.exponent).toBe(1);
+		});
+
+		it("buildSyncSnapshot includes lifetimeCoupons from prestige", () => {
+			const base = serializeGameState(createInitialGameState());
+			const state: SerializedGameState = {
+				...base,
+				prestige: {
+					...defaultPrestige,
+					lifetimeCoupons: bnSerialize(bigNum(10)),
+				},
+			};
+			const snapshot = buildSyncSnapshot({ state, timestamp: 0 });
+			if (!snapshot.lifetimeCoupons) {
+				throw new Error("Expected lifetimeCoupons in snapshot");
+			}
+			const lc = bnDeserialize(snapshot.lifetimeCoupons);
+			expect(lc.mantissa).toBeCloseTo(1, 10);
+			expect(lc.exponent).toBe(1);
+		});
+
+		// Helper: create state/snapshot with nuclear pasta unlocked (1 producer)
+		const makeNpState = (base: SerializedGameState): SerializedGameState => ({
+			...base,
+			resources: {
+				...base.resources,
+				"nuclear-pasta": {
+					...base.resources["nuclear-pasta"],
+					isUnlocked: true,
+					isAutomated: true,
+					producers: 1,
+				},
+			},
+		});
+
+		it("corrects inflated nuclearPastaProducedThisRun", () => {
+			// Nuclear pasta is the last tier (index 7), base run time = 2^7 = 128s
+			// With 1 producer, runTime=128s=128000ms
+			// In 1s: maxRuns = floor(1000/128000)+1 = 1
+			// maxProd = 1*1*1*1*1 = 1, tolerance = 1.1
+			const t0 = 0;
+			const base = makeNpState(serializeGameState(createInitialGameState()));
+			const snapshot: SyncSnapshot = {
+				...buildSyncSnapshot({ state: base, timestamp: t0 }),
+				nuclearPastaProducedThisRun: bnSerialize(bigNumZero),
+			};
+
+			const claimed: SerializedGameState = {
+				...base,
+				prestige: {
+					...defaultPrestige,
+					nuclearPastaProducedThisRun: bnSerialize(bigNum(1000000)),
+				},
+			};
+
+			const result = checkPlausibility({
+				claimedState: claimed,
+				lastSnapshot: snapshot,
+				serverNow: t0 + 1000,
+			});
+			expect(result.corrected).toBe(true);
+			expect(
+				result.warnings.some((w) => w.includes("nuclearPastaProducedThisRun")),
+			).toBe(true);
+			const state = assertCorrected(result);
+			if (!state.prestige) {
+				throw new Error("Expected prestige in corrected state");
+			}
+			const correctedNp = bnDeserialize(
+				state.prestige.nuclearPastaProducedThisRun,
+			);
+			// Should be capped to max plausible production (1)
+			expect(correctedNp.mantissa).toBeCloseTo(1, 10);
+			expect(correctedNp.exponent).toBe(0);
+		});
+
+		it("does not correct legitimate nuclearPastaProducedThisRun", () => {
+			const t0 = 0;
+			const base = makeNpState(serializeGameState(createInitialGameState()));
+			const snapshot: SyncSnapshot = {
+				...buildSyncSnapshot({ state: base, timestamp: t0 }),
+				nuclearPastaProducedThisRun: bnSerialize(bigNumZero),
+			};
+
+			// Claim 1 nuclear pasta produced (within tolerance of maxProd=1)
+			const claimed: SerializedGameState = {
+				...base,
+				prestige: {
+					...defaultPrestige,
+					nuclearPastaProducedThisRun: bnSerialize(bigNum(1)),
+				},
+			};
+
+			const result = checkPlausibility({
+				claimedState: claimed,
+				lastSnapshot: snapshot,
+				serverNow: t0 + 1000,
+			});
+			expect(result.corrected).toBe(false);
+		});
+
+		it("uses snapshot lifetimeCoupons for prestige multiplier instead of claimed", () => {
+			// Snapshot has 0 lifetime coupons → prestigeMul = 1
+			// Client claims 1000 lifetime coupons → would give prestigeMul = 21
+			// With the fix, the plausibility check uses the snapshot's 0 coupons
+			const t0 = 0;
+			const snapshot = makeSnapshot(t0, 0, 1);
+			// Add lifetimeCoupons to snapshot
+			const snapshotWithPrestige: SyncSnapshot = {
+				...snapshot,
+				lifetimeCoupons: bnSerialize(bigNumZero),
+			};
+
+			// Claim production of 20 iron ore with inflated lifetime coupons
+			// Without fix: prestigeMul=21, maxProd=2*1*1*1*21=42 → 20 passes
+			// With fix: prestigeMul=1, maxProd=2*1*1*1*1=2 → 20 fails
+			const claimed = makeClaimedState({
+				amount: bnSerialize(bigNum(20)),
+			});
+			const claimedWithPrestige: SerializedGameState = {
+				...claimed,
+				prestige: {
+					...defaultPrestige,
+					lifetimeCoupons: bnSerialize(bigNum(1000)),
+				},
+			};
+
+			const result = checkPlausibility({
+				claimedState: claimedWithPrestige,
+				lastSnapshot: snapshotWithPrestige,
+				serverNow: t0 + 1000,
+			});
+			expect(result.corrected).toBe(true);
+			expect(result.warnings.some((w) => w.includes("Iron Ore"))).toBe(true);
 		});
 	});
 });
