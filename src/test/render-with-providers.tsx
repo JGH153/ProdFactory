@@ -1,14 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderOptions, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { PropsWithChildren, ReactElement } from "react";
+import { type PropsWithChildren, type ReactElement, useRef } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GameStateProvider } from "@/game/state/game-state-context";
 import { MilestoneNotificationProvider } from "@/game/state/milestone-context";
 import { SfxProvider } from "@/game/state/sfx-context";
 import { createInitialSerializedState } from "@/test/fixtures";
 
-const createTestQueryClient = () => {
+export const createTestQueryClient = () => {
 	const client = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -29,7 +29,7 @@ const createTestQueryClient = () => {
 };
 
 const AllProviders = ({ children }: PropsWithChildren) => {
-	const queryClient = createTestQueryClient();
+	const queryClient = useRef(createTestQueryClient()).current;
 	return (
 		<QueryClientProvider client={queryClient}>
 			<TooltipProvider>
