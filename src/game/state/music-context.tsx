@@ -33,9 +33,9 @@ const MUSIC_TRACKS: readonly MusicTrack[] = [
 ];
 
 const DEFAULT_TRACK: MusicTrack = {
-	id: "gemini",
-	label: "Gemini",
-	src: "/game-music-gemini.mp3",
+	id: "gemini-calm",
+	label: "Gemini Calm",
+	src: "/game-music-gemini-calm.mp3",
 };
 
 const MUSIC_PREFERENCE_KEY = "prodfactory-music-playing";
@@ -94,6 +94,7 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const activeTrackIdRef = useRef<MusicTrackId>(getTrackPreference());
 	const pendingAutoplayRef = useRef(false);
+	const pausedByVisibilityRef = useRef(false);
 
 	const getAudio = useCallback((): HTMLAudioElement => {
 		if (!audioRef.current) {
@@ -129,6 +130,7 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 		setIsPlaying(false);
 		setMusicPreference(false);
 		pendingAutoplayRef.current = false;
+		pausedByVisibilityRef.current = false;
 	}, [getAudio]);
 
 	const toggle = useCallback(() => {
@@ -208,6 +210,32 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 			document.removeEventListener(INTRO_CLOSED_EVENT, handleIntroClosed);
 		};
 	}, [play]);
+
+	// Pause music when tab/app is not visible, resume when visible again
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			const audio = audioRef.current;
+			if (!audio) {
+				return;
+			}
+			if (document.hidden) {
+				if (!audio.paused) {
+					audio.pause();
+					pausedByVisibilityRef.current = true;
+				}
+			} else if (pausedByVisibilityRef.current) {
+				pausedByVisibilityRef.current = false;
+				audio.play().catch(() => {
+					pendingAutoplayRef.current = true;
+				});
+			}
+		};
+
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+		};
+	}, []);
 
 	// Cleanup audio on unmount
 	useEffect(() => {

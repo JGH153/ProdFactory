@@ -89,6 +89,7 @@ if (isDOM) {
 		loop = false;
 		paused = true;
 		play() {
+			this.paused = false;
 			return Promise.resolve();
 		}
 		pause() {
