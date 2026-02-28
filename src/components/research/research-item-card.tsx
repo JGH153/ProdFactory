@@ -40,6 +40,7 @@ export const ResearchItemCard = ({ researchId }: Props) => {
 	const level = state.research[researchId];
 	const isMaxed = level >= MAX_RESEARCH_LEVEL;
 	const isLocked = !state.resources[config.resourceId].isUnlocked;
+	const isSpeedResearch = researchId.startsWith("speed-");
 	const bonus = Math.round(level * RESEARCH_BONUS_PER_LEVEL * 100);
 	const activeLab = getActiveLabForResearch({
 		researchId,
@@ -58,7 +59,9 @@ export const ResearchItemCard = ({ researchId }: Props) => {
 				<span className="text-xs text-text-muted">
 					Level {level}/{MAX_RESEARCH_LEVEL}
 					{bonus > 0 && (
-						<span className="text-accent-amber ml-1.5">+{bonus}%</span>
+						<span className="text-accent-amber ml-1.5">
+							+{bonus}% {isSpeedResearch ? "speed" : ""}
+						</span>
 					)}
 				</span>
 			</div>

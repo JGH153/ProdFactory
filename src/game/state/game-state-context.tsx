@@ -26,6 +26,7 @@ import {
 	togglePause,
 } from "@/game/logic";
 import {
+	getSpeedResearchMultiplier,
 	LAB_ORDER,
 	RESEARCH_BONUS_PER_LEVEL,
 	RESEARCH_CONFIGS,
@@ -160,6 +161,10 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 					const rtm = getRunTimeMultiplier({
 						shopBoosts: next.shopBoosts,
 						isAutomated: resource.isAutomated && !resource.isPaused,
+						speedResearchMultiplier: getSpeedResearchMultiplier({
+							research: next.research,
+							resourceId,
+						}),
 					});
 
 					if (

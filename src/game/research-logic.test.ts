@@ -3,6 +3,7 @@ import { createInitialGameState } from "./initial-state";
 import {
 	getResearchTime,
 	getResearchTimeMultiplier,
+	getSpeedResearchMultiplier,
 	MAX_RESEARCH_LEVEL,
 } from "./research-config";
 import {
@@ -641,5 +642,85 @@ describe("advanceResearch with research-2x boost", () => {
 		};
 		const result = advanceResearch({ state, now });
 		expect(result.research["more-iron-ore"]).toBe(2);
+	});
+});
+
+describe("getSpeedResearchMultiplier", () => {
+	const research = createInitialGameState().research;
+
+	it("level 0 → 1.0 (no effect)", () => {
+		expect(
+			getSpeedResearchMultiplier({ research, resourceId: "iron-ore" }),
+		).toBe(1);
+	});
+
+	it("level 5 → 1/1.5 ≈ 0.667", () => {
+		const r = { ...research, "speed-iron-ore": 5 };
+		expect(
+			getSpeedResearchMultiplier({ research: r, resourceId: "iron-ore" }),
+		).toBeCloseTo(1 / 1.5);
+	});
+
+	it("level 10 → 0.5 (halved run time)", () => {
+		const r = { ...research, "speed-iron-ore": 10 };
+		expect(
+			getSpeedResearchMultiplier({ research: r, resourceId: "iron-ore" }),
+		).toBe(0.5);
+	});
+});
+
+describe("speed research assignment", () => {
+	it("can assign speed research to a lab", () => {
+		const state = withUnlockedLab("lab-1");
+		expect(
+			canAssignResearch({
+				state,
+				labId: "lab-1",
+				researchId: "speed-iron-ore",
+			}),
+		).toBe(true);
+	});
+
+	it("cannot assign speed research for locked resource", () => {
+		const state = withUnlockedLab("lab-1");
+		expect(
+			getAssignResearchError({
+				state,
+				labId: "lab-1",
+				researchId: "speed-plates",
+			}),
+		).toBe("Resource is not unlocked");
+	});
+
+	it("advances speed research like efficiency research", () => {
+		const now = Date.now();
+		const levelTimeMs = getResearchTime(0) * 1000; // 10s for level 0→1
+		const state: GameState = {
+			...withUnlockedLab("lab-1"),
+			labs: {
+				...withUnlockedLab("lab-1").labs,
+				"lab-1": {
+					isUnlocked: true,
+					activeResearchId: "speed-iron-ore",
+					researchStartedAt: now - levelTimeMs,
+				},
+			},
+		};
+		const result = advanceResearch({ state, now });
+		expect(result.research["speed-iron-ore"]).toBe(1);
+	});
+
+	it("resetResearch resets speed research to 0", () => {
+		const state: GameState = {
+			...withUnlockedLab("lab-1"),
+			research: {
+				...createInitialGameState().research,
+				"speed-iron-ore": 5,
+				"more-iron-ore": 3,
+			},
+		};
+		const result = resetResearch({ state });
+		expect(result.research["speed-iron-ore"]).toBe(0);
+		expect(result.research["more-iron-ore"]).toBe(0);
 	});
 });

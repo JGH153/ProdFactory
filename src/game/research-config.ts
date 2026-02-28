@@ -60,9 +60,57 @@ export const RESEARCH_CONFIGS: Record<ResearchId, ResearchConfig> = {
 		description: "Increase Nuclear Pasta production per run",
 		resourceId: "nuclear-pasta",
 	},
+	"speed-iron-ore": {
+		id: "speed-iron-ore",
+		name: "Iron Ore Speed",
+		description: "Decrease Iron Ore run time",
+		resourceId: "iron-ore",
+	},
+	"speed-plates": {
+		id: "speed-plates",
+		name: "Plate Speed",
+		description: "Decrease Plates run time",
+		resourceId: "plates",
+	},
+	"speed-reinforced-plate": {
+		id: "speed-reinforced-plate",
+		name: "Reinforced Plate Speed",
+		description: "Decrease Reinforced Plate run time",
+		resourceId: "reinforced-plate",
+	},
+	"speed-modular-frame": {
+		id: "speed-modular-frame",
+		name: "Modular Frame Speed",
+		description: "Decrease Modular Frame run time",
+		resourceId: "modular-frame",
+	},
+	"speed-heavy-modular-frame": {
+		id: "speed-heavy-modular-frame",
+		name: "Heavy Frame Speed",
+		description: "Decrease Heavy Modular Frame run time",
+		resourceId: "heavy-modular-frame",
+	},
+	"speed-fused-modular-frame": {
+		id: "speed-fused-modular-frame",
+		name: "Fused Frame Speed",
+		description: "Decrease Fused Modular Frame run time",
+		resourceId: "fused-modular-frame",
+	},
+	"speed-pressure-conversion-cube": {
+		id: "speed-pressure-conversion-cube",
+		name: "Conversion Cube Speed",
+		description: "Decrease Pressure Conversion Cube run time",
+		resourceId: "pressure-conversion-cube",
+	},
+	"speed-nuclear-pasta": {
+		id: "speed-nuclear-pasta",
+		name: "Nuclear Pasta Speed",
+		description: "Decrease Nuclear Pasta run time",
+		resourceId: "nuclear-pasta",
+	},
 };
 
-export const RESEARCH_ORDER: ResearchId[] = [
+export const EFFICIENCY_RESEARCH_ORDER: ResearchId[] = [
 	"more-iron-ore",
 	"more-plates",
 	"more-reinforced-plate",
@@ -71,6 +119,22 @@ export const RESEARCH_ORDER: ResearchId[] = [
 	"more-fused-modular-frame",
 	"more-pressure-conversion-cube",
 	"more-nuclear-pasta",
+];
+
+export const SPEED_RESEARCH_ORDER: ResearchId[] = [
+	"speed-iron-ore",
+	"speed-plates",
+	"speed-reinforced-plate",
+	"speed-modular-frame",
+	"speed-heavy-modular-frame",
+	"speed-fused-modular-frame",
+	"speed-pressure-conversion-cube",
+	"speed-nuclear-pasta",
+];
+
+export const RESEARCH_ORDER: ResearchId[] = [
+	...EFFICIENCY_RESEARCH_ORDER,
+	...SPEED_RESEARCH_ORDER,
 ];
 
 export const LAB_ORDER: LabId[] = ["lab-1", "lab-2"];
@@ -84,6 +148,17 @@ const RESOURCE_TO_RESEARCH: Record<ResourceId, ResearchId> = {
 	"fused-modular-frame": "more-fused-modular-frame",
 	"pressure-conversion-cube": "more-pressure-conversion-cube",
 	"nuclear-pasta": "more-nuclear-pasta",
+};
+
+const RESOURCE_TO_SPEED_RESEARCH: Record<ResourceId, ResearchId> = {
+	"iron-ore": "speed-iron-ore",
+	plates: "speed-plates",
+	"reinforced-plate": "speed-reinforced-plate",
+	"modular-frame": "speed-modular-frame",
+	"heavy-modular-frame": "speed-heavy-modular-frame",
+	"fused-modular-frame": "speed-fused-modular-frame",
+	"pressure-conversion-cube": "speed-pressure-conversion-cube",
+	"nuclear-pasta": "speed-nuclear-pasta",
 };
 
 /** Time in seconds to research from `level` to `level + 1`. */
@@ -108,4 +183,17 @@ export const getResearchMultiplier = ({
 	const researchId = RESOURCE_TO_RESEARCH[resourceId];
 	const level = research[researchId];
 	return 1 + level * RESEARCH_BONUS_PER_LEVEL;
+};
+
+/** Run time multiplier from speed research for a given resource. Returns value <= 1. */
+export const getSpeedResearchMultiplier = ({
+	research,
+	resourceId,
+}: {
+	research: Record<ResearchId, number>;
+	resourceId: ResourceId;
+}): number => {
+	const researchId = RESOURCE_TO_SPEED_RESEARCH[resourceId];
+	const level = research[researchId];
+	return 1 / (1 + level * RESEARCH_BONUS_PER_LEVEL);
 };

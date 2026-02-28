@@ -284,6 +284,42 @@ describe("getRunTimeMultiplier", () => {
 			getRunTimeMultiplier({ shopBoosts: boosts, isAutomated: true }),
 		).toBe(0.25);
 	});
+
+	it("speedResearchMultiplier=0.5 → halves result", () => {
+		expect(
+			getRunTimeMultiplier({
+				shopBoosts: noBoosts,
+				isAutomated: false,
+				speedResearchMultiplier: 0.5,
+			}),
+		).toBe(0.5);
+	});
+
+	it("speedResearchMultiplier stacks with runtime-50", () => {
+		const boosts = { ...noBoosts, "runtime-50": true };
+		expect(
+			getRunTimeMultiplier({
+				shopBoosts: boosts,
+				isAutomated: false,
+				speedResearchMultiplier: 0.5,
+			}),
+		).toBe(0.25);
+	});
+
+	it("speedResearchMultiplier stacks with all boosts", () => {
+		const boosts = {
+			...noBoosts,
+			"runtime-50": true,
+			"automation-2x": true,
+		};
+		expect(
+			getRunTimeMultiplier({
+				shopBoosts: boosts,
+				isAutomated: true,
+				speedResearchMultiplier: 0.5,
+			}),
+		).toBe(0.125);
+	});
 });
 
 describe("canStartRun", () => {

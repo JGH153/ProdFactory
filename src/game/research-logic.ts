@@ -243,6 +243,14 @@ export const resetResearch = ({ state }: { state: GameState }): GameState => {
 			"more-fused-modular-frame": 0,
 			"more-pressure-conversion-cube": 0,
 			"more-nuclear-pasta": 0,
+			"speed-iron-ore": 0,
+			"speed-plates": 0,
+			"speed-reinforced-plate": 0,
+			"speed-modular-frame": 0,
+			"speed-heavy-modular-frame": 0,
+			"speed-fused-modular-frame": 0,
+			"speed-pressure-conversion-cube": 0,
+			"speed-nuclear-pasta": 0,
 		},
 		labs: {
 			"lab-1": {

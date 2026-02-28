@@ -53,9 +53,7 @@ export const isNonNegativeInteger = (value: unknown): value is number => {
 	return typeof value === "number" && Number.isInteger(value) && value >= 0;
 };
 
-const isValidSerializedBigNum = (
-	value: unknown,
-): value is SerializedBigNum => {
+const isValidSerializedBigNum = (value: unknown): value is SerializedBigNum => {
 	if (!isRecord(value)) {
 		return false;
 	}

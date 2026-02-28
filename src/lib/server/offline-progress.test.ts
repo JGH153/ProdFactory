@@ -504,6 +504,52 @@ describe("computeOfflineProgress", () => {
 		});
 	});
 
+	describe("speed research", () => {
+		it("speed research reduces run time, increasing offline runs", () => {
+			const state = makeState(
+				{ "iron-ore": { isAutomated: true, producers: 1 } },
+				{ lastSavedAt: 100_000 },
+			);
+			// Set speed-iron-ore to level 5: speedMul = 1/(1+5*0.1) = 0.667
+			// runTime = 1 * 0.667 = 0.667s, maxRuns = floor(100/0.667) = 149
+			state.research = {
+				...state.research,
+				"speed-iron-ore": 5,
+			} as typeof state.research;
+			const result = computeOfflineProgress({
+				state,
+				serverNow: 100_000 + 100_000, // 100 seconds
+			});
+			const gain = gainFor(result.summary, "iron-ore");
+			expect(gain).toBeDefined();
+			// Without speed research: 100 runs. With speed-5: 149 runs.
+			expect(gain?.mantissa).toBeCloseTo(1.49, 1);
+			expect(gain?.exponent).toBe(2);
+		});
+
+		it("speed research level 10 halves run time", () => {
+			const state = makeState(
+				{ "iron-ore": { isAutomated: true, producers: 1 } },
+				{ lastSavedAt: 100_000 },
+			);
+			// Set speed-iron-ore to level 10: speedMul = 1/(1+10*0.1) = 0.5
+			// runTime = 1 * 0.5 = 0.5s, maxRuns = floor(100/0.5) = 200
+			state.research = {
+				...state.research,
+				"speed-iron-ore": 10,
+			} as typeof state.research;
+			const result = computeOfflineProgress({
+				state,
+				serverNow: 100_000 + 100_000,
+			});
+			const gain = gainFor(result.summary, "iron-ore");
+			expect(gain).toBeDefined();
+			// maxRuns = 200, gain = 200
+			expect(gain?.mantissa).toBeCloseTo(2, 10);
+			expect(gain?.exponent).toBe(2);
+		});
+	});
+
 	describe("state mutation correctness", () => {
 		it("updatedState resource amount equals savedAmount + gain", () => {
 			const savedAmount = bigNum(50);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
+import { RESEARCH_ORDER } from "@/game/research-config";
 import { bigNum, bigNumZero } from "@/lib/big-number";
 import {
 	deserializeGameState,
@@ -128,6 +129,32 @@ describe("deserializeGameState", () => {
 		// plates should get initial state defaults
 		expect(result.resources.plates.isUnlocked).toBe(false);
 		expect(result.resources.plates.producers).toBe(0);
+	});
+
+	it("old save missing speed research defaults to level 0", () => {
+		const serialized = serializeGameState(createInitialGameState());
+		// Simulate an old save that only has efficiency research (no speed-* keys)
+		const research = serialized.research;
+		if (!research) {
+			throw new Error("Expected research to be defined");
+		}
+		const oldResearch: Record<string, number> = {};
+		for (const id of RESEARCH_ORDER) {
+			if (!id.startsWith("speed-")) {
+				oldResearch[id] = research[id];
+			}
+		}
+		const oldSave = {
+			...serialized,
+			research: oldResearch as typeof serialized.research,
+		};
+		const result = deserializeGameState(oldSave);
+		// All speed research should default to 0
+		for (const id of RESEARCH_ORDER) {
+			if (id.startsWith("speed-")) {
+				expect(result.research[id]).toBe(0);
+			}
+		}
 	});
 
 	it("missing shopBoosts falls back to all-false defaults", () => {

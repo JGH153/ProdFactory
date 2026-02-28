@@ -10,7 +10,10 @@ import {
 	bnSub,
 } from "@/lib/big-number";
 import { RESOURCE_CONFIGS } from "./config";
-import { getResearchMultiplier } from "./research-config";
+import {
+	getResearchMultiplier,
+	getSpeedResearchMultiplier,
+} from "./research-config";
 import type {
 	GameState,
 	ResourceId,
@@ -25,9 +28,11 @@ const CONTINUOUS_THRESHOLD = 0.5;
 export const getRunTimeMultiplier = ({
 	shopBoosts,
 	isAutomated,
+	speedResearchMultiplier = 1,
 }: {
 	shopBoosts: ShopBoosts;
 	isAutomated: boolean;
+	speedResearchMultiplier?: number;
 }): number => {
 	let m = 1;
 	if (shopBoosts["runtime-50"]) {
@@ -36,6 +41,7 @@ export const getRunTimeMultiplier = ({
 	if (shopBoosts["automation-2x"] && isAutomated) {
 		m *= 0.5;
 	}
+	m *= speedResearchMultiplier;
 	return m;
 };
 
@@ -251,6 +257,10 @@ export const canStartRun = ({
 		const rtm = getRunTimeMultiplier({
 			shopBoosts: state.shopBoosts,
 			isAutomated: resource.isAutomated && !resource.isPaused,
+			speedResearchMultiplier: getSpeedResearchMultiplier({
+				research: state.research,
+				resourceId,
+			}),
 		});
 		const multiplier = getContinuousMultiplier({
 			resourceId,
@@ -291,6 +301,10 @@ export const startRun = ({
 		const rtm = getRunTimeMultiplier({
 			shopBoosts: state.shopBoosts,
 			isAutomated: resource.isAutomated && !resource.isPaused,
+			speedResearchMultiplier: getSpeedResearchMultiplier({
+				research: state.research,
+				resourceId,
+			}),
 		});
 		const multiplier = getContinuousMultiplier({
 			resourceId,
@@ -350,6 +364,10 @@ export const completeRun = ({
 	const rtm = getRunTimeMultiplier({
 		shopBoosts: state.shopBoosts,
 		isAutomated: resource.isAutomated && !resource.isPaused,
+		speedResearchMultiplier: getSpeedResearchMultiplier({
+			research: state.research,
+			resourceId,
+		}),
 	});
 	const continuousMul = getContinuousMultiplier({
 		resourceId,

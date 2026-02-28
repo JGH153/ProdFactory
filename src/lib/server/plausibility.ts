@@ -2,11 +2,12 @@ import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
 import {
+	getResearchMultiplier,
 	getResearchTime,
 	getResearchTimeMultiplier,
+	getSpeedResearchMultiplier,
 	LAB_ORDER,
 	MAX_RESEARCH_LEVEL,
-	RESEARCH_BONUS_PER_LEVEL,
 	RESEARCH_ORDER,
 } from "@/game/research-config";
 import type {
@@ -267,6 +268,10 @@ export const checkPlausibility = ({
 				shopBoosts,
 				isAutomated:
 					claimedResource.isAutomated && !(claimedResource.isPaused ?? false),
+				speedResearchMultiplier: getSpeedResearchMultiplier({
+					research: validatedResearch,
+					resourceId,
+				}),
 			});
 			const runTimeMs =
 				getEffectiveRunTime({
@@ -276,9 +281,10 @@ export const checkPlausibility = ({
 				}) * 1000;
 			// +1 accounts for a run already in-progress when the snapshot was taken
 			const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
-			const researchLevel =
-				validatedResearch[`more-${resourceId}` as ResearchId] ?? 0;
-			const researchMul = 1 + researchLevel * RESEARCH_BONUS_PER_LEVEL;
+			const researchMul = getResearchMultiplier({
+				research: validatedResearch,
+				resourceId,
+			});
 			maxProduction = bigNum(maxRuns * producers * productionMul * researchMul);
 		}
 

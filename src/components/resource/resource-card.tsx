@@ -8,6 +8,7 @@ import {
 	getRunInputCost,
 	getRunTimeMultiplier,
 } from "@/game/logic";
+import { getSpeedResearchMultiplier } from "@/game/research-config";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceState } from "@/game/types";
 import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
@@ -30,6 +31,10 @@ export const ResourceCard = ({ resource }: Props) => {
 	const rtm = getRunTimeMultiplier({
 		shopBoosts: state.shopBoosts,
 		isAutomated: resource.isAutomated && !resource.isPaused,
+		speedResearchMultiplier: getSpeedResearchMultiplier({
+			research: state.research,
+			resourceId: resource.id,
+		}),
 	});
 	const inputCost = getRunInputCost({
 		resourceId: resource.id,

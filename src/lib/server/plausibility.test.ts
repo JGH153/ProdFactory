@@ -939,6 +939,68 @@ describe("checkPlausibility", () => {
 			expect(result.corrected).toBe(false);
 		});
 
+		it("speed research increases production tolerance", () => {
+			// Speed research at level 5 → speedResearchMul = 1/(1+5*0.1) = 0.667
+			// This halves effective run time, allowing more runs → more production
+			const t0 = 0;
+			const snapshot = makeResearchSnapshot({
+				timestamp: t0,
+				researchOverrides: { "speed-iron-ore": 5 },
+			});
+			// Without speed research: maxRuns = floor(1000/1000)+1 = 2
+			// maxProd = 2*1*1*1 = 2, tolerance = 2.2
+			// With speed-5: rtm=0.667, runTime=0.667s=667ms
+			// maxRuns = floor(1000/667)+1 = 2, maxProd=2, tolerance=2.2
+			// With 2s: rtm=0.667, runTime=667ms, maxRuns=floor(2000/667)+1=4
+			// maxProd=4, tolerance=4.4
+			const claimed = makeResearchClaimedState({
+				researchOverrides: { "speed-iron-ore": 5 },
+			});
+			const claimedWithProduction = {
+				...claimed,
+				resources: {
+					...claimed.resources,
+					"iron-ore": {
+						...claimed.resources["iron-ore"],
+						amount: bnSerialize(bigNum(4)),
+					},
+				},
+			};
+			const result = checkPlausibility({
+				claimedState: claimedWithProduction,
+				lastSnapshot: snapshot,
+				serverNow: t0 + 2000,
+			});
+			// 4 <= 4.4 → no correction
+			expect(result.corrected).toBe(false);
+		});
+
+		it("without speed research, same production is corrected", () => {
+			// Same scenario as above but without speed research
+			const t0 = 0;
+			const snapshot = makeResearchSnapshot({ timestamp: t0 });
+			const claimed = makeResearchClaimedState({});
+			const claimedWithProduction = {
+				...claimed,
+				resources: {
+					...claimed.resources,
+					"iron-ore": {
+						...claimed.resources["iron-ore"],
+						amount: bnSerialize(bigNum(4)),
+					},
+				},
+			};
+			const result = checkPlausibility({
+				claimedState: claimedWithProduction,
+				lastSnapshot: snapshot,
+				serverNow: t0 + 2000,
+			});
+			// Without speed research: rtm=1, runTime=1s=1000ms
+			// maxRuns = floor(2000/1000)+1 = 3, maxProd=3, tolerance=3.3
+			// 4 > 3.3 → corrected
+			expect(result.corrected).toBe(true);
+		});
+
 		it("inflated research no longer inflates production tolerance", () => {
 			// Previously: inflated research level would increase researchMul,
 			// allowing more production to pass. Now validated research is used.

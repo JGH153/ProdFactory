@@ -18,7 +18,15 @@ export type ResearchId =
 	| "more-heavy-modular-frame"
 	| "more-fused-modular-frame"
 	| "more-pressure-conversion-cube"
-	| "more-nuclear-pasta";
+	| "more-nuclear-pasta"
+	| "speed-iron-ore"
+	| "speed-plates"
+	| "speed-reinforced-plate"
+	| "speed-modular-frame"
+	| "speed-heavy-modular-frame"
+	| "speed-fused-modular-frame"
+	| "speed-pressure-conversion-cube"
+	| "speed-nuclear-pasta";
 
 export type LabId = "lab-1" | "lab-2";
 

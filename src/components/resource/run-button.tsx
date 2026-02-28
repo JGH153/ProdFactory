@@ -18,6 +18,7 @@ import {
 	getSpeedMilestone,
 	SPEED_MILESTONE_INTERVAL,
 } from "@/game/logic";
+import { getSpeedResearchMultiplier } from "@/game/research-config";
 import { useGameState } from "@/game/state/game-state-context";
 import { useSfx } from "@/game/state/sfx-context";
 import type { GameState, ResourceState } from "@/game/types";
@@ -38,6 +39,10 @@ const getInsufficientInputMessage = ({
 	const rtm = getRunTimeMultiplier({
 		shopBoosts: state.shopBoosts,
 		isAutomated: resource.isAutomated && !resource.isPaused,
+		speedResearchMultiplier: getSpeedResearchMultiplier({
+			research: state.research,
+			resourceId: resource.id,
+		}),
 	});
 	const cost = getRunInputCost({
 		resourceId: resource.id,

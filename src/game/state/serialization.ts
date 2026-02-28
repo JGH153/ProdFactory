@@ -18,7 +18,7 @@ import {
 } from "@/lib/big-number";
 import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export type SerializedResourceState = {
 	id: ResourceId;

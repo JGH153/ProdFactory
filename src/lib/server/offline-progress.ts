@@ -2,11 +2,12 @@ import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
 import {
+	getResearchMultiplier,
 	getResearchTime,
 	getResearchTimeMultiplier,
+	getSpeedResearchMultiplier,
 	LAB_ORDER,
 	MAX_RESEARCH_LEVEL,
-	RESEARCH_BONUS_PER_LEVEL,
 } from "@/game/research-config";
 import type {
 	SerializedGameState,
@@ -137,7 +138,14 @@ export const computeOfflineProgress = ({
 			continue;
 		}
 
-		const rtm = getRunTimeMultiplier({ shopBoosts, isAutomated: true });
+		const rtm = getRunTimeMultiplier({
+			shopBoosts,
+			isAutomated: true,
+			speedResearchMultiplier: getSpeedResearchMultiplier({
+				research,
+				resourceId,
+			}),
+		});
 		const runTime = getEffectiveRunTime({
 			resourceId,
 			producers: resource.producers,
@@ -174,9 +182,7 @@ export const computeOfflineProgress = ({
 			continue;
 		}
 
-		const researchMul =
-			1 +
-			research[`more-${resourceId}` as ResearchId] * RESEARCH_BONUS_PER_LEVEL;
+		const researchMul = getResearchMultiplier({ research, resourceId });
 		const gain = bigNum(
 			actualRuns * resource.producers * productionMul * researchMul,
 		);

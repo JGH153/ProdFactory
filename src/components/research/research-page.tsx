@@ -5,7 +5,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LAB_ORDER, RESEARCH_ORDER } from "@/game/research-config";
+import {
+	EFFICIENCY_RESEARCH_ORDER,
+	LAB_ORDER,
+	SPEED_RESEARCH_ORDER,
+} from "@/game/research-config";
 import type { LabId } from "@/game/types";
 import { LabCard } from "./lab-card";
 import { ResearchItemCard } from "./research-item-card";
@@ -49,7 +53,7 @@ export const ResearchPage = () => {
 					</div>
 				</motion.div>
 
-				{/* Research items section */}
+				{/* Efficiency research section */}
 				<motion.div
 					variants={{
 						hidden: { opacity: 0, y: 20 },
@@ -57,7 +61,7 @@ export const ResearchPage = () => {
 					}}
 				>
 					<h3 className="text-sm font-semibold text-text-secondary mb-3">
-						Available Research
+						Efficiency Research
 					</h3>
 					<Alert className="mb-3">
 						<HugeiconsIcon icon={InformationCircleIcon} size={16} />
@@ -66,7 +70,30 @@ export const ResearchPage = () => {
 						</AlertDescription>
 					</Alert>
 					<div className="flex flex-col gap-2">
-						{RESEARCH_ORDER.map((researchId) => (
+						{EFFICIENCY_RESEARCH_ORDER.map((researchId) => (
+							<ResearchItemCard key={researchId} researchId={researchId} />
+						))}
+					</div>
+				</motion.div>
+
+				{/* Speed research section */}
+				<motion.div
+					variants={{
+						hidden: { opacity: 0, y: 20 },
+						visible: { opacity: 1, y: 0 },
+					}}
+				>
+					<h3 className="text-sm font-semibold text-text-secondary mb-3">
+						Speed Research
+					</h3>
+					<Alert className="mb-3">
+						<HugeiconsIcon icon={InformationCircleIcon} size={16} />
+						<AlertDescription>
+							Unlock a resource in the game to research its speed.
+						</AlertDescription>
+					</Alert>
+					<div className="flex flex-col gap-2">
+						{SPEED_RESEARCH_ORDER.map((researchId) => (
 							<ResearchItemCard key={researchId} researchId={researchId} />
 						))}
 					</div>

@@ -20,12 +20,20 @@ describe("ResearchPage", () => {
 		expect(screen.getByText("Lab 2")).toBeInTheDocument();
 	});
 
-	it("renders Available Research section", () => {
+	it("renders Efficiency Research section", () => {
 		renderWithProviders(<ResearchPage />);
 
-		expect(screen.getByText("Available Research")).toBeInTheDocument();
+		expect(screen.getByText("Efficiency Research")).toBeInTheDocument();
 		expect(screen.getByText("Iron Ore Efficiency")).toBeInTheDocument();
 		expect(screen.getByText("Plate Efficiency")).toBeInTheDocument();
+	});
+
+	it("renders Speed Research section", () => {
+		renderWithProviders(<ResearchPage />);
+
+		expect(screen.getByText("Speed Research")).toBeInTheDocument();
+		expect(screen.getByText("Iron Ore Speed")).toBeInTheDocument();
+		expect(screen.getByText("Plate Speed")).toBeInTheDocument();
 	});
 
 	it("shows Unlock (Free) button for locked labs", () => {

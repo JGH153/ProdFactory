@@ -254,7 +254,8 @@ const ResearchLevelUpContent = ({
 		/>
 		<span className="text-xl font-bold text-text-primary">
 			{payload.researchName} level {payload.newLevel} —{" "}
-			<WiggleSpan>+{payload.bonusPercent}%</WiggleSpan> bonus!
+			<WiggleSpan>+{payload.bonusPercent}%</WiggleSpan>{" "}
+			{payload.researchId.startsWith("speed-") ? "speed" : "bonus"}!
 		</span>
 	</>
 );
