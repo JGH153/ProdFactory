@@ -269,8 +269,8 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 			setState((current) => buyMaxProducers({ state: current, resourceId }));
 			const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
 			const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
-			for (let m = milestoneBefore + 1; m <= milestoneAfter; m++) {
-				showMilestone({ resourceId, multiplier: 2 ** m });
+			if (milestoneAfter > milestoneBefore) {
+				showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
 			}
 			enqueueAction({ endpoint: "buy-max-producers", resourceId });
 		},
