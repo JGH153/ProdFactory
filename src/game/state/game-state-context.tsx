@@ -92,10 +92,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		}
 	}, []);
 
-	// Keep stateRef in sync
 	stateRef.current = state;
-
-	// --- Server reconciliation ---
 
 	const reconcileState = useCallback(
 		({
@@ -134,8 +131,6 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		},
 		[],
 	);
-
-	// --- Server sync hook (save/sync intervals, action queue) ---
 
 	const onOfflineSummary = useCallback((summary: OfflineSummary) => {
 		setOfflineSummary(summary);
@@ -194,7 +189,6 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 					}
 				}
 
-				// Advance research levels
 				const researchResult = advanceResearchWithReport({
 					state: next,
 					now: Date.now(),
@@ -238,8 +232,6 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 
 		return () => cancelAnimationFrame(rafId);
 	}, [showResearchLevelUp]);
-
-	// --- Action callbacks (optimistic + server) ---
 
 	const startResourceRun = useCallback((resourceId: ResourceId) => {
 		setState((current) => startRun({ state: current, resourceId }));

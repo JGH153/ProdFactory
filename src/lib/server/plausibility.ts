@@ -84,8 +84,7 @@ export const checkPlausibility = ({
 	let corrected = false;
 	const warnings: string[] = [];
 
-	// --- Research plausibility (runs first so validated levels feed into resource check) ---
-
+	// Research runs first so validated levels feed into the resource production check below
 	const validatedResearch = {
 		...(claimedState.research ?? createInitialGameState().research),
 	} as Record<ResearchId, number>;
@@ -226,8 +225,6 @@ export const checkPlausibility = ({
 			}
 		}
 	}
-
-	// --- Resource production plausibility (uses validated research levels) ---
 
 	const correctedResources = { ...claimedState.resources } as Record<
 		ResourceId,

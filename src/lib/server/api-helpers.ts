@@ -1,11 +1,5 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { RESOURCE_ORDER } from "@/game/config";
-import {
-	LAB_ORDER,
-	MAX_RESEARCH_LEVEL,
-	RESEARCH_ORDER,
-} from "@/game/research-config";
 import { advanceResearch } from "@/game/research-logic";
 import {
 	deserializeGameState,
@@ -19,7 +13,15 @@ import type {
 	ResourceId,
 	ShopBoostId,
 } from "@/game/types";
-import type { SerializedBigNum } from "@/lib/big-number";
+import {
+	isNonNegativeInteger,
+	isRecord,
+	isValidBoostId,
+	isValidLabId,
+	isValidResearchId,
+	isValidResourceId,
+	validateSerializedGameState,
+} from "./api-validation";
 import { logger } from "./logger";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
 import {
@@ -30,30 +32,6 @@ import {
 	setSyncSnapshot,
 } from "./redis";
 import { COOKIE_NAME, incrementWarnings, validateSession } from "./session";
-
-const VALID_RESOURCE_IDS: ReadonlySet<string> = new Set<string>([
-	"iron-ore",
-	"plates",
-	"reinforced-plate",
-	"modular-frame",
-	"heavy-modular-frame",
-	"fused-modular-frame",
-	"pressure-conversion-cube",
-	"nuclear-pasta",
-]);
-
-const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([
-	"production-20x",
-	"automation-2x",
-	"runtime-50",
-	"research-2x",
-]);
-
-const VALID_LAB_IDS: ReadonlySet<string> = new Set<string>(LAB_ORDER);
-
-const VALID_RESEARCH_IDS: ReadonlySet<string> = new Set<string>(RESEARCH_ORDER);
-
-// --- Types ---
 
 type ResourceActionBody = {
 	resourceId: ResourceId;
@@ -70,180 +48,16 @@ type SaveActionBody = {
 	serverVersion: number;
 };
 
-// --- Validation helpers ---
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
+type LabActionBody = {
+	labId: LabId;
+	serverVersion: number;
 };
 
-const isValidResourceId = (value: unknown): value is ResourceId => {
-	return typeof value === "string" && VALID_RESOURCE_IDS.has(value);
+type LabResearchActionBody = {
+	labId: LabId;
+	researchId: ResearchId;
+	serverVersion: number;
 };
-
-const isValidBoostId = (value: unknown): value is ShopBoostId => {
-	return typeof value === "string" && VALID_BOOST_IDS.has(value);
-};
-
-const isValidLabId = (value: unknown): value is LabId => {
-	return typeof value === "string" && VALID_LAB_IDS.has(value);
-};
-
-const isValidResearchId = (value: unknown): value is ResearchId => {
-	return typeof value === "string" && VALID_RESEARCH_IDS.has(value);
-};
-
-const isNonNegativeInteger = (value: unknown): value is number => {
-	return typeof value === "number" && Number.isInteger(value) && value >= 0;
-};
-
-const isValidSerializedBigNum = (value: unknown): value is SerializedBigNum => {
-	if (!isRecord(value)) {
-		return false;
-	}
-	if (typeof value.m !== "number" || typeof value.e !== "number") {
-		return false;
-	}
-	if (value.m === 0 && value.e === 0) {
-		return true;
-	}
-	if (value.m < 1 || value.m >= 10) {
-		return false;
-	}
-	if (!Number.isFinite(value.e) || !Number.isInteger(value.e)) {
-		return false;
-	}
-	if (value.e < 0 || value.e > 1000) {
-		return false;
-	}
-	return true;
-};
-
-const validateSerializedResource = ({
-	resource,
-	expectedId,
-}: {
-	resource: Record<string, unknown>;
-	expectedId: string;
-}): string | null => {
-	if (resource.id !== expectedId) {
-		return `Resource id mismatch: expected ${expectedId}`;
-	}
-	if (!isValidSerializedBigNum(resource.amount)) {
-		return `Invalid amount for ${expectedId}`;
-	}
-	if (!isNonNegativeInteger(resource.producers)) {
-		return `Invalid producers for ${expectedId}`;
-	}
-	if (typeof resource.isUnlocked !== "boolean") {
-		return `Invalid isUnlocked for ${expectedId}`;
-	}
-	if (typeof resource.isAutomated !== "boolean") {
-		return `Invalid isAutomated for ${expectedId}`;
-	}
-	if (
-		resource.isPaused !== undefined &&
-		typeof resource.isPaused !== "boolean"
-	) {
-		return `Invalid isPaused for ${expectedId}`;
-	}
-	if (
-		resource.runStartedAt !== null &&
-		typeof resource.runStartedAt !== "number"
-	) {
-		return `Invalid runStartedAt for ${expectedId}`;
-	}
-	return null;
-};
-
-const validateSerializedGameState = (
-	state: Record<string, unknown>,
-): string | null => {
-	if (typeof state.lastSavedAt !== "number") {
-		return "Missing or invalid lastSavedAt";
-	}
-	if (typeof state.version !== "number") {
-		return "Missing or invalid version";
-	}
-	if (!isRecord(state.resources)) {
-		return "Missing or invalid resources";
-	}
-
-	for (const id of RESOURCE_ORDER) {
-		const resource = (state.resources as Record<string, unknown>)[id];
-		if (!resource) {
-			return `Missing resource: ${id}`;
-		}
-		if (!isRecord(resource)) {
-			return `Invalid resource shape: ${id}`;
-		}
-		const error = validateSerializedResource({ resource, expectedId: id });
-		if (error !== null) {
-			return error;
-		}
-	}
-
-	if (state.shopBoosts !== undefined) {
-		if (!isRecord(state.shopBoosts)) {
-			return "Invalid shopBoosts";
-		}
-		for (const key of Object.keys(state.shopBoosts)) {
-			if (!VALID_BOOST_IDS.has(key)) {
-				return `Invalid boost id: ${key}`;
-			}
-			if (typeof state.shopBoosts[key] !== "boolean") {
-				return `Invalid boost value for ${key}`;
-			}
-		}
-	}
-
-	if (state.labs !== undefined) {
-		if (!isRecord(state.labs)) {
-			return "Invalid labs";
-		}
-		for (const id of LAB_ORDER) {
-			const lab = (state.labs as Record<string, unknown>)[id];
-			if (lab !== undefined) {
-				if (!isRecord(lab)) {
-					return `Invalid lab shape: ${id}`;
-				}
-				if (typeof lab.isUnlocked !== "boolean") {
-					return `Invalid isUnlocked for lab ${id}`;
-				}
-				if (
-					lab.activeResearchId !== null &&
-					!isValidResearchId(lab.activeResearchId)
-				) {
-					return `Invalid activeResearchId for lab ${id}`;
-				}
-				if (
-					lab.researchStartedAt !== null &&
-					typeof lab.researchStartedAt !== "number"
-				) {
-					return `Invalid researchStartedAt for lab ${id}`;
-				}
-			}
-		}
-	}
-
-	if (state.research !== undefined) {
-		if (!isRecord(state.research)) {
-			return "Invalid research";
-		}
-		for (const id of RESEARCH_ORDER) {
-			const level = (state.research as Record<string, unknown>)[id];
-			if (level !== undefined && !isNonNegativeInteger(level)) {
-				return `Invalid research level for ${id}`;
-			}
-			if (typeof level === "number" && level > MAX_RESEARCH_LEVEL) {
-				return `Research level exceeds maximum for ${id}`;
-			}
-		}
-	}
-
-	return null;
-};
-
-// --- Session helpers ---
 
 const UUID_REGEX =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -283,8 +97,6 @@ export const stripServerVersion = (
 	lastSavedAt: stored.lastSavedAt,
 	version: stored.version,
 });
-
-// --- Request body parsing ---
 
 const parseResourceActionBody = async (
 	request: NextRequest,
@@ -383,8 +195,6 @@ export const parseVersionOnlyBody = async (
 	return { serverVersion: body.serverVersion };
 };
 
-// --- Plausibility-checked persistence ---
-
 export type PlausibilitySaveResult =
 	| { type: "accepted"; serverVersion: number }
 	| {
@@ -465,8 +275,6 @@ export const persistWithPlausibility = async ({
 	return { type: "accepted", serverVersion: newVersion };
 };
 
-// --- Snapshot metadata patch for action routes ---
-
 export const patchSnapshotMetadata = async ({
 	sessionId,
 	state,
@@ -488,8 +296,6 @@ export const patchSnapshotMetadata = async ({
 		},
 	});
 };
-
-// --- Execute action pattern ---
 
 export const executeAction = async ({
 	request,
@@ -557,8 +363,6 @@ export const executeAction = async ({
 	});
 };
 
-// --- Boost action body parsing ---
-
 const parseBoostActionBody = async (
 	request: NextRequest,
 ): Promise<BoostActionBody | NextResponse> => {
@@ -589,8 +393,6 @@ const parseBoostActionBody = async (
 
 	return { boostId: body.boostId, serverVersion: body.serverVersion };
 };
-
-// --- Execute simple action pattern (no resourceId/boostId) ---
 
 export const executeSimpleAction = async ({
 	request,
@@ -656,19 +458,6 @@ export const executeSimpleAction = async ({
 		state: newSerialized,
 		serverVersion: newStored.serverVersion,
 	});
-};
-
-// --- Lab action body parsing ---
-
-type LabActionBody = {
-	labId: LabId;
-	serverVersion: number;
-};
-
-type LabResearchActionBody = {
-	labId: LabId;
-	researchId: ResearchId;
-	serverVersion: number;
 };
 
 const parseLabActionBody = async (
@@ -741,8 +530,6 @@ export const parseLabResearchActionBody = async (
 	};
 };
 
-// --- Execute lab action pattern ---
-
 export const executeLabAction = async ({
 	request,
 	action,
@@ -808,8 +595,6 @@ export const executeLabAction = async ({
 		serverVersion: newStored.serverVersion,
 	});
 };
-
-// --- Execute boost action pattern ---
 
 export const executeBoostAction = async ({
 	request,

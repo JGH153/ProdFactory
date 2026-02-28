@@ -22,7 +22,6 @@ import type {
 export const SPEED_MILESTONE_INTERVAL = 10;
 const CONTINUOUS_THRESHOLD = 0.5;
 
-/** Compute run time multiplier from active shop boosts */
 export const getRunTimeMultiplier = ({
 	shopBoosts,
 	isAutomated,
@@ -89,7 +88,6 @@ export const getContinuousMultiplier = ({
 	return CONTINUOUS_THRESHOLD / effective;
 };
 
-/** Run time clamped to continuous threshold minimum */
 export const getClampedRunTime = ({
 	resourceId,
 	producers,
@@ -104,7 +102,6 @@ export const getClampedRunTime = ({
 		CONTINUOUS_THRESHOLD,
 	);
 
-/** Get speed milestone info for a resource */
 export const getSpeedMilestone = (
 	producers: number,
 ): { current: number; next: number; progress: number } => {
@@ -115,7 +112,6 @@ export const getSpeedMilestone = (
 	return { current: producers, next, progress: progressInMilestone };
 };
 
-/** Calculate cost to buy the next producer */
 export const getProducerCost = ({
 	resourceId,
 	owned,
@@ -129,7 +125,6 @@ export const getProducerCost = ({
 	);
 };
 
-/** Check if player can afford to buy a producer */
 export const canBuyProducer = ({
 	state,
 	resourceId,
@@ -145,7 +140,6 @@ export const canBuyProducer = ({
 	return bnGte(resource.amount, cost);
 };
 
-/** Buy a producer, returning new state */
 export const buyProducer = ({
 	state,
 	resourceId,
@@ -173,7 +167,6 @@ export const buyProducer = ({
 	};
 };
 
-/** Check if player can afford to unlock a resource */
 export const canUnlock = ({
 	state,
 	resourceId,
@@ -210,7 +203,6 @@ export const unlockResource = ({
 	const config = RESOURCE_CONFIGS[resourceId];
 	const resource = state.resources[resourceId];
 
-	// Guaranteed non-null by canUnlock check above
 	if (config.unlockCost === null || config.unlockCostResourceId === null) {
 		return state;
 	}
@@ -236,7 +228,6 @@ export const unlockResource = ({
 	};
 };
 
-/** Check if a run can be started */
 export const canStartRun = ({
 	state,
 	resourceId,
@@ -330,7 +321,6 @@ export const startRun = ({
 	return { ...state, resources: newResources };
 };
 
-/** Check if a run has completed */
 export const isRunComplete = ({
 	resource,
 	runTime,
@@ -389,7 +379,6 @@ export const completeRun = ({
 	};
 };
 
-/** Check if player can afford to buy automation */
 export const canBuyAutomation = ({
 	state,
 	resourceId,
@@ -410,7 +399,6 @@ export const canBuyAutomation = ({
 	return bnGte(resource.amount, config.automationCost);
 };
 
-/** Buy automation for a resource */
 export const buyAutomation = ({
 	state,
 	resourceId,
@@ -438,7 +426,6 @@ export const buyAutomation = ({
 	};
 };
 
-/** Toggle pause state for an automated resource */
 export const togglePause = ({
 	state,
 	resourceId,
@@ -463,7 +450,6 @@ export const togglePause = ({
 	};
 };
 
-/** Calculate how many producers the player can afford to buy */
 export const getMaxAffordableProducers = ({
 	state,
 	resourceId,
@@ -493,7 +479,6 @@ export const getMaxAffordableProducers = ({
 	return count;
 };
 
-/** Buy as many producers as the player can afford */
 export const buyMaxProducers = ({
 	state,
 	resourceId,
@@ -536,7 +521,6 @@ export const getRunInputCost = ({
 	);
 };
 
-/** Activate a shop boost */
 export const activateBoost = ({
 	state,
 	boostId,
@@ -553,7 +537,6 @@ export const activateBoost = ({
 	};
 };
 
-/** Reset all shop boosts to inactive */
 export const resetShopBoosts = ({ state }: { state: GameState }): GameState => {
 	const hasActiveBoost = Object.values(state.shopBoosts).some(Boolean);
 	if (!hasActiveBoost) {

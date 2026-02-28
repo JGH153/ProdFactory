@@ -14,12 +14,8 @@ export type SerializedBigNum = {
 	e: number;
 };
 
-// --- Constants ---
-
 export const bigNumZero: BigNum = { mantissa: 0, exponent: 0 };
 const bigNumOne: BigNum = { mantissa: 1, exponent: 0 };
-
-// --- Constructor ---
 
 export const bigNum = (value: number): BigNum => {
 	if (value === 0) {
@@ -37,8 +33,6 @@ export const bigNum = (value: number): BigNum => {
 
 	return normalize({ mantissa, exponent });
 };
-
-// --- Normalization ---
 
 const normalize = (bn: BigNum): BigNum => {
 	if (bn.mantissa === 0) {
@@ -59,8 +53,6 @@ const normalize = (bn: BigNum): BigNum => {
 
 	return { mantissa, exponent };
 };
-
-// --- Arithmetic ---
 
 export const bnAdd = (a: BigNum, b: BigNum): BigNum => {
 	if (a.mantissa === 0) {
@@ -155,8 +147,6 @@ export const bnPow = (base: BigNum, exp: number): BigNum => {
 	return normalize({ mantissa: newMantissa, exponent: newExponent });
 };
 
-// --- Comparisons ---
-
 const bnGt = (a: BigNum, b: BigNum): boolean => {
 	if (a.mantissa === 0 && b.mantissa === 0) {
 		return false;
@@ -190,16 +180,12 @@ export const bnFloor = (bn: BigNum): BigNum => {
 	return bigNum(Math.floor(value));
 };
 
-// --- Conversion ---
-
 const bnToNumber = (bn: BigNum): number => {
 	if (bn.mantissa === 0) {
 		return 0;
 	}
 	return bn.mantissa * 10 ** bn.exponent;
 };
-
-// --- Formatting ---
 
 const STANDARD_NAMES = [
 	"",
@@ -249,8 +235,6 @@ export const bnFormat = (bn: BigNum): string => {
 	const suffix = getLetterSuffix(letterIndex);
 	return `${displayValue.toFixed(2)} ${suffix}`;
 };
-
-// --- Serialization ---
 
 export const bnSerialize = (bn: BigNum): SerializedBigNum => ({
 	m: bn.mantissa,

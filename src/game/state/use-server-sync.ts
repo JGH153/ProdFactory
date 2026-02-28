@@ -68,16 +68,12 @@ export const useServerSync = ({
 	const processingRef = useRef(false);
 	const inFlightSaveRef = useRef<Promise<unknown> | null>(null);
 
-	// --- TanStack Query: initial load ---
-
 	const { data: initialData } = useQuery({
 		queryKey: ["game", "load"],
 		queryFn: () => apiLoadGame(),
 		staleTime: Number.POSITIVE_INFINITY,
 		retry: false,
 	});
-
-	// --- TanStack Query: mutations ---
 
 	const { mutateAsync: executeSave } = useMutation({
 		mutationKey: ["game", "save"],
@@ -99,8 +95,6 @@ export const useServerSync = ({
 		mutationFn: ({ serverVersion }: { serverVersion: number }) =>
 			apiResetGame(serverVersion),
 	});
-
-	// --- Queue processing ---
 
 	const processQueue = useCallback(async () => {
 		if (processingRef.current || !isReadyRef.current) {
@@ -159,8 +153,6 @@ export const useServerSync = ({
 		processingRef.current = false;
 	}, [executeAction, reconcileState]);
 
-	// --- Initial load handling ---
-
 	useEffect(() => {
 		if (initialData === undefined || isReadyRef.current) {
 			return;
@@ -188,8 +180,6 @@ export const useServerSync = ({
 				});
 		}
 	}, [initialData, reconcileState, executeSave, stateRef, onOfflineSummary]);
-
-	// --- Auto-save interval (5s) ---
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -234,8 +224,6 @@ export const useServerSync = ({
 		return () => clearInterval(interval);
 	}, [executeSave, reconcileState, stateRef]);
 
-	// --- Auto-sync interval (15s) ---
-
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (
@@ -277,8 +265,6 @@ export const useServerSync = ({
 
 		return () => clearInterval(interval);
 	}, [executeSync, reconcileState, stateRef]);
-
-	// --- Awaited action (bypasses queue, waits for server response) ---
 
 	const executeAwaitedAction = useCallback(
 		async ({
@@ -365,8 +351,6 @@ export const useServerSync = ({
 		},
 		[executeAction, executeSave, stateRef],
 	);
-
-	// --- Exported methods ---
 
 	const enqueueAction = useCallback(
 		({
