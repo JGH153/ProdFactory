@@ -38,7 +38,10 @@ const formatRunTime = (seconds: number): string => {
 	if (ms <= 10) {
 		return `${Math.round(ms)}ms`;
 	}
-	return `${seconds}s`;
+	if (Number.isInteger(seconds)) {
+		return `${seconds}s`;
+	}
+	return `${seconds.toFixed(2)}s`;
 };
 
 const getRemainingSeconds = ({
@@ -60,7 +63,7 @@ const getRemainingSeconds = ({
 	if (isContinuous) {
 		return effectiveRunTime;
 	}
-	return Math.max(0, clampedRunTime - Math.floor(progress * clampedRunTime));
+	return Math.max(0, Math.ceil(clampedRunTime - progress * clampedRunTime));
 };
 
 const getStatusText = ({
@@ -96,7 +99,7 @@ const getStatusText = ({
 		return `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((producers * productionMul * researchMul) / effectiveRunTime))}/s`;
 	}
 	if (isRunning) {
-		return `${remainingSeconds}s`;
+		return `${formatRunTime(remainingSeconds)}`;
 	}
 	return `${formatRunTime(effectiveRunTime)}`;
 };

@@ -17,6 +17,7 @@ type StateOverrides = {
 		Record<LabId, Partial<NonNullable<SerializedGameState["labs"]>[LabId]>>
 	>;
 	research?: Partial<Record<ResearchId, number>>;
+	prestige?: Partial<NonNullable<SerializedGameState["prestige"]>>;
 };
 
 export const createStateWith = (
@@ -45,6 +46,9 @@ export const createStateWith = (
 	}
 	if (overrides.research && base.research) {
 		Object.assign(base.research, overrides.research);
+	}
+	if (overrides.prestige && base.prestige) {
+		base.prestige = { ...base.prestige, ...overrides.prestige };
 	}
 	return base;
 };

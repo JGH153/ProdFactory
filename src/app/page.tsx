@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { GameBoard } from "@/components/layout/game-board";
 import { Logo } from "@/components/layout/logo";
 import { OfflineSummaryModal } from "@/components/offline-summary-modal";
+import { PrestigePage } from "@/components/prestige/prestige-page";
 import { ResearchPage } from "@/components/research/research-page";
 import { SettingsPage } from "@/components/settings/settings-page";
 import { ShopPage } from "@/components/shop-page";
@@ -16,7 +17,7 @@ import { useGameState } from "@/game/state/game-state-context";
 import { useMilestoneNotification } from "@/game/state/milestone-context";
 import { MusicProvider } from "@/game/state/music-context";
 
-type ActiveTab = "game" | "shop" | "research" | "settings";
+type ActiveTab = "game" | "shop" | "research" | "prestige" | "settings";
 
 export default function Home() {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
@@ -41,6 +42,7 @@ export default function Home() {
 				{activeTab === "game" && <GameBoard />}
 				{activeTab === "shop" && <ShopPage />}
 				{activeTab === "research" && <ResearchPage />}
+				{activeTab === "prestige" && <PrestigePage />}
 				{activeTab === "settings" && (
 					<SettingsPage
 						onReset={() => setActiveTab("game")}

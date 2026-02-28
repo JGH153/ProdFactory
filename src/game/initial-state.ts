@@ -112,5 +112,11 @@ export const createInitialGameState = (): GameState => ({
 		"speed-pressure-conversion-cube": 0,
 		"speed-nuclear-pasta": 0,
 	},
+	prestige: {
+		prestigeCount: 0,
+		couponBalance: bigNumZero,
+		lifetimeCoupons: bigNumZero,
+		nuclearPastaProducedThisRun: bigNumZero,
+	},
 	lastSavedAt: Date.now(),
 });

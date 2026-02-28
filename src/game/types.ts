@@ -69,11 +69,19 @@ export type ShopBoostId =
 
 export type ShopBoosts = Record<ShopBoostId, boolean>;
 
+export type PrestigeState = {
+	prestigeCount: number;
+	couponBalance: BigNum;
+	lifetimeCoupons: BigNum;
+	nuclearPastaProducedThisRun: BigNum;
+};
+
 export type GameState = {
 	resources: Record<ResourceId, ResourceState>;
 	shopBoosts: ShopBoosts;
 	labs: Record<LabId, LabState>;
 	research: Record<ResearchId, number>;
+	prestige: PrestigeState;
 	lastSavedAt: number;
 };
 

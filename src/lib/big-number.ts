@@ -147,6 +147,24 @@ export const bnPow = (base: BigNum, exp: number): BigNum => {
 	return normalize({ mantissa: newMantissa, exponent: newExponent });
 };
 
+export const bnSqrt = (bn: BigNum): BigNum => {
+	if (bn.mantissa === 0) {
+		return bigNumZero;
+	}
+	// sqrt(m * 10^e) = sqrt(m) * 10^(e/2)
+	// If e is odd, adjust: sqrt(m * 10) * 10^((e-1)/2)
+	if (bn.exponent % 2 === 0) {
+		return normalize({
+			mantissa: Math.sqrt(bn.mantissa),
+			exponent: bn.exponent / 2,
+		});
+	}
+	return normalize({
+		mantissa: Math.sqrt(bn.mantissa * 10),
+		exponent: (bn.exponent - 1) / 2,
+	});
+};
+
 const bnGt = (a: BigNum, b: BigNum): boolean => {
 	if (a.mantissa === 0 && b.mantissa === 0) {
 		return false;
@@ -180,7 +198,7 @@ export const bnFloor = (bn: BigNum): BigNum => {
 	return bigNum(Math.floor(value));
 };
 
-const bnToNumber = (bn: BigNum): number => {
+export const bnToNumber = (bn: BigNum): number => {
 	if (bn.mantissa === 0) {
 		return 0;
 	}
@@ -213,6 +231,9 @@ export const bnFormat = (bn: BigNum): string => {
 
 	// Small numbers: display with commas
 	if (bn.exponent < 6) {
+		if (bn.exponent < 0) {
+			return value.toFixed(2);
+		}
 		return Math.floor(value).toLocaleString("en-US");
 	}
 

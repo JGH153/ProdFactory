@@ -221,6 +221,7 @@ describe("checkPlausibility", () => {
 			});
 			expect(result.corrected).toBe(true);
 			expect(result.warnings).toHaveLength(1);
+			expect(result.warnings[0]).toContain("locked/paused");
 			if (!result.correctedState) {
 				throw new Error("Expected correctedState to be non-null");
 			}
@@ -340,7 +341,7 @@ describe("checkPlausibility", () => {
 			expect(result.correctedState.resources["iron-ore"].isUnlocked).toBe(true);
 		});
 
-		it("warning message includes the resource name", () => {
+		it("warning message includes the resource name and excess percentage", () => {
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState({ amount: bnSerialize(bigNum(100)) });
@@ -351,6 +352,11 @@ describe("checkPlausibility", () => {
 			});
 			expect(result.warnings).toHaveLength(1);
 			expect(result.warnings[0]).toContain("Iron Ore");
+			expect(result.warnings[0]).toContain("exceeded plausible rate by");
+			expect(result.warnings[0]).toContain("%");
+			expect(result.warnings[0]).toContain("gained:");
+			expect(result.warnings[0]).toContain("max:");
+			expect(result.warnings[0]).toContain("elapsed:");
 		});
 	});
 
@@ -704,9 +710,11 @@ describe("checkPlausibility", () => {
 			expect(result.corrected).toBe(true);
 			const state = assertCorrected(result);
 			expect(state.research?.["more-iron-ore"]).toBe(0);
-			expect(result.warnings.some((w) => w.includes("more-iron-ore"))).toBe(
-				true,
-			);
+			const warning = result.warnings.find((w) => w.includes("more-iron-ore"));
+			expect(warning).toBeDefined();
+			expect(warning).toContain("claimed: 5");
+			expect(warning).toContain("max: 0");
+			expect(warning).toContain("elapsed:");
 		});
 
 		it("corrects research level manipulation with no active lab", () => {

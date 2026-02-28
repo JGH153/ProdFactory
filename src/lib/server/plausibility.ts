@@ -1,6 +1,7 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
+import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
 import {
 	getResearchMultiplier,
 	getResearchTime,
@@ -21,11 +22,13 @@ import {
 	bigNum,
 	bnAdd,
 	bnDeserialize,
+	bnFormat,
 	bnGte,
 	bnIsZero,
 	bnMul,
 	bnSerialize,
 	bnSub,
+	bnToNumber,
 } from "@/lib/big-number";
 import { logger } from "./logger";
 import type { SyncSnapshot } from "./redis";
@@ -81,6 +84,11 @@ export const checkPlausibility = ({
 	const defaultBoosts = createInitialGameState().shopBoosts;
 	const shopBoosts = claimedState.shopBoosts ?? defaultBoosts;
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
+	const prestigeMul = claimedState.prestige?.lifetimeCoupons
+		? getPrestigePassiveMultiplier({
+				lifetimeCoupons: bnDeserialize(claimedState.prestige.lifetimeCoupons),
+			})
+		: 1;
 
 	let corrected = false;
 	const warnings: string[] = [];
@@ -168,8 +176,9 @@ export const checkPlausibility = ({
 				validatedResearch[researchId] = maxAchievableLevel;
 				researchCorrected = true;
 				corrected = true;
+				const elapsedSec = (elapsed / 1000).toFixed(1);
 				warnings.push(
-					`Research ${researchId} level exceeded plausible advancement`,
+					`Research ${researchId} exceeded plausible advancement (claimed: ${claimedLevel}, max: ${maxAchievableLevel}, elapsed: ${elapsedSec}s)`,
 				);
 			}
 		}
@@ -285,8 +294,12 @@ export const checkPlausibility = ({
 				research: validatedResearch,
 				resourceId,
 			});
-			maxProduction = bigNum(maxRuns * producers * productionMul * researchMul);
+			maxProduction = bigNum(
+				maxRuns * producers * productionMul * researchMul * prestigeMul,
+			);
 		}
+
+		const elapsedSec = (elapsed / 1000).toFixed(1);
 
 		if (bnIsZero(maxProduction) && !bnIsZero(actualGain)) {
 			// Gained resources when none should be possible
@@ -295,7 +308,9 @@ export const checkPlausibility = ({
 				amount: bnSerialize(snapshotAmount),
 			};
 			corrected = true;
-			warnings.push(`${config.name} production exceeded plausible rate`);
+			warnings.push(
+				`${config.name} gained ${bnFormat(actualGain)} while locked/paused (elapsed: ${elapsedSec}s)`,
+			);
 			continue;
 		}
 
@@ -308,7 +323,12 @@ export const checkPlausibility = ({
 				amount: bnSerialize(correctedAmount),
 			};
 			corrected = true;
-			warnings.push(`${config.name} production exceeded plausible rate`);
+			const pct = Math.round(
+				(bnToNumber(actualGain) / bnToNumber(maxProduction) - 1) * 100,
+			);
+			warnings.push(
+				`${config.name} production exceeded plausible rate by ${pct}% (gained: ${bnFormat(actualGain)}, max: ${bnFormat(maxProduction)}, elapsed: ${elapsedSec}s)`,
+			);
 		}
 	}
 

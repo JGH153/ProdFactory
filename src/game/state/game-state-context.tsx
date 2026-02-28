@@ -71,6 +71,7 @@ type GameActions = {
 	unassignLabResearch: (labId: LabId) => Promise<boolean>;
 	unlockLab: (labId: LabId) => Promise<boolean>;
 	resetGame: () => void;
+	prestige: () => Promise<boolean>;
 };
 
 const GameStateContext = createContext<GameActions | null>(null);
@@ -124,6 +125,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 						shopBoosts: serverState.shopBoosts,
 						labs,
 						research: serverState.research,
+						prestige: serverState.prestige,
 						lastSavedAt: serverState.lastSavedAt,
 					};
 				});
@@ -404,6 +406,18 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[executeAwaitedAction, reconcileState],
 	);
 
+	const prestige = useCallback(async (): Promise<boolean> => {
+		try {
+			const serverState = await executeAwaitedAction({
+				endpoint: "prestige",
+			});
+			reconcileState({ state: serverState, fullReplace: true });
+			return true;
+		} catch {
+			return false;
+		}
+	}, [executeAwaitedAction, reconcileState]);
+
 	const resetGame = useCallback(() => {
 		clearSave();
 		setState(createInitialGameState());
@@ -427,6 +441,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		unassignLabResearch,
 		unlockLab,
 		resetGame,
+		prestige,
 	};
 
 	return <GameStateContext value={value}>{children}</GameStateContext>;

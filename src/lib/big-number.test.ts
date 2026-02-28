@@ -12,7 +12,9 @@ import {
 	bnMul,
 	bnPow,
 	bnSerialize,
+	bnSqrt,
 	bnSub,
+	bnToNumber,
 } from "./big-number";
 
 // Helper: compare BigNums with float tolerance
@@ -286,6 +288,14 @@ describe("bnFormat", () => {
 	it("formats 1e24 as '1.00 ab'", () => {
 		expect(bnFormat(bigNum(1e24))).toBe("1.00 ab");
 	});
+
+	it("formats fractional value 0.86 as '0.86'", () => {
+		expect(bnFormat(bigNum(0.86))).toBe("0.86");
+	});
+
+	it("formats fractional value 0.05 as '0.05'", () => {
+		expect(bnFormat(bigNum(0.05))).toBe("0.05");
+	});
 });
 
 describe("bnSerialize / bnDeserialize", () => {
@@ -314,5 +324,63 @@ describe("bnSerialize / bnDeserialize", () => {
 		const result = bnDeserialize({ m: 1.5, e: 6 });
 		expect(result.mantissa).toBeCloseTo(1.5, 10);
 		expect(result.exponent).toBe(6);
+	});
+});
+
+describe("bnSqrt", () => {
+	it("sqrt(0) = 0", () => {
+		expect(bnSqrt(bigNumZero)).toEqual(bigNumZero);
+	});
+
+	it("sqrt(1) = 1", () => {
+		expectBnApprox(bnSqrt(bigNum(1)), bigNum(1));
+	});
+
+	it("sqrt(4) = 2", () => {
+		expectBnApprox(bnSqrt(bigNum(4)), bigNum(2));
+	});
+
+	it("sqrt(9) = 3", () => {
+		expectBnApprox(bnSqrt(bigNum(9)), bigNum(3));
+	});
+
+	it("sqrt(100) = 10 (even exponent)", () => {
+		expectBnApprox(bnSqrt(bigNum(100)), bigNum(10));
+	});
+
+	it("sqrt(1000000) = 1000 (even exponent)", () => {
+		expectBnApprox(bnSqrt(bigNum(1000000)), bigNum(1000));
+	});
+
+	it("sqrt(1000) ≈ 31.62 (odd exponent)", () => {
+		const result = bnSqrt(bigNum(1000));
+		expect(result.exponent).toBe(1);
+		expect(result.mantissa).toBeCloseTo(3.1622, 3);
+	});
+
+	it("sqrt(25) = 5", () => {
+		expectBnApprox(bnSqrt(bigNum(25)), bigNum(5));
+	});
+
+	it("sqrt(10000) = 100", () => {
+		expectBnApprox(bnSqrt(bigNum(10000)), bigNum(100));
+	});
+});
+
+describe("bnToNumber", () => {
+	it("converts zero to 0", () => {
+		expect(bnToNumber(bigNumZero)).toBe(0);
+	});
+
+	it("converts bigNum(42) to 42", () => {
+		expect(bnToNumber(bigNum(42))).toBeCloseTo(42, 10);
+	});
+
+	it("converts bigNum(1000000) to 1000000", () => {
+		expect(bnToNumber(bigNum(1000000))).toBeCloseTo(1000000, 5);
+	});
+
+	it("converts small decimal bigNum(0.5) to 0.5", () => {
+		expect(bnToNumber(bigNum(0.5))).toBeCloseTo(0.5, 10);
 	});
 });

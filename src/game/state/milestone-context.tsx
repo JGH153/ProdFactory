@@ -180,15 +180,15 @@ export const MilestoneNotificationProvider = ({
 			value={{ showMilestone, showResearchLevelUp, registerNavigate }}
 		>
 			{children}
-			<div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 flex-col-reverse gap-2">
+			<div className="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
 				<AnimatePresence>
 					{visible.map((item) => (
 						<motion.div
 							key={item.id}
 							layout
-							initial={{ y: 100, opacity: 0 }}
+							initial={{ y: -100, opacity: 0 }}
 							animate={{ y: 0, opacity: 1 }}
-							exit={{ y: 100, opacity: 0 }}
+							exit={{ y: -100, opacity: 0 }}
 							transition={{
 								type: "spring",
 								stiffness: 500,

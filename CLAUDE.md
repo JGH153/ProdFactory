@@ -91,6 +91,7 @@ pnpm update-deps    # Interactive dependency updater
 - **Named object parameters** when a function has more than one parameter. BigNumber arithmetic excluded.
 - **No IIFEs** — extract into named functions.
 - **No lodash** — write utilities from scratch. Minimize external dependencies.
+- **Logging**: Use the pino `logger` from `src/lib/server/logger.ts` in server-side code — never use `console.log`/`console.info`/etc. in API routes or server utilities.
 - **Client-side rendering only** — all pages use `'use client'`.
 
 ---

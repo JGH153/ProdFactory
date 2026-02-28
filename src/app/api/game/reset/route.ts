@@ -38,11 +38,13 @@ const resetGame = async ({
 	const freshState = serializeGameState(createInitialGameState());
 	const newVersion = stored ? stored.serverVersion + 1 : 1;
 
-	await saveStoredGameState({
-		sessionId,
-		stored: { ...freshState, serverVersion: newVersion },
-	});
-	await deleteSyncSnapshot(sessionId);
+	await Promise.all([
+		saveStoredGameState({
+			sessionId,
+			stored: { ...freshState, serverVersion: newVersion },
+		}),
+		deleteSyncSnapshot(sessionId),
+	]);
 
 	return { type: "success", state: freshState, serverVersion: newVersion };
 };

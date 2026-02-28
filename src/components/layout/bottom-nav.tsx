@@ -3,6 +3,7 @@
 import {
 	GameController01Icon,
 	MicroscopeIcon,
+	Rocket01Icon,
 	Settings01Icon,
 	Store01Icon,
 } from "@hugeicons/core-free-icons";
@@ -13,7 +14,7 @@ import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceId } from "@/game/types";
 import { LockedTab } from "./locked-tab";
 
-type BottomNavTab = "game" | "shop" | "research" | "settings";
+type BottomNavTab = "game" | "shop" | "research" | "prestige" | "settings";
 
 type TabConfig = {
 	id: BottomNavTab;
@@ -37,6 +38,15 @@ const TABS: TabConfig[] = [
 		},
 	},
 	{ id: "research", label: "Research", icon: MicroscopeIcon },
+	{
+		id: "prestige",
+		label: "Prestige",
+		icon: Rocket01Icon,
+		requiresUnlock: {
+			resourceId: "nuclear-pasta" as ResourceId,
+			message: "Unlock Nuclear Pasta to access Prestige",
+		},
+	},
 	{ id: "settings", label: "Settings", icon: Settings01Icon },
 ];
 
@@ -62,7 +72,8 @@ export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 					const { requiresUnlock } = tab;
 					const isLocked =
 						requiresUnlock !== undefined &&
-						!state.resources[requiresUnlock.resourceId].isUnlocked;
+						!state.resources[requiresUnlock.resourceId].isUnlocked &&
+						!(tab.id === "prestige" && state.prestige.prestigeCount >= 1);
 
 					if (isLocked && requiresUnlock) {
 						return (

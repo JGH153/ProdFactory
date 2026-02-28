@@ -197,5 +197,23 @@ export const validateSerializedGameState = (
 		}
 	}
 
+	if (state.prestige !== undefined) {
+		if (!isRecord(state.prestige)) {
+			return "Invalid prestige";
+		}
+		if (!isNonNegativeInteger(state.prestige.prestigeCount)) {
+			return "Invalid prestige count";
+		}
+		if (!isValidSerializedBigNum(state.prestige.couponBalance)) {
+			return "Invalid coupon balance";
+		}
+		if (!isValidSerializedBigNum(state.prestige.lifetimeCoupons)) {
+			return "Invalid lifetime coupons";
+		}
+		if (!isValidSerializedBigNum(state.prestige.nuclearPastaProducedThisRun)) {
+			return "Invalid nuclear pasta produced this run";
+		}
+	}
+
 	return null;
 };

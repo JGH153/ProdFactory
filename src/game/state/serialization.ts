@@ -6,6 +6,7 @@ import type {
 	LabId,
 	LabState,
 	OfflineSummary,
+	PrestigeState,
 	ResearchId,
 	ResourceId,
 	ResourceState,
@@ -18,7 +19,7 @@ import {
 } from "@/lib/big-number";
 import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export type SerializedResourceState = {
 	id: ResourceId;
@@ -36,11 +37,19 @@ export type SerializedLabState = {
 	researchStartedAt: number | null;
 };
 
+export type SerializedPrestigeState = {
+	prestigeCount: number;
+	couponBalance: SerializedBigNum;
+	lifetimeCoupons: SerializedBigNum;
+	nuclearPastaProducedThisRun: SerializedBigNum;
+};
+
 export type SerializedGameState = {
 	resources: Record<ResourceId, SerializedResourceState>;
 	shopBoosts?: ShopBoosts | undefined;
 	labs?: Record<LabId, SerializedLabState> | undefined;
 	research?: Record<ResearchId, number> | undefined;
+	prestige?: SerializedPrestigeState | undefined;
 	lastSavedAt: number;
 	version: number;
 };
@@ -79,6 +88,24 @@ const deserializeLab = (data: SerializedLabState): LabState => ({
 	researchStartedAt: data.researchStartedAt,
 });
 
+const serializePrestige = (
+	prestige: PrestigeState,
+): SerializedPrestigeState => ({
+	prestigeCount: prestige.prestigeCount,
+	couponBalance: bnSerialize(prestige.couponBalance),
+	lifetimeCoupons: bnSerialize(prestige.lifetimeCoupons),
+	nuclearPastaProducedThisRun: bnSerialize(
+		prestige.nuclearPastaProducedThisRun,
+	),
+});
+
+const deserializePrestige = (data: SerializedPrestigeState): PrestigeState => ({
+	prestigeCount: data.prestigeCount,
+	couponBalance: bnDeserialize(data.couponBalance),
+	lifetimeCoupons: bnDeserialize(data.lifetimeCoupons),
+	nuclearPastaProducedThisRun: bnDeserialize(data.nuclearPastaProducedThisRun),
+});
+
 export const serializeGameState = (state: GameState): SerializedGameState => {
 	const resources = {} as Record<ResourceId, SerializedResourceState>;
 	for (const id of RESOURCE_ORDER) {
@@ -93,6 +120,7 @@ export const serializeGameState = (state: GameState): SerializedGameState => {
 		shopBoosts: state.shopBoosts,
 		labs,
 		research: { ...state.research },
+		prestige: serializePrestige(state.prestige),
 		lastSavedAt: Date.now(),
 		version: SAVE_VERSION,
 	};
@@ -137,6 +165,9 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 		shopBoosts: data.shopBoosts ?? initialState.shopBoosts,
 		labs,
 		research,
+		prestige: data.prestige
+			? deserializePrestige(data.prestige)
+			: initialState.prestige,
 		lastSavedAt: data.lastSavedAt,
 	};
 };

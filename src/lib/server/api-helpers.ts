@@ -94,6 +94,7 @@ export const stripServerVersion = (
 	shopBoosts: stored.shopBoosts,
 	labs: stored.labs,
 	research: stored.research,
+	prestige: stored.prestige,
 	lastSavedAt: stored.lastSavedAt,
 	version: stored.version,
 });

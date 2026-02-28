@@ -1,6 +1,7 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
+import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
 import {
 	getResearchMultiplier,
 	getResearchTime,
@@ -24,6 +25,7 @@ import {
 	bnGte,
 	bnMul,
 	bnSerialize,
+	bnToNumber,
 } from "@/lib/big-number";
 
 const MAX_OFFLINE_SECONDS = 8 * 3600;
@@ -35,8 +37,6 @@ export type SerializedOfflineSummary = {
 	researchLevelUps: { researchId: ResearchId; newLevel: number }[];
 	wasCapped: boolean;
 };
-
-const bnToNumber = (bn: BigNum): number => bn.mantissa * 10 ** bn.exponent;
 
 export const computeOfflineProgress = ({
 	state,
@@ -63,6 +63,11 @@ export const computeOfflineProgress = ({
 	const defaultBoosts = createInitialGameState().shopBoosts;
 	const shopBoosts = state.shopBoosts ?? defaultBoosts;
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
+	const prestigeMul = state.prestige?.lifetimeCoupons
+		? getPrestigePassiveMultiplier({
+				lifetimeCoupons: bnDeserialize(state.prestige.lifetimeCoupons),
+			})
+		: 1;
 
 	// Advance research before computing resource production
 	const initialResearch = state.research ?? createInitialGameState().research;
@@ -184,7 +189,11 @@ export const computeOfflineProgress = ({
 
 		const researchMul = getResearchMultiplier({ research, resourceId });
 		const gain = bigNum(
-			actualRuns * resource.producers * productionMul * researchMul,
+			actualRuns *
+				resource.producers *
+				productionMul *
+				researchMul *
+				prestigeMul,
 		);
 		netAvailable[resourceId] = bnAdd(savedAmount, gain);
 		gains.push({ resourceId, amount: bnSerialize(gain) });
@@ -198,6 +207,21 @@ export const computeOfflineProgress = ({
 		return { updatedState: state, summary: null };
 	}
 
+	// Track Nuclear Pasta offline production in prestige state
+	const npGain = gains.find((g) => g.resourceId === "nuclear-pasta");
+	const updatedPrestige =
+		npGain && state.prestige
+			? {
+					...state.prestige,
+					nuclearPastaProducedThisRun: bnSerialize(
+						bnAdd(
+							bnDeserialize(state.prestige.nuclearPastaProducedThisRun),
+							bnDeserialize(npGain.amount),
+						),
+					),
+				}
+			: state.prestige;
+
 	return {
 		updatedState: {
 			...state,
@@ -206,6 +230,7 @@ export const computeOfflineProgress = ({
 				labs: updatedLabs,
 				research,
 			}),
+			...(updatedPrestige && { prestige: updatedPrestige }),
 		},
 		summary: { elapsedSeconds, gains, researchLevelUps, wasCapped },
 	};
