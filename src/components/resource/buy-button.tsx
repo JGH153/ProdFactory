@@ -45,7 +45,7 @@ export const BuyButton = ({ resource }: Props) => {
 	return (
 		<div className="flex gap-1">
 			<motion.div
-				className="flex-1"
+				className="flex-1 min-w-0"
 				{...(canBuy && { whileTap: { scale: 0.95 } })}
 			>
 				<Button
@@ -53,7 +53,7 @@ export const BuyButton = ({ resource }: Props) => {
 					size="sm"
 					onClick={handleBuy}
 					disabled={!canBuy}
-					className="w-full text-xs border-border bg-card hover:bg-primary/20
+					className="w-full text-xs truncate border-border bg-card hover:bg-primary/20
 						hover:text-primary disabled:opacity-40"
 				>
 					Buy x1 — {bnFormat(cost)} {config.name}

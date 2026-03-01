@@ -12,7 +12,7 @@ export const GameBoard = () => {
 		<>
 			<h2 className="sr-only">Factory</h2>
 			<motion.ul
-				className="w-full max-w-lg flex flex-col gap-4"
+				className="w-full max-w-lg min-w-0 flex flex-col gap-4"
 				initial="hidden"
 				animate="visible"
 				variants={{

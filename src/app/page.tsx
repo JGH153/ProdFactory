@@ -26,7 +26,12 @@ const TabPanel = ({
 	id: ActiveTab;
 	children: React.ReactNode;
 }) => (
-	<div role="tabpanel" id={`tab-panel-${id}`} aria-labelledby={`tab-${id}`}>
+	<div
+		role="tabpanel"
+		id={`tab-panel-${id}`}
+		aria-labelledby={`tab-${id}`}
+		className="w-full flex flex-col items-center"
+	>
 		{children}
 	</div>
 );

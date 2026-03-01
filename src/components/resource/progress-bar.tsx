@@ -191,7 +191,7 @@ export const ProgressBar = ({ resource }: Props) => {
 				<Progress
 					value={isContinuous && isRunning ? 100 : progress * 100}
 					aria-label={`Production progress for ${config.name}`}
-					className={`h-3 bg-border [&>[data-slot=progress-indicator]]:bg-primary *:data-[slot=progress-indicator]:transition-none! ${isContinuous && isRunning ? "animate-shimmer" : ""}`}
+					className={`h-3 bg-border *:data-[slot=progress-indicator]:bg-primary *:data-[slot=progress-indicator]:transition-none! ${isContinuous && isRunning ? "animate-shimmer" : ""}`}
 				/>
 				<AnimatePresence>
 					{!isContinuous && progress >= 1 && (
@@ -211,7 +211,7 @@ export const ProgressBar = ({ resource }: Props) => {
 				aria-live={isPaused || isWaitingForInput ? "polite" : "off"}
 			>
 				<span
-					className={`text-xs ${isPaused || isWaitingForInput ? "text-accent-amber" : "text-text-muted"}`}
+					className={`text-xs truncate ${isPaused || isWaitingForInput ? "text-accent-amber" : "text-text-muted"}`}
 				>
 					{getStatusText({
 						isPaused,
@@ -227,7 +227,7 @@ export const ProgressBar = ({ resource }: Props) => {
 					})}
 				</span>
 				{resource.producers > 0 && !isPaused && !isWaitingForInput && (
-					<span className="text-xs text-text-muted">
+					<span className="text-xs text-text-muted shrink-0">
 						+{bnFormat(perRun)}/run
 					</span>
 				)}
