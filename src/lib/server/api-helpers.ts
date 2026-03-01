@@ -311,6 +311,7 @@ export const patchSnapshotMetadata = async ({
 		sessionId,
 		snapshot: {
 			...existing,
+			resources: fresh.resources,
 			...(fresh.research && { research: fresh.research }),
 			...(fresh.labs && { labs: fresh.labs }),
 		},

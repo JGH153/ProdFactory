@@ -33,7 +33,7 @@ import {
 import { logger } from "./logger";
 import type { SyncSnapshot } from "./redis";
 
-const PLAUSIBILITY_TOLERANCE = 1.1;
+const PLAUSIBILITY_TOLERANCE = 1.15;
 
 type PlausibilityResult =
 	| { corrected: false; correctedState: null; warnings: string[] }

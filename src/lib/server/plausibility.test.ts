@@ -274,8 +274,8 @@ describe("checkPlausibility", () => {
 	describe("legitimate gains", () => {
 		it("gain within tolerance is not corrected", () => {
 			// 1 producer, elapsed=1000ms, runTime=1000ms
-			// maxRuns=floor(1000/1000)+1=2, maxProd=2, tolerance=2.2
-			// gain=2 → 2.2>=2 → no correction
+			// maxRuns=floor(1000/1000)+1=2, maxProd=2, tolerance=2.3
+			// gain=2 → 2.3>=2 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState({ amount: bnSerialize(bigNum(2)) });
@@ -289,8 +289,8 @@ describe("checkPlausibility", () => {
 		});
 
 		it("gain sized to longer elapsed time is not corrected", () => {
-			// elapsed=2000ms → maxRuns=floor(2000/1000)+1=3, maxProd=3, tolerance=3.3
-			// gain=3 → 3.3>=3 → no correction
+			// elapsed=2000ms → maxRuns=floor(2000/1000)+1=3, maxProd=3, tolerance=3.45
+			// gain=3 → 3.45>=3 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState({ amount: bnSerialize(bigNum(3)) });
@@ -305,7 +305,7 @@ describe("checkPlausibility", () => {
 
 	describe("excessive gains", () => {
 		it("gain exceeding tolerance is corrected", () => {
-			// maxProd=2, tolerance=2.2, gain=100 → corrected
+			// maxProd=2, tolerance=2.3, gain=100 → corrected
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState({ amount: bnSerialize(bigNum(100)) });
@@ -377,8 +377,8 @@ describe("checkPlausibility", () => {
 
 	describe("shop boosts", () => {
 		it("production-20x: gain within boosted tolerance is not corrected", () => {
-			// productionMul=20 → maxProd=2*1*20=40, tolerance=44
-			// gain=40 → 44>=40 → no correction
+			// productionMul=20 → maxProd=2*1*20=40, tolerance=46
+			// gain=40 → 46>=40 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState(
@@ -399,7 +399,7 @@ describe("checkPlausibility", () => {
 		});
 
 		it("production-20x: gain exceeding boosted tolerance is corrected", () => {
-			// maxProd=40, tolerance=44, gain=1000 → corrected
+			// maxProd=40, tolerance=46, gain=1000 → corrected
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState(
@@ -421,7 +421,7 @@ describe("checkPlausibility", () => {
 
 		it("runtime-50: halved run time allows more runs to be claimed", () => {
 			// RTM=0.5 → runTime=500ms, elapsed=1000ms → maxRuns=3, maxProd=3
-			// gain=3 → tolerance=3.3 → no correction
+			// gain=3 → tolerance=3.45 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState(
@@ -466,8 +466,8 @@ describe("checkPlausibility", () => {
 	describe("speed milestones", () => {
 		it("producers=10 halves run time, allowing higher production to be claimed", () => {
 			// effectiveRunTime(iron-ore, producers=10)=0.5s → 500ms
-			// maxRuns=floor(1000/500)+1=3, maxProd=3*10=30, tolerance=33
-			// gain=30 → 33>=30 → no correction
+			// maxRuns=floor(1000/500)+1=3, maxProd=3*10=30, tolerance=34.5
+			// gain=30 → 34.5>=30 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 10);
 			const claimed = makeClaimedState({
@@ -483,7 +483,7 @@ describe("checkPlausibility", () => {
 		});
 
 		it("producers=10: gain exceeding milestone-adjusted tolerance is corrected", () => {
-			// maxProd=30, tolerance=33, gain=1000 → corrected
+			// maxProd=30, tolerance=34.5, gain=1000 → corrected
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 10);
 			const claimed = makeClaimedState({
@@ -502,8 +502,8 @@ describe("checkPlausibility", () => {
 	describe("producer count", () => {
 		it("uses max of snapshot producers and claimed producers", () => {
 			// snapshot=1 producer, claimed=2 producers → max=2
-			// maxRuns=2, maxProd=2*2=4, tolerance=4.4
-			// gain=4 → 4.4>=4 → no correction
+			// maxRuns=2, maxProd=2*2=4, tolerance=4.6
+			// gain=4 → 4.6>=4 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState({
@@ -962,11 +962,11 @@ describe("checkPlausibility", () => {
 				researchOverrides: { "speed-iron-ore": 5 },
 			});
 			// Without speed research: maxRuns = floor(1000/1000)+1 = 2
-			// maxProd = 2*1*1*1 = 2, tolerance = 2.2
+			// maxProd = 2*1*1*1 = 2, tolerance = 2.3
 			// With speed-5: rtm=0.667, runTime=0.667s=667ms
-			// maxRuns = floor(1000/667)+1 = 2, maxProd=2, tolerance=2.2
+			// maxRuns = floor(1000/667)+1 = 2, maxProd=2, tolerance=2.3
 			// With 2s: rtm=0.667, runTime=667ms, maxRuns=floor(2000/667)+1=4
-			// maxProd=4, tolerance=4.4
+			// maxProd=4, tolerance=4.6
 			const claimed = makeResearchClaimedState({
 				researchOverrides: { "speed-iron-ore": 5 },
 			});
@@ -1010,8 +1010,8 @@ describe("checkPlausibility", () => {
 				serverNow: t0 + 2000,
 			});
 			// Without speed research: rtm=1, runTime=1s=1000ms
-			// maxRuns = floor(2000/1000)+1 = 3, maxProd=3, tolerance=3.3
-			// 4 > 3.3 → corrected
+			// maxRuns = floor(2000/1000)+1 = 3, maxProd=3, tolerance=3.45
+			// 4 > 3.45 → corrected
 			expect(result.corrected).toBe(true);
 		});
 
@@ -1051,7 +1051,7 @@ describe("checkPlausibility", () => {
 			const state = assertCorrected(result);
 			// Research should be corrected
 			expect(state.research?.["more-iron-ore"]).toBe(0);
-			// Production should also be corrected (gain=4 > tolerance=2.2 with validated level 0)
+			// Production should also be corrected (gain=4 > tolerance=2.3 with validated level 0)
 			expect(result.warnings.some((w) => w.includes("Iron Ore"))).toBe(true);
 		});
 
@@ -1150,7 +1150,7 @@ describe("checkPlausibility", () => {
 			// Nuclear pasta is the last tier (index 7), base run time = 2^7 = 128s
 			// With 1 producer, runTime=128s=128000ms
 			// In 1s: maxRuns = floor(1000/128000)+1 = 1
-			// maxProd = 1*1*1*1*1 = 1, tolerance = 1.1
+			// maxProd = 1*1*1*1*1 = 1, tolerance = 1.15
 			const t0 = 0;
 			const base = makeNpState(serializeGameState(createInitialGameState()));
 			const snapshot: SyncSnapshot = {
