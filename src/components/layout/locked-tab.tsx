@@ -25,6 +25,7 @@ export const LockedTab = ({ label, message }: Props) => {
 					role="tab"
 					aria-selected={false}
 					aria-disabled
+					aria-description={message}
 					onPointerDown={(e) => e.preventDefault()}
 					onClick={(e) => {
 						e.preventDefault();
@@ -32,7 +33,7 @@ export const LockedTab = ({ label, message }: Props) => {
 					}}
 					className="relative flex flex-col items-center gap-1 px-6 py-2 opacity-50 cursor-not-allowed text-text-muted"
 				>
-					<HugeiconsIcon icon={SquareLock02Icon} size={24} />
+					<HugeiconsIcon icon={SquareLock02Icon} size={24} aria-hidden="true" />
 					<span className="text-xs font-medium">{label}</span>
 				</button>
 			</TooltipTrigger>

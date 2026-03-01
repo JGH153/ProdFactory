@@ -1,3 +1,5 @@
+This plan is already implemented and only serve as documentation
+
 # Accessibility Evaluation & Remediation Plan
 
 ## Context
@@ -10,8 +12,9 @@ The user also asked about **tooling improvements** to catch and prevent a11y reg
 
 ## Phase 0 — Tooling (prevent future regressions)
 
-### 0.1 Add `vitest-axe` for automated WCAG scanning
-- `pnpm add -D vitest-axe`
+### 0.1 Add `axe-core` for automated WCAG scanning
+- `pnpm add -D axe-core`
+- [src/test/axe-helper.ts](src/test/axe-helper.ts) — `runAxe()` wrapper + `toHaveNoViolations` matcher
 - [src/test/setup.ts](src/test/setup.ts) — register `toHaveNoViolations` matcher in the existing `isDOM` block
 - Add an axe scan assertion to 2–3 key component tests as examples (e.g., `resource-card.test.tsx`, `bottom-nav.test.tsx`)
 

@@ -65,6 +65,7 @@ export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 			animate={{ y: 0 }}
 			transition={{ duration: 0.3 }}
 			role="tablist"
+			aria-label="Main navigation"
 		>
 			<div className="flex items-center justify-around max-w-lg mx-auto h-16">
 				{TABS.map((tab) => {
@@ -90,7 +91,9 @@ export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 							key={tab.id}
 							type="button"
 							role="tab"
+							id={`tab-${tab.id}`}
 							aria-selected={isActive}
+							aria-controls={`tab-panel-${tab.id}`}
 							onClick={() => onTabChange(tab.id)}
 							whileTap={{ scale: 0.9 }}
 							className={`relative flex flex-col items-center gap-1 px-6 py-2 cursor-pointer ${
@@ -108,7 +111,7 @@ export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 									}}
 								/>
 							)}
-							<HugeiconsIcon icon={tab.icon} size={24} />
+							<HugeiconsIcon icon={tab.icon} size={24} aria-hidden="true" />
 							<span className="text-xs font-medium">{tab.label}</span>
 						</motion.button>
 					);

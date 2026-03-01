@@ -64,16 +64,22 @@ export const ResearchPage = () => {
 						Efficiency Research
 					</h3>
 					<Alert className="mb-3">
-						<HugeiconsIcon icon={InformationCircleIcon} size={16} />
+						<HugeiconsIcon
+							icon={InformationCircleIcon}
+							size={16}
+							aria-hidden="true"
+						/>
 						<AlertDescription>
 							Unlock a resource in the game to research its efficiency.
 						</AlertDescription>
 					</Alert>
-					<div className="flex flex-col gap-2">
+					<ul className="flex flex-col gap-2">
 						{EFFICIENCY_RESEARCH_ORDER.map((researchId) => (
-							<ResearchItemCard key={researchId} researchId={researchId} />
+							<li key={researchId}>
+								<ResearchItemCard researchId={researchId} />
+							</li>
 						))}
-					</div>
+					</ul>
 				</motion.div>
 
 				{/* Speed research section */}
@@ -87,16 +93,22 @@ export const ResearchPage = () => {
 						Speed Research
 					</h3>
 					<Alert className="mb-3">
-						<HugeiconsIcon icon={InformationCircleIcon} size={16} />
+						<HugeiconsIcon
+							icon={InformationCircleIcon}
+							size={16}
+							aria-hidden="true"
+						/>
 						<AlertDescription>
 							Unlock a resource in the game to research its speed.
 						</AlertDescription>
 					</Alert>
-					<div className="flex flex-col gap-2">
+					<ul className="flex flex-col gap-2">
 						{SPEED_RESEARCH_ORDER.map((researchId) => (
-							<ResearchItemCard key={researchId} researchId={researchId} />
+							<li key={researchId}>
+								<ResearchItemCard researchId={researchId} />
+							</li>
 						))}
-					</div>
+					</ul>
 				</motion.div>
 			</motion.div>
 

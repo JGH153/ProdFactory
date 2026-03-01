@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, vi } from "vitest";
 
 // --- Component test setup (DOM environments only) ---
 const isDOM = typeof window !== "undefined";
@@ -17,6 +17,8 @@ if (isDOM) {
 	const { server } = await import("./msw-server");
 
 	await import("@testing-library/jest-dom/vitest");
+	const { toHaveNoViolations } = await import("./axe-helper");
+	expect.extend({ toHaveNoViolations });
 
 	// MSW lifecycle
 	beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

@@ -34,7 +34,11 @@ export const NewGameButton = ({ onReset }: Props) => {
 				onClick={() => setOpen(true)}
 				className="w-full"
 			>
-				<HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={20} />
+				<HugeiconsIcon
+					icon={ArrowReloadHorizontalIcon}
+					size={20}
+					aria-hidden="true"
+				/>
 				Reset Game
 			</Button>
 			<Dialog open={open} onOpenChange={setOpen}>

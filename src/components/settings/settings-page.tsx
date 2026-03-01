@@ -37,7 +37,7 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 				<div>
 					<h3 className="text-sm font-medium text-text-muted mb-2">General</h3>
 					<Button variant="secondary" onClick={onWatchIntro} className="w-full">
-						<HugeiconsIcon icon={PlayCircleIcon} size={20} />
+						<HugeiconsIcon icon={PlayCircleIcon} size={20} aria-hidden="true" />
 						Watch Intro Video
 					</Button>
 				</div>

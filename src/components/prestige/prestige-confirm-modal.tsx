@@ -101,6 +101,7 @@ export const PrestigeConfirmModal = ({
 										icon={CheckmarkCircle02Icon}
 										size={14}
 										className="text-green-500 shrink-0"
+										aria-hidden="true"
 									/>
 									{item}
 								</div>
@@ -119,6 +120,7 @@ export const PrestigeConfirmModal = ({
 										icon={Cancel01Icon}
 										size={14}
 										className="text-red-400 shrink-0"
+										aria-hidden="true"
 									/>
 									{item}
 								</div>

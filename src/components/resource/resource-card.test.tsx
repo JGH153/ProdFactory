@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { ResourceCard } from "@/components/resource/resource-card";
 import { createInitialGameState } from "@/game/initial-state";
+import { runAxe } from "@/test/axe-helper";
 import { renderWithProviders, screen } from "@/test/render-with-providers";
 
 describe("ResourceCard", () => {
@@ -29,6 +30,15 @@ describe("ResourceCard", () => {
 		renderWithProviders(<ResourceCard resource={state.resources.plates} />);
 
 		expect(screen.getByRole("button", { name: /unlock/i })).toBeInTheDocument();
+	});
+
+	it("has no accessibility violations", async () => {
+		const state = createInitialGameState();
+		const { container } = renderWithProviders(
+			<ResourceCard resource={state.resources["iron-ore"]} />,
+		);
+
+		expect(await runAxe(container)).toHaveNoViolations();
 	});
 
 	it("shows automate button for unlocked resource without automation", () => {

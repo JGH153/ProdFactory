@@ -23,6 +23,7 @@ import { useGameState } from "@/game/state/game-state-context";
 import { useSfx } from "@/game/state/sfx-context";
 import type { GameState, ResourceState } from "@/game/types";
 import { bigNum, bnFormat, bnGte, bnPow } from "@/lib/big-number";
+import { usePrefersReducedMotion } from "@/lib/prefers-reduced-motion";
 import { ParticleEffect } from "./particle-effect";
 
 const getInsufficientInputMessage = ({
@@ -73,6 +74,7 @@ export const RunButton = ({ resource }: Props) => {
 	const canRun = canStartRun({ state, resourceId: resource.id });
 	const milestone = getSpeedMilestone(resource.producers);
 	const [tooltipOpen, setTooltipOpen] = useState(false);
+	const prefersReducedMotion = usePrefersReducedMotion();
 	const insufficientInputMessage = getInsufficientInputMessage({
 		state,
 		resource,
@@ -109,7 +111,8 @@ export const RunButton = ({ resource }: Props) => {
 			onClick={handleClick}
 			disabled={isDisabled && !insufficientInputMessage}
 			aria-disabled={isDisabled}
-			className={`relative flex flex-col items-center gap-1 w-24 shrink-0 select-none overflow-visible
+			aria-label={`Start ${config.name} production run`}
+			className={`relative flex flex-col items-center gap-1 w-24 shrink-0 select-none overflow-visible focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-lg
 				${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
 		>
 			{/* Particle container */}
@@ -118,10 +121,11 @@ export const RunButton = ({ resource }: Props) => {
 			</div>
 
 			<motion.div
-				{...(isRunning && {
-					animate: { rotate: [0, 5, -5, 0] },
-					transition: { repeat: Number.POSITIVE_INFINITY, duration: 0.5 },
-				})}
+				{...(isRunning &&
+					!prefersReducedMotion && {
+						animate: { rotate: [0, 5, -5, 0] },
+						transition: { repeat: Number.POSITIVE_INFINITY, duration: 0.5 },
+					})}
 			>
 				<ResourceIcon resourceId={resource.id} size={36} />
 			</motion.div>
@@ -146,6 +150,7 @@ export const RunButton = ({ resource }: Props) => {
 				<div className="relative w-full">
 					<Progress
 						value={milestone.progress * 100}
+						aria-label={`Speed milestone for ${config.name}`}
 						className="h-5 w-full rounded-sm bg-border *:data-[slot=progress-indicator]:bg-accent-amber *:data-[slot=progress-indicator]:rounded-sm"
 					/>
 					<span

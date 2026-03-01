@@ -16,6 +16,7 @@ export const MusicButton = () => {
 			<HugeiconsIcon
 				icon={isPlaying ? MusicNote03Icon : VolumeMute02Icon}
 				size={20}
+				aria-hidden="true"
 			/>
 			{isPlaying ? "Pause Music" : "Play Music"}
 		</Button>

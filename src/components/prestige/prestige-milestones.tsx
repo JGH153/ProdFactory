@@ -17,11 +17,11 @@ export const PrestigeMilestones = ({ prestigeCount }: Props) => {
 			<h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider">
 				Milestones
 			</h3>
-			<div className="flex flex-col gap-2">
+			<ul className="flex flex-col gap-2">
 				{PRESTIGE_MILESTONES.map((milestone) => {
 					const earned = prestigeCount >= milestone.requiredPrestiges;
 					return (
-						<div
+						<li
 							key={milestone.id}
 							className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
 								earned
@@ -33,6 +33,7 @@ export const PrestigeMilestones = ({ prestigeCount }: Props) => {
 								icon={earned ? CheckmarkCircle02Icon : SquareLock02Icon}
 								size={18}
 								className={earned ? "text-accent-amber" : "text-text-muted"}
+								aria-hidden="true"
 							/>
 							<div className="flex-1 min-w-0">
 								<p
@@ -54,10 +55,10 @@ export const PrestigeMilestones = ({ prestigeCount }: Props) => {
 									</p>
 								)}
 							</div>
-						</div>
+						</li>
 					);
 				})}
-			</div>
+			</ul>
 		</div>
 	);
 };

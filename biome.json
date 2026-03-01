@@ -18,6 +18,11 @@
 			"recommended": true,
 			"style": {
 				"noNonNullAssertion": "error"
+			},
+			"a11y": {
+				"useButtonType": "error",
+				"useFocusableInteractive": "error",
+				"useSemanticElements": "warn"
 			}
 		}
 	},

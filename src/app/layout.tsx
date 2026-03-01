@@ -31,6 +31,12 @@ export default function RootLayout({
 				/>
 			</head>
 			<body className="min-h-screen overflow-x-hidden bg-background text-text-primary antialiased">
+				<a
+					href="#main-content"
+					className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:font-semibold"
+				>
+					Skip to main content
+				</a>
 				<AppProviders>{children}</AppProviders>
 			</body>
 		</html>

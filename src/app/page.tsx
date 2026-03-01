@@ -19,6 +19,18 @@ import { MusicProvider } from "@/game/state/music-context";
 
 type ActiveTab = "game" | "shop" | "research" | "prestige" | "settings";
 
+const TabPanel = ({
+	id,
+	children,
+}: {
+	id: ActiveTab;
+	children: React.ReactNode;
+}) => (
+	<div role="tabpanel" id={`tab-panel-${id}`} aria-labelledby={`tab-${id}`}>
+		{children}
+	</div>
+);
+
 export default function Home() {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
 	const [introOpen, setIntroOpen] = useState(false);
@@ -37,17 +49,40 @@ export default function Home() {
 
 	return (
 		<MusicProvider>
-			<main className="min-h-screen flex flex-col items-center px-4 pt-8 pb-24">
-				<Logo />
-				{activeTab === "game" && <GameBoard />}
-				{activeTab === "shop" && <ShopPage />}
-				{activeTab === "research" && <ResearchPage />}
-				{activeTab === "prestige" && <PrestigePage />}
+			<main
+				id="main-content"
+				className="min-h-screen flex flex-col items-center px-4 pt-8 pb-24"
+			>
+				<header>
+					<Logo />
+				</header>
+				{activeTab === "game" && (
+					<TabPanel id="game">
+						<GameBoard />
+					</TabPanel>
+				)}
+				{activeTab === "shop" && (
+					<TabPanel id="shop">
+						<ShopPage />
+					</TabPanel>
+				)}
+				{activeTab === "research" && (
+					<TabPanel id="research">
+						<ResearchPage />
+					</TabPanel>
+				)}
+				{activeTab === "prestige" && (
+					<TabPanel id="prestige">
+						<PrestigePage />
+					</TabPanel>
+				)}
 				{activeTab === "settings" && (
-					<SettingsPage
-						onReset={() => setActiveTab("game")}
-						onWatchIntro={() => setIntroOpen(true)}
-					/>
+					<TabPanel id="settings">
+						<SettingsPage
+							onReset={() => setActiveTab("game")}
+							onWatchIntro={() => setIntroOpen(true)}
+						/>
+					</TabPanel>
 				)}
 				<IntroVideoDialog open={introOpen} onOpenChange={setIntroOpen} />
 				<OfflineSummaryModal

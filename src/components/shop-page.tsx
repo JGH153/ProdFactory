@@ -17,6 +17,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ShopBoostId } from "@/game/types";
 
@@ -100,7 +101,11 @@ export const ShopPage = () => {
 												isActive ? "text-success" : multiplier.colorClass
 											}
 										>
-											<HugeiconsIcon icon={multiplier.icon} size={28} />
+											<HugeiconsIcon
+												icon={multiplier.icon}
+												size={28}
+												aria-hidden="true"
+											/>
 										</div>
 										<div>
 											<CardTitle>{multiplier.name}</CardTitle>
@@ -126,7 +131,7 @@ export const ShopPage = () => {
 										>
 											{isActivating ? (
 												<>
-													<span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+													<Spinner />
 													Activating...
 												</>
 											) : (

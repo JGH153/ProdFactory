@@ -16,6 +16,7 @@ export const SfxButton = () => {
 			<HugeiconsIcon
 				icon={sfxEnabled ? VolumeHighIcon : VolumeOffIcon}
 				size={20}
+				aria-hidden="true"
 			/>
 			{sfxEnabled ? "Mute SFX" : "Unmute SFX"}
 		</Button>

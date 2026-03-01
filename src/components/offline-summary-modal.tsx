@@ -85,6 +85,7 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 				<div className="flex flex-col gap-1">
 					<Progress
 						value={progressPct}
+						aria-label="Offline time elapsed"
 						className="h-2 bg-border *:data-[slot=progress-indicator]:bg-accent-amber"
 					/>
 					<div className="flex justify-between text-xs text-text-muted">
@@ -134,6 +135,7 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 											icon={MicroscopeIcon}
 											size={16}
 											className="text-accent-amber"
+											aria-hidden="true"
 										/>
 										{RESEARCH_CONFIGS[researchId].name}
 									</span>
@@ -148,7 +150,7 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 
 				<div className="flex justify-end mt-2">
 					<Button onClick={onCollect}>
-						<HugeiconsIcon icon={Download01Icon} size={16} />
+						<HugeiconsIcon icon={Download01Icon} size={16} aria-hidden="true" />
 						Collect
 					</Button>
 				</div>

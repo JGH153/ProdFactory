@@ -69,6 +69,7 @@ export const IntroVideoDialog = ({ open, onOpenChange }: Props) => {
 						preload="metadata"
 					>
 						<source src="/intro-video.mp4" type="video/mp4" />
+						{/* TODO: Replace with a real VTT captions file */}
 						<track kind="captions" />
 					</video>
 				</div>

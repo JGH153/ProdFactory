@@ -8,6 +8,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { canUnlock } from "@/game/logic";
 import { useGameState } from "@/game/state/game-state-context";
@@ -76,11 +77,12 @@ export const UnlockOverlay = ({ resourceId }: Props) => {
 				}
 			>
 				{isUnlocking ? (
-					<span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+					<Spinner />
 				) : (
 					<HugeiconsIcon
 						icon={affordable ? SquareUnlock02Icon : SquareLock02Icon}
 						size={16}
+						aria-hidden="true"
 					/>
 				)}
 				{isUnlocking ? "Unlocking..." : `Unlock — ${unlockCostText}`}

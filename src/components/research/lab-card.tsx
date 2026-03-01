@@ -105,7 +105,7 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 		return (
 			<div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4">
 				<div className="text-text-muted">
-					<HugeiconsIcon icon={SquareLock02Icon} size={24} />
+					<HugeiconsIcon icon={SquareLock02Icon} size={24} aria-hidden="true" />
 				</div>
 				<span className="text-xs font-semibold text-text-secondary">
 					Lab {labIndex}
@@ -127,7 +127,9 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 		return (
 			<motion.button
 				type="button"
-				className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card p-4 cursor-pointer min-h-[120px]"
+				aria-label={`Lab ${labIndex} — Tap to assign research`}
+				aria-haspopup="dialog"
+				className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card p-4 cursor-pointer min-h-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				whileTap={{ scale: 0.95 }}
 				onClick={onAssign}
 			>
@@ -152,11 +154,12 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 				</span>
 				<button
 					type="button"
+					aria-label="Cancel research"
 					className="cursor-pointer text-text-muted hover:text-red-400 transition-colors disabled:opacity-40"
 					onClick={handleCancel}
 					disabled={isCancelling}
 				>
-					<HugeiconsIcon icon={Cancel01Icon} size={14} />
+					<HugeiconsIcon icon={Cancel01Icon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<span className="text-xs font-medium text-text-primary truncate">
@@ -167,6 +170,7 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 			</span>
 			<Progress
 				value={progress * 100}
+				aria-label={`Research progress for ${researchConfig.name}`}
 				className="h-2 bg-border [&>[data-slot=progress-indicator]]:bg-accent-amber *:data-[slot=progress-indicator]:transition-none!"
 			/>
 			<span className="text-xs text-text-muted">

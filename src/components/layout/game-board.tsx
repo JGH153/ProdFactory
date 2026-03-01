@@ -9,18 +9,23 @@ export const GameBoard = () => {
 	const { state } = useGameState();
 
 	return (
-		<motion.div
-			className="w-full max-w-lg flex flex-col gap-4"
-			initial="hidden"
-			animate="visible"
-			variants={{
-				hidden: {},
-				visible: { transition: { staggerChildren: 0.15 } },
-			}}
-		>
-			{RESOURCE_ORDER.map((resourceId) => (
-				<ResourceCard key={resourceId} resource={state.resources[resourceId]} />
-			))}
-		</motion.div>
+		<>
+			<h2 className="sr-only">Factory</h2>
+			<motion.ul
+				className="w-full max-w-lg flex flex-col gap-4"
+				initial="hidden"
+				animate="visible"
+				variants={{
+					hidden: {},
+					visible: { transition: { staggerChildren: 0.15 } },
+				}}
+			>
+				{RESOURCE_ORDER.map((resourceId) => (
+					<li key={resourceId}>
+						<ResourceCard resource={state.resources[resourceId]} />
+					</li>
+				))}
+			</motion.ul>
+		</>
 	);
 };

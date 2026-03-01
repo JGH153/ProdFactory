@@ -190,6 +190,7 @@ export const ProgressBar = ({ resource }: Props) => {
 				<ParticleEffect particles={particles} />
 				<Progress
 					value={isContinuous && isRunning ? 100 : progress * 100}
+					aria-label={`Production progress for ${config.name}`}
 					className={`h-3 bg-border [&>[data-slot=progress-indicator]]:bg-primary *:data-[slot=progress-indicator]:transition-none! ${isContinuous && isRunning ? "animate-shimmer" : ""}`}
 				/>
 				<AnimatePresence>
@@ -204,7 +205,11 @@ export const ProgressBar = ({ resource }: Props) => {
 					)}
 				</AnimatePresence>
 			</div>
-			<div className="flex justify-between mt-1">
+			<div
+				className="flex justify-between mt-1"
+				role={isPaused || isWaitingForInput ? "status" : undefined}
+				aria-live={isPaused || isWaitingForInput ? "polite" : "off"}
+			>
 				<span
 					className={`text-xs ${isPaused || isWaitingForInput ? "text-accent-amber" : "text-text-muted"}`}
 				>

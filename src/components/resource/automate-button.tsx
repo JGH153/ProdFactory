@@ -23,6 +23,7 @@ export const AutomateButton = ({ resource }: Props) => {
 				<Button
 					variant="outline"
 					size="sm"
+					aria-pressed={!resource.isPaused}
 					onClick={() => toggleResourcePause(resource.id)}
 					className={`w-full text-xs border-border bg-card ${
 						resource.isPaused

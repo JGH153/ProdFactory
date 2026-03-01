@@ -88,8 +88,17 @@ export const PrestigePage = () => {
 						animate={{ opacity: 1, scale: 1 }}
 						exit={{ opacity: 0, scale: 0.9 }}
 						transition={{ duration: 0.3 }}
-						className="flex flex-col items-center gap-4 py-8 cursor-pointer"
+						className="flex flex-col items-center gap-4 py-8 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-lg"
+						role="button"
+						tabIndex={0}
 						onClick={dismissSuccess}
+						onKeyDown={(e: React.KeyboardEvent) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								dismissSuccess();
+							}
+						}}
+						aria-label="Dismiss success message"
 					>
 						<motion.div
 							initial={{ scale: 0 }}
@@ -105,6 +114,7 @@ export const PrestigePage = () => {
 								icon={Rocket01Icon}
 								size={48}
 								className="text-accent-amber"
+								aria-hidden="true"
 							/>
 						</motion.div>
 						<motion.p
@@ -172,6 +182,7 @@ export const PrestigePage = () => {
 										icon={Rocket01Icon}
 										size={24}
 										className="text-accent-amber"
+										aria-hidden="true"
 									/>
 									<span className="text-sm font-medium text-text-muted">
 										{canPrestigeNow

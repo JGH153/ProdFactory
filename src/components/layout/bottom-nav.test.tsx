@@ -2,6 +2,7 @@
 import { fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { runAxe } from "@/test/axe-helper";
 import { renderWithProviders, screen } from "@/test/render-with-providers";
 
 describe("BottomNav", () => {
@@ -31,6 +32,21 @@ describe("BottomNav", () => {
 
 		fireEvent.click(screen.getByRole("tab", { name: /research/i }));
 		expect(onTabChange).toHaveBeenCalledWith("research");
+	});
+
+	it("has no accessibility violations", async () => {
+		const { container } = renderWithProviders(
+			<BottomNav activeTab="game" onTabChange={vi.fn()} />,
+		);
+
+		expect(
+			await runAxe(container, {
+				rules: {
+					// Tab panels live in page.tsx, not in this component
+					"aria-valid-attr-value": { enabled: false },
+				},
+			}),
+		).toHaveNoViolations();
 	});
 
 	it("shows shop tab as locked when plates are not unlocked", () => {

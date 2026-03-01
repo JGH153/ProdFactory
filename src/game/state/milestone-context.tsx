@@ -15,6 +15,7 @@ import {
 import { ResourceIcon } from "@/components/resource-icon";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import type { ResearchId, ResourceId } from "@/game/types";
+import { usePrefersReducedMotion } from "@/lib/prefers-reduced-motion";
 import { useSfx } from "./sfx-context";
 
 type SpeedMilestonePayload = {
@@ -180,7 +181,12 @@ export const MilestoneNotificationProvider = ({
 			value={{ showMilestone, showResearchLevelUp, registerNavigate }}
 		>
 			{children}
-			<div className="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
+			<div
+				className="fixed top-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2"
+				role="log"
+				aria-live="polite"
+				aria-label="Game notifications"
+			>
 				<AnimatePresence>
 					{visible.map((item) => (
 						<motion.div
@@ -195,9 +201,15 @@ export const MilestoneNotificationProvider = ({
 								damping: 30,
 							}}
 							onClick={() => handleClick(item)}
+							onKeyDown={(e: React.KeyboardEvent) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									handleClick(item);
+								}
+							}}
 							role="button"
 							tabIndex={0}
-							className="flex cursor-pointer items-center gap-5 rounded-xl border border-border bg-card px-8 py-6 shadow-lg"
+							className="flex cursor-pointer items-center gap-5 rounded-xl border border-border bg-card px-8 py-6 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
 							{item.payload.kind === "speed" ? (
 								<SpeedMilestoneContent payload={item.payload} />
@@ -212,20 +224,20 @@ export const MilestoneNotificationProvider = ({
 	);
 };
 
-const WiggleSpan = ({ children }: PropsWithChildren) => (
-	<motion.span
-		className="inline-block text-accent-amber"
-		animate={{
-			x: [0, -3, 3, -3, 3, -2, 2, 0],
-		}}
-		transition={{
-			duration: 0.5,
-			ease: "easeInOut",
-		}}
-	>
-		{children}
-	</motion.span>
-);
+const WiggleSpan = ({ children }: PropsWithChildren) => {
+	const prefersReducedMotion = usePrefersReducedMotion();
+	return (
+		<motion.span
+			className="inline-block text-accent-amber"
+			{...(!prefersReducedMotion && {
+				animate: { x: [0, -3, 3, -3, 3, -2, 2, 0] },
+				transition: { duration: 0.5, ease: "easeInOut" },
+			})}
+		>
+			{children}
+		</motion.span>
+	);
+};
 
 const SpeedMilestoneContent = ({
 	payload,
@@ -251,6 +263,7 @@ const ResearchLevelUpContent = ({
 			icon={MicroscopeIcon}
 			size={48}
 			className="text-accent-amber shrink-0"
+			aria-hidden="true"
 		/>
 		<span className="text-xl font-bold text-text-primary">
 			{payload.researchName} level {payload.newLevel} —{" "}

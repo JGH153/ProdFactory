@@ -65,11 +65,15 @@ export const ResourceCard = ({ resource }: Props) => {
 			}}
 		>
 			<Card
+				aria-label={config.name}
 				className={`relative overflow-hidden border-border bg-card select-none
 					${isLocked ? "opacity-50" : ""}
 					${isNuclearPasta && !isLocked ? "animate-nuclear-pulse" : ""}`}
 			>
-				<CardContent className="flex items-center gap-4 p-4">
+				<CardContent
+					className="flex items-center gap-4 p-4"
+					{...(isLocked && { inert: true })}
+				>
 					{/* LEFT: Icon + Name + Count (clickable to start run) */}
 					<RunButton resource={resource} />
 

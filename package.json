@@ -46,6 +46,7 @@
 		"@types/node": "^22.19.13",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
+		"axe-core": "^4.11.1",
 		"babel-plugin-react-compiler": "^1.0.0",
 		"happy-dom": "^20.7.0",
 		"jsdom": "^28.1.0",

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ResourceIcon } from "@/components/resource-icon";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import {
 	EFFICIENCY_RESEARCH_ORDER,
 	getResearchTime,
@@ -78,7 +79,7 @@ const ResearchPickerItem = ({
 		<button
 			key={researchId}
 			type="button"
-			className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 text-left transition-colors cursor-pointer hover:border-primary/50 hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-card"
+			className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-3 text-left transition-colors cursor-pointer hover:border-primary/50 hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			disabled={isDisabled || assigningId !== null}
 			onClick={() => onSelect(researchId)}
 		>
@@ -98,15 +99,13 @@ const ResearchPickerItem = ({
 					</span>
 				)}
 			</div>
-			{isAssigning && (
-				<span className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
-			)}
+			{isAssigning && <Spinner className="border-primary shrink-0" />}
 			{isLocked && (
 				<span className="text-xs text-text-muted shrink-0">Locked</span>
 			)}
 			{isAssignedElsewhere && !isMaxed && !isLocked && (
 				<span className="flex items-center gap-1.5 text-xs text-text-muted shrink-0">
-					<span className="size-3 border-2 border-text-muted border-t-transparent rounded-full animate-spin" />
+					<Spinner className="size-3 border-text-muted" />
 					In use
 				</span>
 			)}
@@ -133,7 +132,11 @@ export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 			<DialogContent className="max-w-sm" aria-describedby={undefined}>
 				<DialogTitle>Choose Research</DialogTitle>
 				<Alert className="mb-2">
-					<HugeiconsIcon icon={InformationCircleIcon} size={16} />
+					<HugeiconsIcon
+						icon={InformationCircleIcon}
+						size={16}
+						aria-hidden="true"
+					/>
 					<AlertDescription>
 						Unlock a resource in the game to research its efficiency or speed.
 					</AlertDescription>
@@ -142,31 +145,37 @@ export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 					<h4 className="text-xs font-semibold text-text-secondary">
 						Efficiency
 					</h4>
-					{EFFICIENCY_RESEARCH_ORDER.map((researchId) => (
-						<ResearchPickerItem
-							key={researchId}
-							researchId={researchId}
-							labId={labId}
-							state={state}
-							assigningId={assigningId}
-							rtm={rtm}
-							onSelect={handleSelect}
-						/>
-					))}
+					<ul className="flex flex-col gap-3">
+						{EFFICIENCY_RESEARCH_ORDER.map((researchId) => (
+							<li key={researchId}>
+								<ResearchPickerItem
+									researchId={researchId}
+									labId={labId}
+									state={state}
+									assigningId={assigningId}
+									rtm={rtm}
+									onSelect={handleSelect}
+								/>
+							</li>
+						))}
+					</ul>
 					<h4 className="text-xs font-semibold text-text-secondary mt-2">
 						Speed
 					</h4>
-					{SPEED_RESEARCH_ORDER.map((researchId) => (
-						<ResearchPickerItem
-							key={researchId}
-							researchId={researchId}
-							labId={labId}
-							state={state}
-							assigningId={assigningId}
-							rtm={rtm}
-							onSelect={handleSelect}
-						/>
-					))}
+					<ul className="flex flex-col gap-3">
+						{SPEED_RESEARCH_ORDER.map((researchId) => (
+							<li key={researchId}>
+								<ResearchPickerItem
+									researchId={researchId}
+									labId={labId}
+									state={state}
+									assigningId={assigningId}
+									rtm={rtm}
+									onSelect={handleSelect}
+								/>
+							</li>
+						))}
+					</ul>
 				</div>
 			</DialogContent>
 		</Dialog>

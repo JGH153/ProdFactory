@@ -46,5 +46,6 @@ export const ResourceIcon = ({ resourceId, size }: Props) => (
 		size={size}
 		color={COLOR_MAP[resourceId]}
 		strokeWidth={1.5}
+		aria-hidden="true"
 	/>
 );

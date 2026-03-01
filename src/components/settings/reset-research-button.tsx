@@ -11,6 +11,7 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import { useGameState } from "@/game/state/game-state-context";
 
 export const ResetResearchButton = () => {
@@ -34,7 +35,7 @@ export const ResetResearchButton = () => {
 				onClick={() => setOpen(true)}
 				className="w-full"
 			>
-				<HugeiconsIcon icon={TestTubeIcon} size={20} />
+				<HugeiconsIcon icon={TestTubeIcon} size={20} aria-hidden="true" />
 				Reset Research
 			</Button>
 			<Dialog open={open} onOpenChange={setOpen}>
@@ -57,7 +58,7 @@ export const ResetResearchButton = () => {
 						>
 							{isResetting ? (
 								<>
-									<span className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+									<Spinner />
 									Resetting...
 								</>
 							) : (
