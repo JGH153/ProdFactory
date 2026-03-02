@@ -58,16 +58,23 @@ Iron Ore → Plates → Reinforced Plate → Modular Frame → Heavy Modular Fra
 ## Commands
 
 ```bash
-pnpm dev            # Start dev server (port 3001)
-pnpm dev:db         # Start Redis via Docker Compose
-pnpm build          # Production build
-pnpm test           # Run tests once
-pnpm test:watch     # Run tests in watch mode
-pnpm check          # Biome check (lint + format)
-pnpm typecheck      # tsc --noEmit
-pnpm knip           # Knip unused exports/dependencies
-pnpm validate       # check + typecheck + knip (end-of-session)
-pnpm update-deps    # Interactive dependency updater
+pnpm dev              # Start dev server (port 3001)
+pnpm dev:db           # Start Redis via Docker Compose
+pnpm build            # Production build
+pnpm start            # Start production server
+pnpm test             # Run all tests once
+pnpm test:ui          # Run component tests only (.test.tsx)
+pnpm test:logic       # Run logic/unit tests only (.test.ts)
+pnpm test:watch       # Run tests in watch mode
+pnpm lint             # Biome lint
+pnpm format           # Biome format (auto-fix)
+pnpm check            # Biome check + auto-fix (lint + format)
+pnpm typecheck        # tsc --noEmit
+pnpm knip             # Knip unused exports/dependencies
+pnpm validate         # test + check + typecheck + knip (end-of-session)
+pnpm biome:migrate    # Migrate Biome config to latest
+pnpm update-deps      # Interactive dependency updater
+pnpm update-deps-minor # Interactive dependency updater (minor only)
 ```
 
 ---
