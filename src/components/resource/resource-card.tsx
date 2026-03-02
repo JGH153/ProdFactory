@@ -3,12 +3,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
-import {
-	getEffectiveRunTime,
-	getRunInputCost,
-	getRunTimeMultiplier,
-} from "@/game/logic";
-import { getSpeedResearchMultiplier } from "@/game/research-config";
+import { useResourceRuntime } from "@/game/hooks/use-resource-runtime";
+import { getRunInputCost } from "@/game/runs";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceState } from "@/game/types";
 import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
@@ -24,36 +20,25 @@ type Props = {
 
 export const ResourceCard = ({ resource }: Props) => {
 	const { state } = useGameState();
+	const { runTimeMultiplier, effectiveRunTime } = useResourceRuntime({
+		state,
+		resource,
+	});
 	const config = RESOURCE_CONFIGS[resource.id];
 	const isLocked = !resource.isUnlocked;
 	const isNuclearPasta =
 		resource.id === RESOURCE_ORDER[RESOURCE_ORDER.length - 1];
-	const rtm = getRunTimeMultiplier({
-		shopBoosts: state.shopBoosts,
-		isAutomated: resource.isAutomated && !resource.isPaused,
-		speedResearchMultiplier: getSpeedResearchMultiplier({
-			research: state.research,
-			resourceId: resource.id,
-		}),
-	});
 	const inputCost = getRunInputCost({
 		resourceId: resource.id,
 		producers: resource.producers,
-		runTimeMultiplier: rtm,
+		runTimeMultiplier,
 	});
 	const isAutomatedActive = resource.isAutomated && !resource.isPaused;
 	const inputCostPerSecond =
 		isAutomatedActive && config.inputCostPerRun
 			? bnMul(
 					config.inputCostPerRun,
-					bigNum(
-						resource.producers /
-							getEffectiveRunTime({
-								resourceId: resource.id,
-								producers: resource.producers,
-								runTimeMultiplier: rtm,
-							}),
-					),
+					bigNum(resource.producers / effectiveRunTime),
 				)
 			: null;
 

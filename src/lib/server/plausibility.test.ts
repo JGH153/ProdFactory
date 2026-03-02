@@ -963,9 +963,9 @@ describe("checkPlausibility", () => {
 			});
 			// Without speed research: maxRuns = floor(1000/1000)+1 = 2
 			// maxProd = 2*1*1*1 = 2, tolerance = 2.3
-			// With speed-5: rtm=0.667, runTime=0.667s=667ms
+			// With speed-5: runTimeMultiplier=0.667, runTime=0.667s=667ms
 			// maxRuns = floor(1000/667)+1 = 2, maxProd=2, tolerance=2.3
-			// With 2s: rtm=0.667, runTime=667ms, maxRuns=floor(2000/667)+1=4
+			// With 2s: runTimeMultiplier=0.667, runTime=667ms, maxRuns=floor(2000/667)+1=4
 			// maxProd=4, tolerance=4.6
 			const claimed = makeResearchClaimedState({
 				researchOverrides: { "speed-iron-ore": 5 },
@@ -1009,7 +1009,7 @@ describe("checkPlausibility", () => {
 				lastSnapshot: snapshot,
 				serverNow: t0 + 2000,
 			});
-			// Without speed research: rtm=1, runTime=1s=1000ms
+			// Without speed research: runTimeMultiplier=1, runTime=1s=1000ms
 			// maxRuns = floor(2000/1000)+1 = 3, maxProd=3, tolerance=3.45
 			// 4 > 3.45 → corrected
 			expect(result.corrected).toBe(true);

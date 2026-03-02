@@ -6,11 +6,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { computeCouponsEarned } from "@/game/logic";
 import {
 	COUPON_BONUS_PER_UNIT,
 	getPrestigePassiveMultiplier,
 } from "@/game/prestige-config";
+import { computeCouponsEarned } from "@/game/prestige-logic";
 import { useGameState } from "@/game/state/game-state-context";
 import { bnFormat, bnIsZero, bnToNumber } from "@/lib/big-number";
 import { PrestigeConfirmModal } from "./prestige-confirm-modal";

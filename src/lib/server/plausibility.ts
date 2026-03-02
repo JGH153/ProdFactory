@@ -1,16 +1,17 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
-import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
 import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
+import { getProductionForRuns } from "@/game/production";
+import { advanceResearchLevels } from "@/game/research-calculator";
 import {
 	getResearchMultiplier,
-	getResearchTime,
 	getResearchTimeMultiplier,
 	getSpeedResearchMultiplier,
 	LAB_ORDER,
 	MAX_RESEARCH_LEVEL,
 	RESEARCH_ORDER,
 } from "@/game/research-config";
+import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/run-timing";
 import type {
 	SerializedGameState,
 	SerializedLabState,
@@ -43,7 +44,6 @@ type PlausibilityResult =
 			warnings: string[];
 	  };
 
-/** Compute the maximum research level reachable from `startLevel` given elapsed ms. */
 const computeMaxResearchLevel = ({
 	startLevel,
 	elapsedMs,
@@ -52,19 +52,9 @@ const computeMaxResearchLevel = ({
 	startLevel: number;
 	elapsedMs: number;
 	researchTimeMultiplier: number;
-}): number => {
-	let level = startLevel;
-	let remaining = elapsedMs;
-	while (level < MAX_RESEARCH_LEVEL) {
-		const levelTimeMs = getResearchTime(level) * 1000 * researchTimeMultiplier;
-		if (remaining < levelTimeMs) {
-			break;
-		}
-		remaining -= levelTimeMs;
-		level++;
-	}
-	return level;
-};
+}): number =>
+	advanceResearchLevels({ startLevel, elapsedMs, researchTimeMultiplier })
+		.newLevel;
 
 export const checkPlausibility = ({
 	claimedState,
@@ -108,7 +98,7 @@ export const checkPlausibility = ({
 	let labsCorrected = false;
 
 	if (lastSnapshot.research && lastSnapshot.labs) {
-		const rtm = getResearchTimeMultiplier({ shopBoosts });
+		const researchTimeMultiplier = getResearchTimeMultiplier({ shopBoosts });
 
 		// Validate research levels
 		for (const researchId of RESEARCH_ORDER) {
@@ -144,7 +134,7 @@ export const checkPlausibility = ({
 				const level = computeMaxResearchLevel({
 					startLevel: snapshotLevel,
 					elapsedMs,
-					researchTimeMultiplier: rtm,
+					researchTimeMultiplier,
 				});
 				maxAchievableLevel = Math.max(maxAchievableLevel, level);
 			}
@@ -169,7 +159,7 @@ export const checkPlausibility = ({
 					const level = computeMaxResearchLevel({
 						startLevel: snapshotLevel,
 						elapsedMs,
-						researchTimeMultiplier: rtm,
+						researchTimeMultiplier,
 					});
 					maxAchievableLevel = Math.max(maxAchievableLevel, level);
 				}
@@ -260,7 +250,7 @@ export const checkPlausibility = ({
 			snapshotResource.producers,
 			claimedResource.producers,
 		);
-		const rtm = getRunTimeMultiplier({
+		const runTimeMultiplier = getRunTimeMultiplier({
 			shopBoosts,
 			isAutomated:
 				claimedResource.isAutomated && !(claimedResource.isPaused ?? false),
@@ -273,16 +263,20 @@ export const checkPlausibility = ({
 			getEffectiveRunTime({
 				resourceId,
 				producers,
-				runTimeMultiplier: rtm,
+				runTimeMultiplier,
 			}) * 1000;
 		const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
 		const researchMul = getResearchMultiplier({
 			research: validatedResearch,
 			resourceId,
 		});
-		return bigNum(
-			maxRuns * producers * productionMul * researchMul * prestigeMul,
-		);
+		return getProductionForRuns({
+			runs: maxRuns,
+			producers,
+			productionMul,
+			researchMul,
+			prestigeMul,
+		});
 	};
 
 	for (const resourceId of RESOURCE_ORDER) {

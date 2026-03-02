@@ -296,6 +296,11 @@ describe("bnFormat", () => {
 	it("formats fractional value 0.05 as '0.05'", () => {
 		expect(bnFormat(bigNum(0.05))).toBe("0.05");
 	});
+
+	it("formats near-zero fractional value as '0'", () => {
+		expect(bnFormat(bigNum(0.001))).toBe("0");
+		expect(bnFormat(bigNum(0.004))).toBe("0");
+	});
 });
 
 describe("bnSerialize / bnDeserialize", () => {

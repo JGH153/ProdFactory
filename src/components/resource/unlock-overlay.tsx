@@ -10,9 +10,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { RESOURCE_CONFIGS } from "@/game/config";
-import { canUnlock } from "@/game/logic";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceId } from "@/game/types";
+import { canUnlock } from "@/game/unlocking";
 import { bnFormat } from "@/lib/big-number";
 
 const getUnlockStatusText = ({

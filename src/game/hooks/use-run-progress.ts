@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getClampedRunTime, isContinuousMode } from "@/game/logic";
+import { getClampedRunTime, isContinuousMode } from "@/game/run-timing";
 import type { ResourceState } from "@/game/types";
 
 type RunProgress = {

@@ -1,7 +1,14 @@
 import type { NextRequest, NextResponse } from "next/server";
-import { buyMaxProducers } from "@/game/logic";
-import { executeAction } from "@/lib/server/api-helpers";
+import { buyMaxProducers } from "@/game/producers";
+import {
+	executeGameAction,
+	parseResourceActionBody,
+} from "@/lib/server/api-helpers";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	return executeAction({ request, action: buyMaxProducers });
+	return executeGameAction({
+		request,
+		parseBody: parseResourceActionBody,
+		applyAction: buyMaxProducers,
+	});
 };

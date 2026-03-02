@@ -120,6 +120,7 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 			})
 			.catch(() => {
 				// Autoplay blocked by browser — will retry on first user interaction
+				console.log("[Music] Autoplay blocked by browser — will retry on first user interaction");
 				pendingAutoplayRef.current = true;
 			});
 	}, [getAudio]);
@@ -164,6 +165,7 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 						setIsPlaying(true);
 					})
 					.catch(() => {
+						console.log("[Music] Autoplay blocked by browser — will retry on first user interaction");
 						pendingAutoplayRef.current = true;
 					});
 			}
@@ -226,6 +228,7 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 			} else if (pausedByVisibilityRef.current) {
 				pausedByVisibilityRef.current = false;
 				audio.play().catch(() => {
+					console.log("[Music] Autoplay blocked by browser — will retry on first user interaction");
 					pendingAutoplayRef.current = true;
 				});
 			}

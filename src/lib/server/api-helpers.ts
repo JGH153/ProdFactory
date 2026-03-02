@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { advanceResearch } from "@/game/research-logic";
 import {
 	deserializeGameState,
 	type SerializedGameState,
@@ -25,6 +24,7 @@ import {
 } from "./api-validation";
 import { logger } from "./logger";
 import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
+import { checkRateLimit } from "./rate-limit";
 import {
 	getSyncSnapshot,
 	loadStoredGameState,
@@ -34,31 +34,12 @@ import {
 } from "./redis";
 import { COOKIE_NAME, incrementWarnings, validateSession } from "./session";
 
-type ResourceActionBody = {
-	resourceId: ResourceId;
-	serverVersion: number;
-};
-
-type BoostActionBody = {
-	boostId: ShopBoostId;
-	serverVersion: number;
-};
-
 type SaveActionBody = {
 	state: SerializedGameState;
 	serverVersion: number;
 };
 
-type LabActionBody = {
-	labId: LabId;
-	serverVersion: number;
-};
-
-type LabResearchActionBody = {
-	labId: LabId;
-	researchId: ResearchId;
-	serverVersion: number;
-};
+// --- Session & rate limiting ---
 
 const UUID_REGEX =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -88,6 +69,24 @@ export const getSessionFromRequest = async (
 	return { sessionId };
 };
 
+const ACTION_RATE_LIMIT_MAX = 120;
+const ACTION_RATE_LIMIT_WINDOW = 60;
+
+const checkActionRateLimit = async (
+	sessionId: string,
+): Promise<NextResponse | null> => {
+	const { allowed } = await checkRateLimit({
+		key: `session-action:${sessionId}`,
+		maxRequests: ACTION_RATE_LIMIT_MAX,
+		windowSeconds: ACTION_RATE_LIMIT_WINDOW,
+	});
+	if (!allowed) {
+		logger.warn({ sessionId }, "Session action rate limit exceeded");
+		return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+	}
+	return null;
+};
+
 export const stripServerVersion = (
 	stored: StoredGameState,
 ): SerializedGameState => ({
@@ -100,36 +99,84 @@ export const stripServerVersion = (
 	version: stored.version,
 });
 
-const parseResourceActionBody = async (
-	request: NextRequest,
-): Promise<ResourceActionBody | NextResponse> => {
-	let body: unknown;
-	try {
-		body = await request.json();
-	} catch {
-		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-	}
+// --- Generic body parser builder ---
 
-	if (!isRecord(body)) {
-		return NextResponse.json(
-			{ error: "Body must be an object" },
-			{ status: 400 },
-		);
-	}
-
-	if (!isValidResourceId(body.resourceId)) {
-		return NextResponse.json({ error: "Invalid resourceId" }, { status: 400 });
-	}
-
-	if (!isNonNegativeInteger(body.serverVersion)) {
-		return NextResponse.json(
-			{ error: "Invalid serverVersion" },
-			{ status: 400 },
-		);
-	}
-
-	return { resourceId: body.resourceId, serverVersion: body.serverVersion };
+type FieldDef = {
+	validate: (value: unknown) => boolean;
+	error: string;
 };
+
+const createBodyParser =
+	<TFields extends Record<string, unknown>>(
+		fields: { [K in keyof TFields]: FieldDef },
+	) =>
+	async (
+		request: NextRequest,
+	): Promise<(TFields & { serverVersion: number }) | NextResponse> => {
+		let body: unknown;
+		try {
+			body = await request.json();
+		} catch {
+			return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+		}
+
+		if (!isRecord(body)) {
+			return NextResponse.json(
+				{ error: "Body must be an object" },
+				{ status: 400 },
+			);
+		}
+
+		for (const key of Object.keys(fields)) {
+			const spec = (fields as Record<string, FieldDef | undefined>)[key];
+			if (spec && !spec.validate(body[key])) {
+				return NextResponse.json({ error: spec.error }, { status: 400 });
+			}
+		}
+
+		if (!isNonNegativeInteger(body.serverVersion)) {
+			return NextResponse.json(
+				{ error: "Invalid serverVersion" },
+				{ status: 400 },
+			);
+		}
+
+		const result = { serverVersion: body.serverVersion } as TFields & {
+			serverVersion: number;
+		};
+		for (const key of Object.keys(fields)) {
+			(result as Record<string, unknown>)[key] = body[key];
+		}
+		return result;
+	};
+
+// --- Body parsers ---
+
+export const parseResourceActionBody = createBodyParser<{
+	resourceId: ResourceId;
+}>({
+	resourceId: { validate: isValidResourceId, error: "Invalid resourceId" },
+});
+
+export const parseBoostActionBody = createBodyParser<{
+	boostId: ShopBoostId;
+}>({
+	boostId: { validate: isValidBoostId, error: "Invalid boostId" },
+});
+
+export const parseLabActionBody = createBodyParser<{ labId: LabId }>({
+	labId: { validate: isValidLabId, error: "Invalid labId" },
+});
+
+export const parseLabResearchActionBody = createBodyParser<{
+	labId: LabId;
+	researchId: ResearchId;
+}>({
+	labId: { validate: isValidLabId, error: "Invalid labId" },
+	researchId: { validate: isValidResearchId, error: "Invalid researchId" },
+});
+
+export const parseVersionOnlyBody = createBodyParser({});
 
 export const parseSaveActionBody = async (
 	request: NextRequest,
@@ -170,32 +217,7 @@ export const parseSaveActionBody = async (
 	};
 };
 
-export const parseVersionOnlyBody = async (
-	request: NextRequest,
-): Promise<{ serverVersion: number } | NextResponse> => {
-	let body: unknown;
-	try {
-		body = await request.json();
-	} catch {
-		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-	}
-
-	if (!isRecord(body)) {
-		return NextResponse.json(
-			{ error: "Body must be an object" },
-			{ status: 400 },
-		);
-	}
-
-	if (!isNonNegativeInteger(body.serverVersion)) {
-		return NextResponse.json(
-			{ error: "Invalid serverVersion" },
-			{ status: 400 },
-		);
-	}
-
-	return { serverVersion: body.serverVersion };
-};
+// --- Plausibility ---
 
 export type PlausibilitySaveResult =
 	| { type: "accepted"; serverVersion: number }
@@ -295,7 +317,7 @@ export const persistWithPlausibility = async ({
 	return { type: "accepted", serverVersion: newVersion };
 };
 
-export const patchSnapshotMetadata = async ({
+const patchSnapshotMetadata = async ({
 	sessionId,
 	state,
 }: {
@@ -318,12 +340,22 @@ export const patchSnapshotMetadata = async ({
 	});
 };
 
-export const executeAction = async ({
+// --- Unified action executor ---
+
+export const executeGameAction = async <
+	TBody extends { serverVersion: number },
+>({
 	request,
-	action,
+	parseBody,
+	applyAction,
+	afterApply,
 }: {
 	request: NextRequest;
-	action: (args: { state: GameState; resourceId: ResourceId }) => GameState;
+	parseBody: (request: NextRequest) => Promise<TBody | NextResponse>;
+	applyAction: (
+		args: { state: GameState } & Omit<TBody, "serverVersion">,
+	) => GameState;
+	afterApply?: (args: { state: GameState }) => GameState;
 }): Promise<NextResponse> => {
 	const sessionResult = await getSessionFromRequest(request);
 	if (sessionResult instanceof NextResponse) {
@@ -331,11 +363,16 @@ export const executeAction = async ({
 	}
 	const { sessionId } = sessionResult;
 
-	const body = await parseResourceActionBody(request);
+	const rateLimited = await checkActionRateLimit(sessionId);
+	if (rateLimited) {
+		return rateLimited;
+	}
+
+	const body = await parseBody(request);
 	if (body instanceof NextResponse) {
 		return body;
 	}
-	const { resourceId, serverVersion } = body;
+	const { serverVersion, ...actionParams } = body;
 
 	const stored = await loadStoredGameState(sessionId);
 	if (!stored) {
@@ -361,318 +398,21 @@ export const executeAction = async ({
 	}
 
 	const currentState = deserializeGameState(stored);
-	const newState = action({ state: currentState, resourceId });
+	const appliedState = applyAction({
+		state: currentState,
+		...actionParams,
+	} as { state: GameState } & Omit<TBody, "serverVersion">);
 
-	if (newState === currentState) {
+	if (appliedState === currentState) {
 		return NextResponse.json(
 			{ error: "Action had no effect" },
 			{ status: 400 },
 		);
 	}
 
-	const newSerialized = serializeGameState(newState);
-	const newStored: StoredGameState = {
-		...newSerialized,
-		serverVersion: stored.serverVersion + 1,
-	};
-	await saveStoredGameState({ sessionId, stored: newStored });
-	await patchSnapshotMetadata({ sessionId, state: newSerialized });
-
-	return NextResponse.json({
-		state: newSerialized,
-		serverVersion: newStored.serverVersion,
-	});
-};
-
-const parseBoostActionBody = async (
-	request: NextRequest,
-): Promise<BoostActionBody | NextResponse> => {
-	let body: unknown;
-	try {
-		body = await request.json();
-	} catch {
-		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-	}
-
-	if (!isRecord(body)) {
-		return NextResponse.json(
-			{ error: "Body must be an object" },
-			{ status: 400 },
-		);
-	}
-
-	if (!isValidBoostId(body.boostId)) {
-		return NextResponse.json({ error: "Invalid boostId" }, { status: 400 });
-	}
-
-	if (!isNonNegativeInteger(body.serverVersion)) {
-		return NextResponse.json(
-			{ error: "Invalid serverVersion" },
-			{ status: 400 },
-		);
-	}
-
-	return { boostId: body.boostId, serverVersion: body.serverVersion };
-};
-
-export const executeSimpleAction = async ({
-	request,
-	action,
-}: {
-	request: NextRequest;
-	action: (args: { state: GameState }) => GameState;
-}): Promise<NextResponse> => {
-	const sessionResult = await getSessionFromRequest(request);
-	if (sessionResult instanceof NextResponse) {
-		return sessionResult;
-	}
-	const { sessionId } = sessionResult;
-
-	const body = await parseVersionOnlyBody(request);
-	if (body instanceof NextResponse) {
-		return body;
-	}
-	const { serverVersion } = body;
-
-	const stored = await loadStoredGameState(sessionId);
-	if (!stored) {
-		return NextResponse.json({ error: "No game state found" }, { status: 404 });
-	}
-
-	if (stored.serverVersion !== serverVersion) {
-		logger.debug(
-			{
-				sessionId,
-				clientVersion: serverVersion,
-				serverVersion: stored.serverVersion,
-			},
-			"Version conflict",
-		);
-		return NextResponse.json(
-			{
-				state: stripServerVersion(stored),
-				serverVersion: stored.serverVersion,
-			},
-			{ status: 409 },
-		);
-	}
-
-	const currentState = deserializeGameState(stored);
-	const newState = action({ state: currentState });
-
-	if (newState === currentState) {
-		return NextResponse.json(
-			{ error: "Action had no effect" },
-			{ status: 400 },
-		);
-	}
-
-	const newSerialized = serializeGameState(newState);
-	const newStored: StoredGameState = {
-		...newSerialized,
-		serverVersion: stored.serverVersion + 1,
-	};
-	await saveStoredGameState({ sessionId, stored: newStored });
-	await patchSnapshotMetadata({ sessionId, state: newSerialized });
-
-	return NextResponse.json({
-		state: newSerialized,
-		serverVersion: newStored.serverVersion,
-	});
-};
-
-const parseLabActionBody = async (
-	request: NextRequest,
-): Promise<LabActionBody | NextResponse> => {
-	let body: unknown;
-	try {
-		body = await request.json();
-	} catch {
-		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-	}
-
-	if (!isRecord(body)) {
-		return NextResponse.json(
-			{ error: "Body must be an object" },
-			{ status: 400 },
-		);
-	}
-
-	if (!isValidLabId(body.labId)) {
-		return NextResponse.json({ error: "Invalid labId" }, { status: 400 });
-	}
-
-	if (!isNonNegativeInteger(body.serverVersion)) {
-		return NextResponse.json(
-			{ error: "Invalid serverVersion" },
-			{ status: 400 },
-		);
-	}
-
-	return { labId: body.labId, serverVersion: body.serverVersion };
-};
-
-export const parseLabResearchActionBody = async (
-	request: NextRequest,
-): Promise<LabResearchActionBody | NextResponse> => {
-	let body: unknown;
-	try {
-		body = await request.json();
-	} catch {
-		return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-	}
-
-	if (!isRecord(body)) {
-		return NextResponse.json(
-			{ error: "Body must be an object" },
-			{ status: 400 },
-		);
-	}
-
-	if (!isValidLabId(body.labId)) {
-		return NextResponse.json({ error: "Invalid labId" }, { status: 400 });
-	}
-
-	if (!isValidResearchId(body.researchId)) {
-		return NextResponse.json({ error: "Invalid researchId" }, { status: 400 });
-	}
-
-	if (!isNonNegativeInteger(body.serverVersion)) {
-		return NextResponse.json(
-			{ error: "Invalid serverVersion" },
-			{ status: 400 },
-		);
-	}
-
-	return {
-		labId: body.labId,
-		researchId: body.researchId,
-		serverVersion: body.serverVersion,
-	};
-};
-
-export const executeLabAction = async ({
-	request,
-	action,
-}: {
-	request: NextRequest;
-	action: (args: { state: GameState; labId: LabId }) => GameState;
-}): Promise<NextResponse> => {
-	const sessionResult = await getSessionFromRequest(request);
-	if (sessionResult instanceof NextResponse) {
-		return sessionResult;
-	}
-	const { sessionId } = sessionResult;
-
-	const body = await parseLabActionBody(request);
-	if (body instanceof NextResponse) {
-		return body;
-	}
-	const { labId, serverVersion } = body;
-
-	const stored = await loadStoredGameState(sessionId);
-	if (!stored) {
-		return NextResponse.json({ error: "No game state found" }, { status: 404 });
-	}
-
-	if (stored.serverVersion !== serverVersion) {
-		logger.debug(
-			{
-				sessionId,
-				clientVersion: serverVersion,
-				serverVersion: stored.serverVersion,
-			},
-			"Version conflict",
-		);
-		return NextResponse.json(
-			{
-				state: stripServerVersion(stored),
-				serverVersion: stored.serverVersion,
-			},
-			{ status: 409 },
-		);
-	}
-
-	const currentState = deserializeGameState(stored);
-	const newState = action({ state: currentState, labId });
-
-	if (newState === currentState) {
-		return NextResponse.json(
-			{ error: "Action had no effect" },
-			{ status: 400 },
-		);
-	}
-
-	const newSerialized = serializeGameState(newState);
-	const newStored: StoredGameState = {
-		...newSerialized,
-		serverVersion: stored.serverVersion + 1,
-	};
-	await saveStoredGameState({ sessionId, stored: newStored });
-	await patchSnapshotMetadata({ sessionId, state: newSerialized });
-
-	return NextResponse.json({
-		state: newSerialized,
-		serverVersion: newStored.serverVersion,
-	});
-};
-
-export const executeBoostAction = async ({
-	request,
-	action,
-}: {
-	request: NextRequest;
-	action: (args: { state: GameState; boostId: ShopBoostId }) => GameState;
-}): Promise<NextResponse> => {
-	const sessionResult = await getSessionFromRequest(request);
-	if (sessionResult instanceof NextResponse) {
-		return sessionResult;
-	}
-	const { sessionId } = sessionResult;
-
-	const body = await parseBoostActionBody(request);
-	if (body instanceof NextResponse) {
-		return body;
-	}
-	const { boostId, serverVersion } = body;
-
-	const stored = await loadStoredGameState(sessionId);
-	if (!stored) {
-		return NextResponse.json({ error: "No game state found" }, { status: 404 });
-	}
-
-	if (stored.serverVersion !== serverVersion) {
-		logger.debug(
-			{
-				sessionId,
-				clientVersion: serverVersion,
-				serverVersion: stored.serverVersion,
-			},
-			"Version conflict",
-		);
-		return NextResponse.json(
-			{
-				state: stripServerVersion(stored),
-				serverVersion: stored.serverVersion,
-			},
-			{ status: 409 },
-		);
-	}
-
-	const currentState = deserializeGameState(stored);
-	const boostedState = action({ state: currentState, boostId });
-
-	if (boostedState === currentState) {
-		return NextResponse.json(
-			{ error: "Action had no effect" },
-			{ status: 400 },
-		);
-	}
-
-	// Advance any research that may now be past its completion time after the
-	// boost (e.g. research-2x halves level time, so in-progress research that
-	// was >50% done is now complete).
-	const newState = advanceResearch({ state: boostedState, now: Date.now() });
+	const newState = afterApply
+		? afterApply({ state: appliedState })
+		: appliedState;
 
 	const newSerialized = serializeGameState(newState);
 	const newStored: StoredGameState = {

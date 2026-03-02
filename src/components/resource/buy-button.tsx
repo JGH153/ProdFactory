@@ -7,7 +7,7 @@ import {
 	canBuyProducer,
 	getMaxAffordableProducers,
 	getProducerCost,
-} from "@/game/logic";
+} from "@/game/producers";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceState } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";

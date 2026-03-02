@@ -1,15 +1,16 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { createInitialGameState } from "@/game/initial-state";
-import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/logic";
 import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
+import { getProductionForRuns } from "@/game/production";
+import { advanceResearchLevels } from "@/game/research-calculator";
 import {
 	getResearchMultiplier,
-	getResearchTime,
 	getResearchTimeMultiplier,
 	getSpeedResearchMultiplier,
 	LAB_ORDER,
 	MAX_RESEARCH_LEVEL,
 } from "@/game/research-config";
+import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/run-timing";
 import type {
 	SerializedGameState,
 	SerializedLabState,
@@ -76,7 +77,7 @@ export const computeOfflineProgress = ({
 	const updatedLabs = { ...initialLabs } as Record<LabId, SerializedLabState>;
 
 	const researchLevelUps: SerializedOfflineSummary["researchLevelUps"] = [];
-	const rtm = getResearchTimeMultiplier({ shopBoosts });
+	const researchTimeMultiplier = getResearchTimeMultiplier({ shopBoosts });
 
 	for (const labId of LAB_ORDER) {
 		const lab = updatedLabs[labId];
@@ -89,24 +90,19 @@ export const computeOfflineProgress = ({
 		}
 
 		const researchId = lab.activeResearchId;
-		let currentLevel = research[researchId];
-		let elapsedMs = serverNow - lab.researchStartedAt;
-		let advanced = false;
+		const startLevel = research[researchId];
+		const { newLevel, remainingMs } = advanceResearchLevels({
+			startLevel,
+			elapsedMs: serverNow - lab.researchStartedAt,
+			researchTimeMultiplier,
+		});
 
-		while (currentLevel < MAX_RESEARCH_LEVEL) {
-			const levelTimeMs = getResearchTime(currentLevel) * 1000 * rtm;
-			if (elapsedMs < levelTimeMs) {
-				break;
+		if (newLevel > startLevel) {
+			for (let lvl = startLevel + 1; lvl <= newLevel; lvl++) {
+				researchLevelUps.push({ researchId, newLevel: lvl });
 			}
-			elapsedMs -= levelTimeMs;
-			currentLevel++;
-			advanced = true;
-			researchLevelUps.push({ researchId, newLevel: currentLevel });
-		}
-
-		if (advanced) {
-			research[researchId] = currentLevel;
-			if (currentLevel >= MAX_RESEARCH_LEVEL) {
+			research[researchId] = newLevel;
+			if (newLevel >= MAX_RESEARCH_LEVEL) {
 				updatedLabs[labId] = {
 					...lab,
 					activeResearchId: null,
@@ -115,7 +111,7 @@ export const computeOfflineProgress = ({
 			} else {
 				updatedLabs[labId] = {
 					...lab,
-					researchStartedAt: serverNow - elapsedMs,
+					researchStartedAt: serverNow - remainingMs,
 				};
 			}
 		}
@@ -143,7 +139,7 @@ export const computeOfflineProgress = ({
 			continue;
 		}
 
-		const rtm = getRunTimeMultiplier({
+		const runTimeMultiplier = getRunTimeMultiplier({
 			shopBoosts,
 			isAutomated: true,
 			speedResearchMultiplier: getSpeedResearchMultiplier({
@@ -154,7 +150,7 @@ export const computeOfflineProgress = ({
 		const runTime = getEffectiveRunTime({
 			resourceId,
 			producers: resource.producers,
-			runTimeMultiplier: rtm,
+			runTimeMultiplier,
 		});
 
 		const maxRunsByTime = Math.floor(elapsedSeconds / runTime);
@@ -188,13 +184,13 @@ export const computeOfflineProgress = ({
 		}
 
 		const researchMul = getResearchMultiplier({ research, resourceId });
-		const gain = bigNum(
-			actualRuns *
-				resource.producers *
-				productionMul *
-				researchMul *
-				prestigeMul,
-		);
+		const gain = getProductionForRuns({
+			runs: actualRuns,
+			producers: resource.producers,
+			productionMul,
+			researchMul,
+			prestigeMul,
+		});
 		netAvailable[resourceId] = bnAdd(savedAmount, gain);
 		gains.push({ resourceId, amount: bnSerialize(gain) });
 		updatedResources[resourceId] = {

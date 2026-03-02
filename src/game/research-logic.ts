@@ -1,5 +1,5 @@
+import { advanceResearchLevels } from "./research-calculator";
 import {
-	getResearchTime,
 	getResearchTimeMultiplier,
 	LAB_ORDER,
 	MAX_RESEARCH_LEVEL,
@@ -159,7 +159,9 @@ export const advanceResearchWithReport = ({
 }): AdvanceResearchResult => {
 	let newState = state;
 	const levelUps: ResearchLevelUp[] = [];
-	const rtm = getResearchTimeMultiplier({ shopBoosts: state.shopBoosts });
+	const researchTimeMultiplier = getResearchTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+	});
 
 	for (const labId of LAB_ORDER) {
 		const lab = newState.labs[labId];
@@ -172,23 +174,19 @@ export const advanceResearchWithReport = ({
 		}
 
 		const researchId = lab.activeResearchId;
-		let currentLevel = newState.research[researchId];
-		let elapsedMs = now - lab.researchStartedAt;
-		let advanced = false;
+		const startLevel = newState.research[researchId];
+		const { newLevel, remainingMs } = advanceResearchLevels({
+			startLevel,
+			elapsedMs: now - lab.researchStartedAt,
+			researchTimeMultiplier,
+		});
 
-		while (currentLevel < MAX_RESEARCH_LEVEL) {
-			const levelTimeMs = getResearchTime(currentLevel) * 1000 * rtm;
-			if (elapsedMs < levelTimeMs) {
-				break;
+		if (newLevel > startLevel) {
+			for (let lvl = startLevel + 1; lvl <= newLevel; lvl++) {
+				levelUps.push({ researchId, newLevel: lvl });
 			}
-			elapsedMs -= levelTimeMs;
-			currentLevel++;
-			advanced = true;
-			levelUps.push({ researchId, newLevel: currentLevel });
-		}
 
-		if (advanced) {
-			const isMaxed = currentLevel >= MAX_RESEARCH_LEVEL;
+			const isMaxed = newLevel >= MAX_RESEARCH_LEVEL;
 			const updatedLab: LabState = isMaxed
 				? {
 						...lab,
@@ -197,12 +195,12 @@ export const advanceResearchWithReport = ({
 					}
 				: {
 						...lab,
-						researchStartedAt: now - elapsedMs,
+						researchStartedAt: now - remainingMs,
 					};
 
 			newState = {
 				...newState,
-				research: { ...newState.research, [researchId]: currentLevel },
+				research: { ...newState.research, [researchId]: newLevel },
 				labs: { ...newState.labs, [labId]: updatedLab },
 			};
 		}

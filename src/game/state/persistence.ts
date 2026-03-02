@@ -26,10 +26,14 @@ export const loadGame = (): GameState => {
 		}
 		const parsed = JSON.parse(raw) as SerializedGameState;
 		if (parsed.version !== SAVE_VERSION) {
+			console.warn(
+				`[ProdFactory] Save version mismatch: expected ${SAVE_VERSION}, got ${parsed.version}. Starting fresh.`,
+			);
 			return createInitialGameState();
 		}
 		return deserializeGameState(parsed);
-	} catch {
+	} catch (error) {
+		console.warn("[ProdFactory] Failed to load saved game:", error);
 		return createInitialGameState();
 	}
 };

@@ -1,7 +1,14 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { unassignResearch } from "@/game/research-logic";
-import { executeLabAction } from "@/lib/server/api-helpers";
+import {
+	executeGameAction,
+	parseLabActionBody,
+} from "@/lib/server/api-helpers";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	return executeLabAction({ request, action: unassignResearch });
+	return executeGameAction({
+		request,
+		parseBody: parseLabActionBody,
+		applyAction: unassignResearch,
+	});
 };

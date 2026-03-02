@@ -6,6 +6,7 @@ import {
 	use,
 	useCallback,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
 
@@ -51,27 +52,35 @@ export const SfxProvider = ({ children }: PropsWithChildren) => {
 		});
 	}, []);
 
+	const audioPoolRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+
+	const playSound = useCallback(
+		(src: string, volume: number) => {
+			if (!sfxEnabled) {
+				return;
+			}
+			let audio = audioPoolRef.current.get(src);
+			if (!audio) {
+				audio = new Audio(src);
+				audioPoolRef.current.set(src, audio);
+			}
+			audio.volume = volume;
+			audio.currentTime = 0;
+			audio.play().catch(() => {
+				// Autoplay blocked by browser
+				console.log("[SFX] Autoplay blocked by browser");
+			});
+		},
+		[sfxEnabled],
+	);
+
 	const playClickSfx = useCallback(() => {
-		if (!sfxEnabled) {
-			return;
-		}
-		const audio = new Audio("/pickaxe.mp3");
-		audio.volume = 0.4;
-		audio.play().catch(() => {
-			// Autoplay blocked by browser
-		});
-	}, [sfxEnabled]);
+		playSound("/pickaxe.mp3", 0.4);
+	}, [playSound]);
 
 	const playMilestoneSfx = useCallback(() => {
-		if (!sfxEnabled) {
-			return;
-		}
-		const audio = new Audio("/high-speed.mp3");
-		audio.volume = 0.5;
-		audio.play().catch(() => {
-			// Autoplay blocked by browser
-		});
-	}, [sfxEnabled]);
+		playSound("/high-speed.mp3", 0.5);
+	}, [playSound]);
 
 	return (
 		<SfxContext

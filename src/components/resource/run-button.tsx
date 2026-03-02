@@ -11,14 +11,9 @@ import {
 } from "@/components/ui/tooltip";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useParticleBurst } from "@/game/hooks/use-particle-burst";
-import {
-	canStartRun,
-	getRunInputCost,
-	getRunTimeMultiplier,
-	getSpeedMilestone,
-	SPEED_MILESTONE_INTERVAL,
-} from "@/game/logic";
-import { getSpeedResearchMultiplier } from "@/game/research-config";
+import { useResourceRuntime } from "@/game/hooks/use-resource-runtime";
+import { getSpeedMilestone, SPEED_MILESTONE_INTERVAL } from "@/game/run-timing";
+import { canStartRun, getRunInputCost } from "@/game/runs";
 import { useGameState } from "@/game/state/game-state-context";
 import { useSfx } from "@/game/state/sfx-context";
 import type { GameState, ResourceState } from "@/game/types";
@@ -29,26 +24,20 @@ import { ParticleEffect } from "./particle-effect";
 const getInsufficientInputMessage = ({
 	state,
 	resource,
+	runTimeMultiplier,
 }: {
 	state: GameState;
 	resource: ResourceState;
+	runTimeMultiplier: number;
 }): string | null => {
 	const config = RESOURCE_CONFIGS[resource.id];
 	if (config.inputResourceId === null) {
 		return null;
 	}
-	const rtm = getRunTimeMultiplier({
-		shopBoosts: state.shopBoosts,
-		isAutomated: resource.isAutomated && !resource.isPaused,
-		speedResearchMultiplier: getSpeedResearchMultiplier({
-			research: state.research,
-			resourceId: resource.id,
-		}),
-	});
 	const cost = getRunInputCost({
 		resourceId: resource.id,
 		producers: resource.producers,
-		runTimeMultiplier: rtm,
+		runTimeMultiplier,
 	});
 	if (cost === null) {
 		return null;
@@ -67,6 +56,7 @@ type Props = {
 
 export const RunButton = ({ resource }: Props) => {
 	const { state, startResourceRun } = useGameState();
+	const { runTimeMultiplier } = useResourceRuntime({ state, resource });
 	const { playClickSfx } = useSfx();
 	const { particles, triggerBurst } = useParticleBurst();
 	const config = RESOURCE_CONFIGS[resource.id];
@@ -78,6 +68,7 @@ export const RunButton = ({ resource }: Props) => {
 	const insufficientInputMessage = getInsufficientInputMessage({
 		state,
 		resource,
+		runTimeMultiplier,
 	});
 
 	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {

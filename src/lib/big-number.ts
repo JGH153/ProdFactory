@@ -232,7 +232,11 @@ export const bnFormat = (bn: BigNum): string => {
 	// Small numbers: display with commas
 	if (bn.exponent < 6) {
 		if (bn.exponent < 0) {
-			return value.toFixed(2);
+			const formatted = value.toFixed(2);
+			if (formatted === "0.00") {
+				return "0";
+			}
+			return formatted;
 		}
 		return Math.floor(value).toLocaleString("en-US");
 	}

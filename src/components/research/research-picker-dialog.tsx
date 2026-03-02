@@ -45,7 +45,7 @@ type ItemProps = {
 	labId: LabId;
 	state: GameState;
 	assigningId: ResearchId | null;
-	rtm: number;
+	researchTimeMultiplier: number;
 	onSelect: (researchId: ResearchId) => void;
 };
 
@@ -54,7 +54,7 @@ const ResearchPickerItem = ({
 	labId,
 	state,
 	assigningId,
-	rtm,
+	researchTimeMultiplier,
 	onSelect,
 }: ItemProps) => {
 	const config = RESEARCH_CONFIGS[researchId];
@@ -72,7 +72,7 @@ const ResearchPickerItem = ({
 	const nextLevel = level + 1;
 	const currentBonus = Math.round(level * RESEARCH_BONUS_PER_LEVEL * 100);
 	const nextBonus = Math.round(nextLevel * RESEARCH_BONUS_PER_LEVEL * 100);
-	const timeForNext = getResearchTime(level) * rtm;
+	const timeForNext = getResearchTime(level) * researchTimeMultiplier;
 	const suffix = isSpeedResearch ? " speed" : "";
 
 	return (
@@ -116,7 +116,9 @@ const ResearchPickerItem = ({
 export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 	const { state, assignLabResearch } = useGameState();
 	const [assigningId, setAssigningId] = useState<ResearchId | null>(null);
-	const rtm = getResearchTimeMultiplier({ shopBoosts: state.shopBoosts });
+	const researchTimeMultiplier = getResearchTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+	});
 
 	const handleSelect = async (researchId: ResearchId) => {
 		setAssigningId(researchId);
@@ -153,7 +155,7 @@ export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 									labId={labId}
 									state={state}
 									assigningId={assigningId}
-									rtm={rtm}
+									researchTimeMultiplier={researchTimeMultiplier}
 									onSelect={handleSelect}
 								/>
 							</li>
@@ -170,7 +172,7 @@ export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 									labId={labId}
 									state={state}
 									assigningId={assigningId}
-									rtm={rtm}
+									researchTimeMultiplier={researchTimeMultiplier}
 									onSelect={handleSelect}
 								/>
 							</li>

@@ -1,7 +1,14 @@
 import type { NextRequest, NextResponse } from "next/server";
-import { unlockResource } from "@/game/logic";
-import { executeAction } from "@/lib/server/api-helpers";
+import { unlockResource } from "@/game/unlocking";
+import {
+	executeGameAction,
+	parseResourceActionBody,
+} from "@/lib/server/api-helpers";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	return executeAction({ request, action: unlockResource });
+	return executeGameAction({
+		request,
+		parseBody: parseResourceActionBody,
+		applyAction: unlockResource,
+	});
 };

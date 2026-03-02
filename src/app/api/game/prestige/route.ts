@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { performPrestige } from "@/game/logic";
+import { performPrestige } from "@/game/prestige-logic";
 import {
 	deserializeGameState,
 	serializeGameState,

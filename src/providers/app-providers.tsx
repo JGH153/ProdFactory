@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GameStateProvider } from "@/game/state/game-state-context";
 import { MilestoneNotificationProvider } from "@/game/state/milestone-context";
@@ -21,13 +22,15 @@ const queryClient = new QueryClient({
 });
 
 export const AppProviders = ({ children }: PropsWithChildren) => (
-	<QueryClientProvider client={queryClient}>
-		<TooltipProvider>
-			<SfxProvider>
-				<MilestoneNotificationProvider>
-					<GameStateProvider>{children}</GameStateProvider>
-				</MilestoneNotificationProvider>
-			</SfxProvider>
-		</TooltipProvider>
-	</QueryClientProvider>
+	<ErrorBoundary>
+		<QueryClientProvider client={queryClient}>
+			<TooltipProvider>
+				<SfxProvider>
+					<MilestoneNotificationProvider>
+						<GameStateProvider>{children}</GameStateProvider>
+					</MilestoneNotificationProvider>
+				</SfxProvider>
+			</TooltipProvider>
+		</QueryClientProvider>
+	</ErrorBoundary>
 );

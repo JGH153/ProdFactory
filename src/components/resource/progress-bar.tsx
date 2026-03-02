@@ -5,21 +5,12 @@ import { useEffect, useRef } from "react";
 import { Progress } from "@/components/ui/progress";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import { useParticleBurst } from "@/game/hooks/use-particle-burst";
+import { useResourceRuntime } from "@/game/hooks/use-resource-runtime";
 import { useRunProgress } from "@/game/hooks/use-run-progress";
-import {
-	canStartRun,
-	getClampedRunTime,
-	getContinuousMultiplier,
-	getEffectiveRunTime,
-	getRunTimeMultiplier,
-} from "@/game/logic";
-import {
-	getResearchMultiplier,
-	getSpeedResearchMultiplier,
-} from "@/game/research-config";
+import { canStartRun } from "@/game/runs";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceState } from "@/game/types";
-import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
+import { bigNum, bnFormat } from "@/lib/big-number";
 import { ParticleEffect } from "./particle-effect";
 
 const formatRunTime = (seconds: number): string => {
@@ -74,9 +65,7 @@ const getStatusText = ({
 	isContinuous,
 	remainingSeconds,
 	effectiveRunTime,
-	producers,
-	productionMul,
-	researchMul,
+	perSecondFormatted,
 }: {
 	isPaused: boolean;
 	isWaitingForInput: boolean;
@@ -85,9 +74,7 @@ const getStatusText = ({
 	isContinuous: boolean;
 	remainingSeconds: number;
 	effectiveRunTime: number;
-	producers: number;
-	productionMul: number;
-	researchMul: number;
+	perSecondFormatted: string;
 }): string => {
 	if (isPaused) {
 		return "Paused";
@@ -96,7 +83,7 @@ const getStatusText = ({
 		return `Waiting for ${inputResourceName}...`;
 	}
 	if (isRunning && isContinuous) {
-		return `${formatRunTime(remainingSeconds)}/run · ${bnFormat(bigNum((producers * productionMul * researchMul) / effectiveRunTime))}/s`;
+		return `${formatRunTime(remainingSeconds)}/run · ${perSecondFormatted}/s`;
 	}
 	if (isRunning) {
 		return `${formatRunTime(remainingSeconds)}`;
@@ -110,17 +97,18 @@ type Props = {
 
 export const ProgressBar = ({ resource }: Props) => {
 	const { state } = useGameState();
-	const rtm = getRunTimeMultiplier({
-		shopBoosts: state.shopBoosts,
-		isAutomated: resource.isAutomated && !resource.isPaused,
-		speedResearchMultiplier: getSpeedResearchMultiplier({
-			research: state.research,
-			resourceId: resource.id,
-		}),
-	});
+	const {
+		runTimeMultiplier,
+		effectiveRunTime,
+		clampedRunTime,
+		perRun,
+		productionMul,
+		researchMul,
+		prestigeMul,
+	} = useResourceRuntime({ state, resource });
 	const { progress, isContinuous } = useRunProgress({
 		resource,
-		runTimeMultiplier: rtm,
+		runTimeMultiplier,
 	});
 	const { particles, triggerBurst } = useParticleBurst();
 	const barRef = useRef<HTMLDivElement>(null);
@@ -147,16 +135,6 @@ export const ProgressBar = ({ resource }: Props) => {
 		!isRunning &&
 		!canStartRun({ state, resourceId: resource.id });
 
-	const effectiveRunTime = getEffectiveRunTime({
-		resourceId: resource.id,
-		producers: resource.producers,
-		runTimeMultiplier: rtm,
-	});
-	const clampedRunTime = getClampedRunTime({
-		resourceId: resource.id,
-		producers: resource.producers,
-		runTimeMultiplier: rtm,
-	});
 	const remainingSeconds = getRemainingSeconds({
 		isRunning,
 		isContinuous,
@@ -165,19 +143,11 @@ export const ProgressBar = ({ resource }: Props) => {
 		progress,
 	});
 
-	const productionMul = state.shopBoosts["production-20x"] ? 20 : 1;
-	const continuousMul = getContinuousMultiplier({
-		resourceId: resource.id,
-		producers: resource.producers,
-		runTimeMultiplier: rtm,
-	});
-	const researchMul = getResearchMultiplier({
-		research: state.research,
-		resourceId: resource.id,
-	});
-	const perRun = bnMul(
-		bnMul(bigNum(resource.producers * productionMul), bigNum(continuousMul)),
-		bigNum(researchMul),
+	const perSecondFormatted = bnFormat(
+		bigNum(
+			(resource.producers * productionMul * researchMul * prestigeMul) /
+				effectiveRunTime,
+		),
 	);
 
 	const inputResourceName = config.inputResourceId
@@ -221,9 +191,7 @@ export const ProgressBar = ({ resource }: Props) => {
 						isContinuous,
 						remainingSeconds,
 						effectiveRunTime,
-						producers: resource.producers,
-						productionMul,
-						researchMul,
+						perSecondFormatted,
 					})}
 				</span>
 				{resource.producers > 0 && !isPaused && !isWaitingForInput && (

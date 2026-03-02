@@ -80,9 +80,13 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 	const activeResearchId = lab.activeResearchId;
 	const currentLevel =
 		activeResearchId !== null ? state.research[activeResearchId] : 0;
-	const rtm = getResearchTimeMultiplier({ shopBoosts: state.shopBoosts });
+	const researchTimeMultiplier = getResearchTimeMultiplier({
+		shopBoosts: state.shopBoosts,
+	});
 	const levelTime =
-		activeResearchId !== null ? getResearchTime(currentLevel) * rtm : 1;
+		activeResearchId !== null
+			? getResearchTime(currentLevel) * researchTimeMultiplier
+			: 1;
 	const { progress, remainingSeconds } = useResearchProgress({
 		researchStartedAt: lab.researchStartedAt,
 		levelTimeSeconds: levelTime,

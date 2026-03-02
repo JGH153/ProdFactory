@@ -2,8 +2,8 @@
 
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { canBuyAutomation } from "@/game/automation";
 import { RESOURCE_CONFIGS } from "@/game/config";
-import { canBuyAutomation } from "@/game/logic";
 import { useGameState } from "@/game/state/game-state-context";
 import type { ResourceState } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";

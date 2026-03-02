@@ -9,32 +9,15 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { buyAutomation, togglePause } from "@/game/automation";
 import { RESOURCE_ORDER } from "@/game/config";
+import { useAwaitedAction } from "@/game/hooks/use-awaited-action";
+import { useGameLoop } from "@/game/hooks/use-game-loop";
 import { createInitialGameState } from "@/game/initial-state";
-import {
-	buyAutomation,
-	buyMaxProducers,
-	buyProducer,
-	canBuyProducer,
-	canStartRun,
-	completeRun,
-	getClampedRunTime,
-	getRunTimeMultiplier,
-	isRunComplete,
-	SPEED_MILESTONE_INTERVAL,
-	startRun,
-	togglePause,
-} from "@/game/logic";
-import {
-	getSpeedResearchMultiplier,
-	LAB_ORDER,
-	RESEARCH_BONUS_PER_LEVEL,
-	RESEARCH_CONFIGS,
-} from "@/game/research-config";
-import {
-	advanceResearchWithReport,
-	type ResearchLevelUp,
-} from "@/game/research-logic";
+import { buyMaxProducers, buyProducer, canBuyProducer } from "@/game/producers";
+import { LAB_ORDER } from "@/game/research-config";
+import { SPEED_MILESTONE_INTERVAL } from "@/game/run-timing";
+import { startRun } from "@/game/runs";
 import type {
 	GameState,
 	LabId,
@@ -84,7 +67,6 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
 	const { showMilestone, showResearchLevelUp } = useMilestoneNotification();
-	const pendingLevelUpsRef = useRef<ResearchLevelUp[]>([]);
 
 	// Load from localStorage on mount (client-only, instant render)
 	useEffect(() => {
@@ -149,96 +131,14 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		onOfflineSummary,
 	});
 
-	// Game tick: check run completions via requestAnimationFrame
-	useEffect(() => {
-		let rafId: number;
+	// Game tick: check run completions and advance research via RAF
+	useGameLoop({ setState, showResearchLevelUp });
 
-		const tick = () => {
-			setState((current) => {
-				let next = current;
-				let changed = false;
-
-				for (const resourceId of RESOURCE_ORDER) {
-					const resource = next.resources[resourceId];
-					const rtm = getRunTimeMultiplier({
-						shopBoosts: next.shopBoosts,
-						isAutomated: resource.isAutomated && !resource.isPaused,
-						speedResearchMultiplier: getSpeedResearchMultiplier({
-							research: next.research,
-							resourceId,
-						}),
-					});
-
-					if (
-						isRunComplete({
-							resource,
-							runTime: getClampedRunTime({
-								resourceId,
-								producers: resource.producers,
-								runTimeMultiplier: rtm,
-							}),
-						})
-					) {
-						next = completeRun({ state: next, resourceId });
-						changed = true;
-					}
-
-					// Auto-start runs for automated resources that are idle and not paused
-					const updated = next.resources[resourceId];
-					if (
-						updated.isAutomated &&
-						!updated.isPaused &&
-						updated.runStartedAt === null &&
-						canStartRun({ state: next, resourceId })
-					) {
-						next = startRun({ state: next, resourceId });
-						changed = true;
-					}
-				}
-
-				const researchResult = advanceResearchWithReport({
-					state: next,
-					now: Date.now(),
-				});
-				if (researchResult.state !== next) {
-					next = researchResult.state;
-					changed = true;
-					pendingLevelUpsRef.current.push(...researchResult.levelUps);
-				}
-
-				return changed ? next : current;
-			});
-
-			// Dispatch research level-up notifications outside setState
-			if (pendingLevelUpsRef.current.length > 0) {
-				// Deduplicate: if a single tick jumped multiple levels for the same
-				// research, only show the highest level reached.
-				const best = new Map<ResearchId, number>();
-				for (const { researchId, newLevel } of pendingLevelUpsRef.current) {
-					const existing = best.get(researchId);
-					if (existing === undefined || newLevel > existing) {
-						best.set(researchId, newLevel);
-					}
-				}
-				pendingLevelUpsRef.current = [];
-				for (const [researchId, newLevel] of best) {
-					const config = RESEARCH_CONFIGS[researchId];
-					showResearchLevelUp({
-						researchId,
-						researchName: config.name,
-						newLevel,
-						bonusPercent: Math.round(newLevel * RESEARCH_BONUS_PER_LEVEL * 100),
-					});
-				}
-			}
-
-			rafId = requestAnimationFrame(tick);
-		};
-
-		rafId = requestAnimationFrame(tick);
-
-		return () => cancelAnimationFrame(rafId);
-	}, [showResearchLevelUp]);
+	// Awaited action helper for server-authoritative actions
+	const performAwaitedAction = useAwaitedAction({
+		executeAwaitedAction,
+		reconcileState,
+	});
 
 	const startResourceRun = useCallback((resourceId: ResourceId) => {
 		setState((current) => startRun({ state: current, resourceId }));
@@ -296,127 +196,48 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	);
 
 	const unlockResourceTier = useCallback(
-		async (resourceId: ResourceId): Promise<boolean> => {
-			try {
-				const serverState = await executeAwaitedAction({
-					endpoint: "unlock",
-					resourceId,
-				});
-				reconcileState({ state: serverState, fullReplace: false });
-				return true;
-			} catch {
-				return false;
-			}
-		},
-		[executeAwaitedAction, reconcileState],
+		(resourceId: ResourceId) =>
+			performAwaitedAction({ endpoint: "unlock", resourceId }),
+		[performAwaitedAction],
 	);
 
 	const activateShopBoost = useCallback(
-		async (boostId: ShopBoostId): Promise<boolean> => {
-			try {
-				const serverState = await executeAwaitedAction({
-					endpoint: "activate-boost",
-					boostId,
-				});
-				reconcileState({ state: serverState, fullReplace: false });
-				return true;
-			} catch {
-				return false;
-			}
-		},
-		[executeAwaitedAction, reconcileState],
+		(boostId: ShopBoostId) =>
+			performAwaitedAction({ endpoint: "activate-boost", boostId }),
+		[performAwaitedAction],
 	);
 
-	const resetShopBoosts = useCallback(async (): Promise<boolean> => {
-		try {
-			const serverState = await executeAwaitedAction({
-				endpoint: "reset-shop-boosts",
-			});
-			reconcileState({ state: serverState, fullReplace: false });
-			return true;
-		} catch {
-			return false;
-		}
-	}, [executeAwaitedAction, reconcileState]);
+	const resetShopBoosts = useCallback(
+		() => performAwaitedAction({ endpoint: "reset-shop-boosts" }),
+		[performAwaitedAction],
+	);
 
-	const resetResearch = useCallback(async (): Promise<boolean> => {
-		try {
-			const serverState = await executeAwaitedAction({
-				endpoint: "reset-research",
-			});
-			reconcileState({ state: serverState, fullReplace: false });
-			return true;
-		} catch {
-			return false;
-		}
-	}, [executeAwaitedAction, reconcileState]);
+	const resetResearch = useCallback(
+		() => performAwaitedAction({ endpoint: "reset-research" }),
+		[performAwaitedAction],
+	);
 
 	const assignLabResearch = useCallback(
-		async ({
-			labId,
-			researchId,
-		}: {
-			labId: LabId;
-			researchId: ResearchId;
-		}): Promise<boolean> => {
-			try {
-				const serverState = await executeAwaitedAction({
-					endpoint: "assign-research",
-					labId,
-					researchId,
-				});
-				reconcileState({ state: serverState, fullReplace: false });
-				return true;
-			} catch {
-				return false;
-			}
-		},
-		[executeAwaitedAction, reconcileState],
+		({ labId, researchId }: { labId: LabId; researchId: ResearchId }) =>
+			performAwaitedAction({ endpoint: "assign-research", labId, researchId }),
+		[performAwaitedAction],
 	);
 
 	const unassignLabResearch = useCallback(
-		async (labId: LabId): Promise<boolean> => {
-			try {
-				const serverState = await executeAwaitedAction({
-					endpoint: "unassign-research",
-					labId,
-				});
-				reconcileState({ state: serverState, fullReplace: false });
-				return true;
-			} catch {
-				return false;
-			}
-		},
-		[executeAwaitedAction, reconcileState],
+		(labId: LabId) =>
+			performAwaitedAction({ endpoint: "unassign-research", labId }),
+		[performAwaitedAction],
 	);
 
 	const unlockLab = useCallback(
-		async (labId: LabId): Promise<boolean> => {
-			try {
-				const serverState = await executeAwaitedAction({
-					endpoint: "unlock-lab",
-					labId,
-				});
-				reconcileState({ state: serverState, fullReplace: false });
-				return true;
-			} catch {
-				return false;
-			}
-		},
-		[executeAwaitedAction, reconcileState],
+		(labId: LabId) => performAwaitedAction({ endpoint: "unlock-lab", labId }),
+		[performAwaitedAction],
 	);
 
-	const prestige = useCallback(async (): Promise<boolean> => {
-		try {
-			const serverState = await executeAwaitedAction({
-				endpoint: "prestige",
-			});
-			reconcileState({ state: serverState, fullReplace: true });
-			return true;
-		} catch {
-			return false;
-		}
-	}, [executeAwaitedAction, reconcileState]);
+	const prestige = useCallback(
+		() => performAwaitedAction({ endpoint: "prestige", fullReplace: true }),
+		[performAwaitedAction],
+	);
 
 	const resetGame = useCallback(() => {
 		clearSave();
