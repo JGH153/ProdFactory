@@ -15,6 +15,7 @@ import {
 import { ResourceIcon } from "@/components/resource-icon";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import type { ResearchId, ResourceId } from "@/game/types";
+import { bigNum, bnFormat } from "@/lib/big-number";
 import { usePrefersReducedMotion } from "@/lib/prefers-reduced-motion";
 import { useSfx } from "./sfx-context";
 
@@ -243,15 +244,22 @@ const SpeedMilestoneContent = ({
 	payload,
 }: {
 	payload: SpeedMilestonePayload;
-}) => (
-	<>
-		<ResourceIcon resourceId={payload.resourceId} size={48} />
-		<span className="text-xl font-bold text-text-primary">
-			{RESOURCE_CONFIGS[payload.resourceId].name} speed is{" "}
-			<WiggleSpan>{payload.multiplier}x</WiggleSpan> now!
-		</span>
-	</>
-);
+}) => {
+	const formatted = bnFormat(bigNum(payload.multiplier));
+	const multiplierText = /\d$/.test(formatted)
+		? `${formatted}x`
+		: `${formatted} x`;
+
+	return (
+		<>
+			<ResourceIcon resourceId={payload.resourceId} size={48} />
+			<span className="text-xl font-bold text-text-primary">
+				{RESOURCE_CONFIGS[payload.resourceId].name} speed is{" "}
+				<WiggleSpan>{multiplierText}</WiggleSpan> now!
+			</span>
+		</>
+	);
+};
 
 const ResearchLevelUpContent = ({
 	payload,
