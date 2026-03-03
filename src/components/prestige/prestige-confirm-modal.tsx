@@ -82,7 +82,7 @@ export const PrestigeConfirmModal = ({
 						<div className="flex items-center justify-between text-sm">
 							<span className="text-text-muted">New passive bonus</span>
 							<span className="font-medium text-text-primary">
-								+{newBonusPercent}%
+								+{newBonusPercent.toLocaleString("en-US")}%
 							</span>
 						</div>
 					</div>

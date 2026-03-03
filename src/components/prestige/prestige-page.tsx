@@ -131,7 +131,9 @@ export const PrestigePage = () => {
 							transition={{ delay: 0.35 }}
 							className="text-sm text-text-muted"
 						>
-							Passive bonus: +{successInfo.newBonusPercent}% all production
+							Passive bonus: +
+							{successInfo.newBonusPercent.toLocaleString("en-US")}% all
+							production
 						</motion.p>
 					</motion.div>
 				) : (
@@ -161,14 +163,14 @@ export const PrestigePage = () => {
 									<span className="text-text-muted">Passive Bonus</span>
 									<span className="font-medium text-text-primary">
 										{passiveBonusPercent > 0
-											? `+${passiveBonusPercent}% all production`
+											? `+${passiveBonusPercent.toLocaleString("en-US")}% all production`
 											: "None yet"}
 									</span>
 								</div>
 								<div className="flex items-center justify-between text-sm">
 									<span className="text-text-muted">Times Prestiged</span>
 									<span className="font-medium text-text-primary">
-										{prestige.prestigeCount}
+										{prestige.prestigeCount.toLocaleString("en-US")}
 									</span>
 								</div>
 							</CardContent>
