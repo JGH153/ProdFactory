@@ -20,9 +20,10 @@ import {
 } from "@/lib/api-client";
 import type { SerializedGameState } from "./serialization";
 import { deserializeOfflineSummary, serializeGameState } from "./serialization";
+import { useFlushOnExit } from "./use-flush-on-exit";
 
-const AUTO_SAVE_INTERVAL_MS = 5_000;
-const AUTO_SYNC_INTERVAL_MS = 15_000;
+const AUTO_SAVE_INTERVAL_MS = 10_000;
+const AUTO_SYNC_INTERVAL_MS = 30_000;
 
 type QueueItem = {
 	endpoint: string;
@@ -223,6 +224,8 @@ export const useServerSync = ({
 
 		return () => clearInterval(interval);
 	}, [executeSave, reconcileState, stateRef]);
+
+	useFlushOnExit({ stateRef, serverVersionRef, isReadyRef });
 
 	useEffect(() => {
 		const interval = setInterval(() => {
