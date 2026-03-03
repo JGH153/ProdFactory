@@ -2,6 +2,7 @@
 
 import { type RefObject, useEffect, useRef } from "react";
 import type { GameState } from "@/game/types";
+import { saveGame } from "./persistence";
 import { serializeGameState } from "./serialization";
 
 export const useFlushOnExit = ({
@@ -22,6 +23,7 @@ export const useFlushOnExit = ({
 			if (!ctxRef.current.isReadyRef.current) {
 				return;
 			}
+			saveGame(ctxRef.current.stateRef.current);
 			const serialized = serializeGameState(ctxRef.current.stateRef.current);
 			const blob = new Blob(
 				[

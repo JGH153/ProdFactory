@@ -18,6 +18,7 @@ import {
 	syncGame as apiSyncGame,
 	ConflictError,
 } from "@/lib/api-client";
+import { saveGame as saveToLocalStorage } from "./persistence";
 import type { SerializedGameState } from "./serialization";
 import { deserializeOfflineSummary, serializeGameState } from "./serialization";
 import { useFlushOnExit } from "./use-flush-on-exit";
@@ -194,6 +195,7 @@ export const useServerSync = ({
 			}
 
 			const serialized = serializeGameState(stateRef.current);
+			saveToLocalStorage(stateRef.current);
 			const savePromise = executeSave({
 				state: serialized,
 				serverVersion: serverVersionRef.current,
