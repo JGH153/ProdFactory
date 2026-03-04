@@ -7,9 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
+	getMaxLevelForResearch,
 	getResearchTime,
 	getResearchTimeMultiplier,
-	MAX_RESEARCH_LEVEL,
 	RESEARCH_CONFIGS,
 } from "@/game/research-config";
 import { useGameState } from "@/game/state/game-state-context";
@@ -148,7 +148,7 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 	// Researching state
 	const researchConfig = RESEARCH_CONFIGS[activeResearchId];
 	const nextLevel = currentLevel + 1;
-	const isMaxNext = nextLevel >= MAX_RESEARCH_LEVEL;
+	const isMaxNext = nextLevel >= getMaxLevelForResearch(activeResearchId);
 
 	return (
 		<div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-card p-4">

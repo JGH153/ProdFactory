@@ -13,6 +13,7 @@ const makeSummary = (
 	gains: [{ resourceId: "iron-ore", amount: bigNum(100) }],
 	researchLevelUps: [],
 	wasCapped: false,
+	isTimeWarp: false,
 	...overrides,
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { InformationCircleIcon } from "@hugeicons/core-free-icons";
+import { Clock01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { ResourceIcon } from "@/components/resource-icon";
@@ -9,13 +9,15 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import {
 	EFFICIENCY_RESEARCH_ORDER,
+	getMaxLevelForResearch,
 	getResearchTime,
 	getResearchTimeMultiplier,
 	LAB_ORDER,
-	MAX_RESEARCH_LEVEL,
+	OFFLINE_PROGRESS_BONUS_PER_LEVEL,
 	RESEARCH_BONUS_PER_LEVEL,
 	RESEARCH_CONFIGS,
 	SPEED_RESEARCH_ORDER,
+	UTILITY_RESEARCH_ORDER,
 } from "@/game/research-config";
 import { useGameState } from "@/game/state/game-state-context";
 import type { GameState, LabId, ResearchId } from "@/game/types";
@@ -40,6 +42,50 @@ const formatDuration = (seconds: number): string => {
 	return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 };
 
+type BonusDisplay = {
+	current: string;
+	next: string;
+	complete: string;
+};
+
+const getUtilityBonusDisplay = ({
+	level,
+	nextLevel,
+	maxLevel,
+}: {
+	level: number;
+	nextLevel: number;
+	maxLevel: number;
+}): BonusDisplay => {
+	const currentMin = (level * OFFLINE_PROGRESS_BONUS_PER_LEVEL) / 60;
+	const nextMin = (nextLevel * OFFLINE_PROGRESS_BONUS_PER_LEVEL) / 60;
+	const maxMin = (maxLevel * OFFLINE_PROGRESS_BONUS_PER_LEVEL) / 60;
+	return {
+		current: `+${currentMin}m offline`,
+		next: `+${nextMin}m offline`,
+		complete: `Complete (+${maxMin}m offline)`,
+	};
+};
+
+const getPercentBonusDisplay = ({
+	level,
+	nextLevel,
+	isSpeedResearch,
+}: {
+	level: number;
+	nextLevel: number;
+	isSpeedResearch: boolean;
+}): BonusDisplay => {
+	const currentBonus = Math.round(level * RESEARCH_BONUS_PER_LEVEL * 100);
+	const nextBonus = Math.round(nextLevel * RESEARCH_BONUS_PER_LEVEL * 100);
+	const suffix = isSpeedResearch ? " speed" : "";
+	return {
+		current: `+${currentBonus}%${suffix}`,
+		next: `+${nextBonus}%${suffix}`,
+		complete: `Complete (+100%${suffix})`,
+	};
+};
+
 type ItemProps = {
 	researchId: ResearchId;
 	labId: LabId;
@@ -59,8 +105,13 @@ const ResearchPickerItem = ({
 }: ItemProps) => {
 	const config = RESEARCH_CONFIGS[researchId];
 	const level = state.research[researchId];
-	const isMaxed = level >= MAX_RESEARCH_LEVEL;
-	const isLocked = !state.resources[config.resourceId].isUnlocked;
+	const maxLevel = getMaxLevelForResearch(researchId);
+	const isMaxed = level >= maxLevel;
+	const isUtility = config.resourceId === null;
+	const isLocked =
+		config.resourceId === null
+			? state.prestige.prestigeCount < 1
+			: !state.resources[config.resourceId].isUnlocked;
 	const isAssignedElsewhere = LAB_ORDER.some(
 		(otherLabId) =>
 			otherLabId !== labId &&
@@ -70,10 +121,11 @@ const ResearchPickerItem = ({
 	const isAssigning = assigningId === researchId;
 	const isSpeedResearch = researchId.startsWith("speed-");
 	const nextLevel = level + 1;
-	const currentBonus = Math.round(level * RESEARCH_BONUS_PER_LEVEL * 100);
-	const nextBonus = Math.round(nextLevel * RESEARCH_BONUS_PER_LEVEL * 100);
 	const timeForNext = getResearchTime(level) * researchTimeMultiplier;
-	const suffix = isSpeedResearch ? " speed" : "";
+
+	const bonusDisplay = isUtility
+		? getUtilityBonusDisplay({ level, nextLevel, maxLevel })
+		: getPercentBonusDisplay({ level, nextLevel, isSpeedResearch });
 
 	return (
 		<button
@@ -83,16 +135,25 @@ const ResearchPickerItem = ({
 			disabled={isDisabled || assigningId !== null}
 			onClick={() => onSelect(researchId)}
 		>
-			<ResourceIcon resourceId={config.resourceId} size={20} />
+			{config.resourceId === null ? (
+				<HugeiconsIcon
+					icon={Clock01Icon}
+					size={20}
+					className="text-primary shrink-0"
+					aria-hidden="true"
+				/>
+			) : (
+				<ResourceIcon resourceId={config.resourceId} size={20} />
+			)}
 			<div className="flex flex-col gap-0.5 flex-1 min-w-0">
 				<span className="text-xs font-medium text-text-primary truncate">
 					{config.name}
 				</span>
 				{isMaxed ? (
-					<span className="text-xs text-success">Complete (+100%{suffix})</span>
+					<span className="text-xs text-success">{bonusDisplay.complete}</span>
 				) : (
 					<span className="text-xs text-text-muted">
-						+{currentBonus}%{suffix} → +{nextBonus}%{suffix}
+						{bonusDisplay.current} → {bonusDisplay.next}
 						<span className="ml-1.5 text-text-muted/70">
 							({formatDuration(timeForNext)})
 						</span>
@@ -166,6 +227,23 @@ export const ResearchPickerDialog = ({ labId, open, onOpenChange }: Props) => {
 					</h4>
 					<ul className="flex flex-col gap-3">
 						{SPEED_RESEARCH_ORDER.map((researchId) => (
+							<li key={researchId}>
+								<ResearchPickerItem
+									researchId={researchId}
+									labId={labId}
+									state={state}
+									assigningId={assigningId}
+									researchTimeMultiplier={researchTimeMultiplier}
+									onSelect={handleSelect}
+								/>
+							</li>
+						))}
+					</ul>
+					<h4 className="text-xs font-semibold text-text-secondary mt-2">
+						Utility
+					</h4>
+					<ul className="flex flex-col gap-3">
+						{UTILITY_RESEARCH_ORDER.map((researchId) => (
 							<li key={researchId}>
 								<ResearchPickerItem
 									researchId={researchId}

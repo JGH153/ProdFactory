@@ -9,6 +9,7 @@ import {
 	EFFICIENCY_RESEARCH_ORDER,
 	LAB_ORDER,
 	SPEED_RESEARCH_ORDER,
+	UTILITY_RESEARCH_ORDER,
 } from "@/game/research-config";
 import type { LabId } from "@/game/types";
 import { LabCard } from "./lab-card";
@@ -104,6 +105,35 @@ export const ResearchPage = () => {
 					</Alert>
 					<ul className="flex flex-col gap-2">
 						{SPEED_RESEARCH_ORDER.map((researchId) => (
+							<li key={researchId}>
+								<ResearchItemCard researchId={researchId} />
+							</li>
+						))}
+					</ul>
+				</motion.div>
+
+				{/* Utility research section */}
+				<motion.div
+					variants={{
+						hidden: { opacity: 0, y: 20 },
+						visible: { opacity: 1, y: 0 },
+					}}
+				>
+					<h3 className="text-sm font-semibold text-text-secondary mb-3">
+						Utility Research
+					</h3>
+					<Alert className="mb-3">
+						<HugeiconsIcon
+							icon={InformationCircleIcon}
+							size={16}
+							aria-hidden="true"
+						/>
+						<AlertDescription>
+							Prestige once to unlock utility research.
+						</AlertDescription>
+					</Alert>
+					<ul className="flex flex-col gap-2">
+						{UTILITY_RESEARCH_ORDER.map((researchId) => (
 							<li key={researchId}>
 								<ResearchItemCard researchId={researchId} />
 							</li>

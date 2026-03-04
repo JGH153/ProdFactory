@@ -28,6 +28,7 @@ export const resetShopBoosts = ({ state }: { state: GameState }): GameState => {
 			"automation-2x": false,
 			"runtime-50": false,
 			"research-2x": false,
+			"offline-2h": false,
 		},
 	};
 };

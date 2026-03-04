@@ -56,6 +56,12 @@ type ActionResponse = {
 	serverVersion: number;
 };
 
+type TimeWarpResponse = {
+	state: SerializedGameState;
+	serverVersion: number;
+	offlineSummary: SerializedOfflineSummary;
+};
+
 // --- Session retry ---
 
 const ensureSession = async (): Promise<void> => {
@@ -197,6 +203,28 @@ export const postAction = async ({
 	}
 	if (!response.ok) {
 		throw new Error(`Action ${endpoint} failed: ${response.status}`);
+	}
+	return response.json();
+};
+
+export const postTimeWarp = async ({
+	serverVersion,
+}: {
+	serverVersion: number;
+}): Promise<TimeWarpResponse> => {
+	const response = await postJson({
+		url: "/api/game/time-warp",
+		body: { serverVersion },
+	});
+	if (response.status === 409) {
+		return handleConflict(response);
+	}
+	if (response.status === 400) {
+		const data = await response.json();
+		throw new ActionFailedError(data.error ?? "Time warp failed");
+	}
+	if (!response.ok) {
+		throw new Error(`Time warp failed: ${response.status}`);
 	}
 	return response.json();
 };

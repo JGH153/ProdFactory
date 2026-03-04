@@ -75,11 +75,11 @@ export const SfxProvider = ({ children }: PropsWithChildren) => {
 	);
 
 	const playClickSfx = useCallback(() => {
-		playSound("/pickaxe.mp3", 0.4);
+		playSound("/pickaxe.mp3", 0.3);
 	}, [playSound]);
 
 	const playMilestoneSfx = useCallback(() => {
-		playSound("/high-speed.mp3", 0.5);
+		playSound("/high-speed.mp3", 0.2);
 	}, [playSound]);
 
 	return (

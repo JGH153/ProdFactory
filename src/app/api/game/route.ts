@@ -9,7 +9,12 @@ import {
 	computeOfflineProgress,
 	type SerializedOfflineSummary,
 } from "@/lib/server/offline-progress";
-import { loadStoredGameState, saveStoredGameState } from "@/lib/server/redis";
+import { buildSyncSnapshot } from "@/lib/server/plausibility";
+import {
+	loadStoredGameState,
+	saveStoredGameState,
+	setSyncSnapshot,
+} from "@/lib/server/redis";
 
 type LoadGameResult =
 	| { type: "not_found" }
@@ -27,16 +32,27 @@ const loadGame = async (sessionId: string): Promise<LoadGameResult> => {
 	}
 
 	const state = stripServerVersion(stored);
+	const serverNow = Date.now();
 	const { updatedState, summary } = computeOfflineProgress({
 		state,
-		serverNow: Date.now(),
+		serverNow,
 	});
 
 	if (summary !== null) {
-		await saveStoredGameState({
-			sessionId,
-			stored: { ...updatedState, serverVersion: stored.serverVersion },
+		// Update sync snapshot so the plausibility check baseline reflects
+		// the post-offline state — prevents the next save/sync from flagging
+		// legitimate offline gains as implausible.
+		const snapshot = buildSyncSnapshot({
+			state: updatedState,
+			timestamp: serverNow,
 		});
+		await Promise.all([
+			saveStoredGameState({
+				sessionId,
+				stored: { ...updatedState, serverVersion: stored.serverVersion },
+			}),
+			setSyncSnapshot({ sessionId, snapshot }),
+		]);
 	}
 
 	return {

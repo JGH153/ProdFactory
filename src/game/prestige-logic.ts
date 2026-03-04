@@ -91,6 +91,7 @@ export const performPrestige = ({ state }: { state: GameState }): GameState => {
 			lifetimeCoupons: newLifetimeCoupons,
 			nuclearPastaProducedThisRun: bigNumZero,
 		},
+		timeWarpCount: state.timeWarpCount,
 		lastSavedAt: Date.now(),
 	};
 };

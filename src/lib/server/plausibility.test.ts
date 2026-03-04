@@ -24,6 +24,7 @@ const noBoosts: ShopBoosts = {
 	"automation-2x": false,
 	"runtime-50": false,
 	"research-2x": false,
+	"offline-2h": false,
 };
 
 // Returns a SerializedGameState based on initial state with iron-ore field overrides
@@ -388,6 +389,7 @@ describe("checkPlausibility", () => {
 					"automation-2x": false,
 					"runtime-50": false,
 					"research-2x": false,
+					"offline-2h": false,
 				},
 			);
 			const result = checkPlausibility({
@@ -409,6 +411,7 @@ describe("checkPlausibility", () => {
 					"automation-2x": false,
 					"runtime-50": false,
 					"research-2x": false,
+					"offline-2h": false,
 				},
 			);
 			const result = checkPlausibility({
@@ -431,6 +434,7 @@ describe("checkPlausibility", () => {
 					"automation-2x": false,
 					"runtime-50": true,
 					"research-2x": false,
+					"offline-2h": false,
 				},
 			);
 			const result = checkPlausibility({
@@ -452,6 +456,7 @@ describe("checkPlausibility", () => {
 					"automation-2x": true,
 					"runtime-50": false,
 					"research-2x": false,
+					"offline-2h": false,
 				},
 			);
 			const result = checkPlausibility({

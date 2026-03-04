@@ -35,6 +35,7 @@ describe("resetShopBoosts", () => {
 				"automation-2x": true,
 				"runtime-50": true,
 				"research-2x": true,
+				"offline-2h": true,
 			},
 		};
 		const next = resetShopBoosts({ state: withBoosts });

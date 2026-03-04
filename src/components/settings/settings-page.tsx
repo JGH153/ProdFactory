@@ -1,9 +1,15 @@
 "use client";
 
-import { PlayCircleIcon } from "@hugeicons/core-free-icons";
+import { Clock01Icon, PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import {
+	getOfflineCapSeconds,
+	OFFLINE_PROGRESS_BONUS_PER_LEVEL,
+} from "@/game/research-config";
+import { useGameState } from "@/game/state/game-state-context";
+import { formatHoursMinutes } from "@/lib/format";
 import { MusicButton } from "./music-button";
 import { NewGameButton } from "./new-game-button";
 import { ResetResearchButton } from "./reset-research-button";
@@ -17,6 +23,16 @@ type Props = {
 };
 
 export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
+	const { state } = useGameState();
+	const maxOfflineSeconds = getOfflineCapSeconds({
+		shopBoosts: state.shopBoosts,
+		research: state.research,
+	});
+	const hasOfflineBoost = state.shopBoosts["offline-2h"];
+	const offlineResearchLevel = state.research["offline-progress"];
+	const researchBonusMin =
+		(offlineResearchLevel * OFFLINE_PROGRESS_BONUS_PER_LEVEL) / 60;
+
 	return (
 		<motion.div
 			className="w-full max-w-lg mt-6"
@@ -40,6 +56,29 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 						<HugeiconsIcon icon={PlayCircleIcon} size={20} aria-hidden="true" />
 						Watch Intro Video
 					</Button>
+				</div>
+				<div>
+					<h3 className="text-sm font-medium text-text-muted mb-2">
+						Offline Earnings
+					</h3>
+					<div className="rounded-lg border border-border bg-card px-3 py-2.5">
+						<div className="flex items-center gap-2 mb-1.5">
+							<HugeiconsIcon
+								icon={Clock01Icon}
+								size={16}
+								className="text-primary"
+								aria-hidden="true"
+							/>
+							<span className="text-sm font-medium text-text-primary">
+								Max: {formatHoursMinutes(maxOfflineSeconds)}
+							</span>
+						</div>
+						<ul className="text-xs text-text-muted space-y-0.5">
+							<li>Base: 8h</li>
+							{hasOfflineBoost && <li>Shop boost: +2h</li>}
+							{researchBonusMin > 0 && <li>Research: +{researchBonusMin}m</li>}
+						</ul>
+					</div>
 				</div>
 				<div>
 					<h3 className="text-sm font-medium text-text-muted mb-2">

@@ -4,11 +4,11 @@ import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
 import { getProductionForRuns } from "@/game/production";
 import { advanceResearchLevels } from "@/game/research-calculator";
 import {
+	getMaxLevelForResearch,
 	getResearchMultiplier,
 	getResearchTimeMultiplier,
 	getSpeedResearchMultiplier,
 	LAB_ORDER,
-	MAX_RESEARCH_LEVEL,
 	RESEARCH_ORDER,
 } from "@/game/research-config";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/run-timing";
@@ -48,13 +48,19 @@ const computeMaxResearchLevel = ({
 	startLevel,
 	elapsedMs,
 	researchTimeMultiplier,
+	maxLevel,
 }: {
 	startLevel: number;
 	elapsedMs: number;
 	researchTimeMultiplier: number;
+	maxLevel: number;
 }): number =>
-	advanceResearchLevels({ startLevel, elapsedMs, researchTimeMultiplier })
-		.newLevel;
+	advanceResearchLevels({
+		startLevel,
+		elapsedMs,
+		researchTimeMultiplier,
+		maxLevel,
+	}).newLevel;
 
 export const checkPlausibility = ({
 	claimedState,
@@ -111,8 +117,9 @@ export const checkPlausibility = ({
 			}
 
 			// Hard cap
-			if (claimedLevel > MAX_RESEARCH_LEVEL) {
-				validatedResearch[researchId] = MAX_RESEARCH_LEVEL;
+			const maxLevel = getMaxLevelForResearch(researchId);
+			if (claimedLevel > maxLevel) {
+				validatedResearch[researchId] = maxLevel;
 				researchCorrected = true;
 				corrected = true;
 				warnings.push(`Research ${researchId} level exceeds maximum`);
@@ -135,6 +142,7 @@ export const checkPlausibility = ({
 					startLevel: snapshotLevel,
 					elapsedMs,
 					researchTimeMultiplier,
+					maxLevel,
 				});
 				maxAchievableLevel = Math.max(maxAchievableLevel, level);
 			}
@@ -160,6 +168,7 @@ export const checkPlausibility = ({
 						startLevel: snapshotLevel,
 						elapsedMs,
 						researchTimeMultiplier,
+						maxLevel,
 					});
 					maxAchievableLevel = Math.max(maxAchievableLevel, level);
 				}

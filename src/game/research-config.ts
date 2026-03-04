@@ -1,14 +1,18 @@
 import type { LabId, ResearchId, ResourceId, ShopBoosts } from "./types";
 
 export const MAX_RESEARCH_LEVEL = 10;
+const MAX_UTILITY_RESEARCH_LEVEL = 12;
 const RESEARCH_BASE_TIME = 10;
 export const RESEARCH_BONUS_PER_LEVEL = 0.1;
+const BASE_OFFLINE_SECONDS = 8 * 3600;
+const OFFLINE_BOOST_SECONDS = 2 * 3600;
+export const OFFLINE_PROGRESS_BONUS_PER_LEVEL = 5 * 60;
 
 export type ResearchConfig = {
 	id: ResearchId;
 	name: string;
 	description: string;
-	resourceId: ResourceId;
+	resourceId: ResourceId | null;
 };
 
 export const RESEARCH_CONFIGS: Record<ResearchId, ResearchConfig> = {
@@ -108,6 +112,12 @@ export const RESEARCH_CONFIGS: Record<ResearchId, ResearchConfig> = {
 		description: "Decrease Nuclear Pasta run time",
 		resourceId: "nuclear-pasta",
 	},
+	"offline-progress": {
+		id: "offline-progress",
+		name: "Offline Progress",
+		description: "Increase offline progress cap by 5 minutes",
+		resourceId: null,
+	},
 };
 
 export const EFFICIENCY_RESEARCH_ORDER: ResearchId[] = [
@@ -132,9 +142,12 @@ export const SPEED_RESEARCH_ORDER: ResearchId[] = [
 	"speed-nuclear-pasta",
 ];
 
+export const UTILITY_RESEARCH_ORDER: ResearchId[] = ["offline-progress"];
+
 export const RESEARCH_ORDER: ResearchId[] = [
 	...EFFICIENCY_RESEARCH_ORDER,
 	...SPEED_RESEARCH_ORDER,
+	...UTILITY_RESEARCH_ORDER,
 ];
 
 export const LAB_ORDER: LabId[] = ["lab-1", "lab-2"];
@@ -196,4 +209,30 @@ export const getSpeedResearchMultiplier = ({
 	const researchId = RESOURCE_TO_SPEED_RESEARCH[resourceId];
 	const level = research[researchId];
 	return 1 / (1 + level * RESEARCH_BONUS_PER_LEVEL);
+};
+
+/** Whether a research ID belongs to the utility group. */
+const isUtilityResearch = (researchId: ResearchId): boolean =>
+	UTILITY_RESEARCH_ORDER.includes(researchId);
+
+/** Max level for a given research (12 for utility, 10 for others). */
+export const getMaxLevelForResearch = (researchId: ResearchId): number =>
+	isUtilityResearch(researchId)
+		? MAX_UTILITY_RESEARCH_LEVEL
+		: MAX_RESEARCH_LEVEL;
+
+/** Max offline progress cap in seconds, accounting for shop boost and research. */
+export const getOfflineCapSeconds = ({
+	shopBoosts,
+	research,
+}: {
+	shopBoosts: ShopBoosts;
+	research: Record<ResearchId, number>;
+}): number => {
+	let cap = BASE_OFFLINE_SECONDS;
+	if (shopBoosts["offline-2h"]) {
+		cap += OFFLINE_BOOST_SECONDS;
+	}
+	cap += research["offline-progress"] * OFFLINE_PROGRESS_BONUS_PER_LEVEL;
+	return cap;
 };

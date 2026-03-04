@@ -4,11 +4,12 @@ import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
 import { getProductionForRuns } from "@/game/production";
 import { advanceResearchLevels } from "@/game/research-calculator";
 import {
+	getMaxLevelForResearch,
+	getOfflineCapSeconds,
 	getResearchMultiplier,
 	getResearchTimeMultiplier,
 	getSpeedResearchMultiplier,
 	LAB_ORDER,
-	MAX_RESEARCH_LEVEL,
 } from "@/game/research-config";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/run-timing";
 import type {
@@ -29,7 +30,6 @@ import {
 	bnToNumber,
 } from "@/lib/big-number";
 
-const MAX_OFFLINE_SECONDS = 8 * 3600;
 const MIN_OFFLINE_SECONDS = 10;
 
 export type SerializedOfflineSummary = {
@@ -37,6 +37,7 @@ export type SerializedOfflineSummary = {
 	gains: { resourceId: ResourceId; amount: SerializedBigNum }[];
 	researchLevelUps: { researchId: ResearchId; newLevel: number }[];
 	wasCapped: boolean;
+	isTimeWarp?: boolean;
 };
 
 export const computeOfflineProgress = ({
@@ -53,16 +54,22 @@ export const computeOfflineProgress = ({
 		return { updatedState: state, summary: null };
 	}
 
+	const defaults = createInitialGameState();
+	const shopBoosts = state.shopBoosts ?? defaults.shopBoosts;
+	const initialResearch = state.research ?? defaults.research;
+	const maxOfflineSeconds = getOfflineCapSeconds({
+		shopBoosts,
+		research: initialResearch as Record<ResearchId, number>,
+	});
+
 	const rawElapsedSeconds = (serverNow - state.lastSavedAt) / 1000;
-	const wasCapped = rawElapsedSeconds > MAX_OFFLINE_SECONDS;
-	const elapsedSeconds = Math.min(rawElapsedSeconds, MAX_OFFLINE_SECONDS);
+	const wasCapped = rawElapsedSeconds > maxOfflineSeconds;
+	const elapsedSeconds = Math.min(rawElapsedSeconds, maxOfflineSeconds);
 
 	if (elapsedSeconds < MIN_OFFLINE_SECONDS) {
 		return { updatedState: state, summary: null };
 	}
 
-	const defaultBoosts = createInitialGameState().shopBoosts;
-	const shopBoosts = state.shopBoosts ?? defaultBoosts;
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
 	const prestigeMul = state.prestige?.lifetimeCoupons
 		? getPrestigePassiveMultiplier({
@@ -71,9 +78,8 @@ export const computeOfflineProgress = ({
 		: 1;
 
 	// Advance research before computing resource production
-	const initialResearch = state.research ?? createInitialGameState().research;
 	const research = { ...initialResearch } as Record<ResearchId, number>;
-	const initialLabs = state.labs ?? createInitialGameState().labs;
+	const initialLabs = state.labs ?? defaults.labs;
 	const updatedLabs = { ...initialLabs } as Record<LabId, SerializedLabState>;
 
 	const researchLevelUps: SerializedOfflineSummary["researchLevelUps"] = [];
@@ -91,10 +97,12 @@ export const computeOfflineProgress = ({
 
 		const researchId = lab.activeResearchId;
 		const startLevel = research[researchId];
+		const maxLevel = getMaxLevelForResearch(researchId);
 		const { newLevel, remainingMs } = advanceResearchLevels({
 			startLevel,
 			elapsedMs: serverNow - lab.researchStartedAt,
 			researchTimeMultiplier,
+			maxLevel,
 		});
 
 		if (newLevel > startLevel) {
@@ -102,7 +110,7 @@ export const computeOfflineProgress = ({
 				researchLevelUps.push({ researchId, newLevel: lvl });
 			}
 			research[researchId] = newLevel;
-			if (newLevel >= MAX_RESEARCH_LEVEL) {
+			if (newLevel >= maxLevel) {
 				updatedLabs[labId] = {
 					...lab,
 					activeResearchId: null,
@@ -230,4 +238,66 @@ export const computeOfflineProgress = ({
 		},
 		summary: { elapsedSeconds, gains, researchLevelUps, wasCapped },
 	};
+};
+
+export const computeTimeWarp = ({
+	state,
+	durationSeconds,
+	serverNow,
+}: {
+	state: SerializedGameState;
+	durationSeconds: number;
+	serverNow: number;
+}): {
+	updatedState: SerializedGameState;
+	summary: SerializedOfflineSummary | null;
+} => {
+	const durationMs = durationSeconds * 1000;
+
+	const defaults = createInitialGameState();
+	const initialLabs = state.labs ?? defaults.labs;
+
+	// Shift researchStartedAt back by durationMs so research advances by exactly
+	// that duration (preserving any partial progress in the current level).
+	const modifiedLabs = {} as Record<LabId, SerializedLabState>;
+	for (const labId of LAB_ORDER) {
+		const lab = initialLabs[labId];
+		if (lab.activeResearchId !== null && lab.researchStartedAt !== null) {
+			modifiedLabs[labId] = {
+				...lab,
+				researchStartedAt: lab.researchStartedAt - durationMs,
+			};
+		} else {
+			modifiedLabs[labId] = lab;
+		}
+	}
+
+	// Shift lastSavedAt back so resource production computes exactly durationSeconds.
+	const modifiedState: SerializedGameState = {
+		...state,
+		lastSavedAt: serverNow - durationMs,
+		labs: modifiedLabs,
+	};
+
+	const result = computeOfflineProgress({
+		state: modifiedState,
+		serverNow,
+	});
+
+	// Restore lastSavedAt so future offline progress calculations are unaffected.
+	const updatedState: SerializedGameState = {
+		...result.updatedState,
+		lastSavedAt: state.lastSavedAt,
+	};
+
+	const summary: SerializedOfflineSummary | null = result.summary
+		? {
+				...result.summary,
+				elapsedSeconds: durationSeconds,
+				wasCapped: false,
+				isTimeWarp: true,
+			}
+		: null;
+
+	return { updatedState, summary };
 };

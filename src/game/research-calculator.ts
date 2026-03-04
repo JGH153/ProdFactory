@@ -8,14 +8,16 @@ export const advanceResearchLevels = ({
 	startLevel,
 	elapsedMs,
 	researchTimeMultiplier,
+	maxLevel = MAX_RESEARCH_LEVEL,
 }: {
 	startLevel: number;
 	elapsedMs: number;
 	researchTimeMultiplier: number;
+	maxLevel?: number;
 }): { newLevel: number; remainingMs: number } => {
 	let level = startLevel;
 	let remaining = elapsedMs;
-	while (level < MAX_RESEARCH_LEVEL) {
+	while (level < maxLevel) {
 		const levelTimeMs = getResearchTime(level) * 1000 * researchTimeMultiplier;
 		if (remaining < levelTimeMs) {
 			break;

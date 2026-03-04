@@ -95,6 +95,7 @@ export const stripServerVersion = (
 	labs: stored.labs,
 	research: stored.research,
 	prestige: stored.prestige,
+	timeWarpCount: stored.timeWarpCount,
 	lastSavedAt: stored.lastSavedAt,
 	version: stored.version,
 });

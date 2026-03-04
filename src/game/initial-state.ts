@@ -81,6 +81,7 @@ export const createInitialGameState = (): GameState => ({
 		"automation-2x": false,
 		"runtime-50": false,
 		"research-2x": false,
+		"offline-2h": false,
 	},
 	labs: {
 		"lab-1": {
@@ -111,6 +112,7 @@ export const createInitialGameState = (): GameState => ({
 		"speed-fused-modular-frame": 0,
 		"speed-pressure-conversion-cube": 0,
 		"speed-nuclear-pasta": 0,
+		"offline-progress": 0,
 	},
 	prestige: {
 		prestigeCount: 0,
@@ -118,5 +120,6 @@ export const createInitialGameState = (): GameState => ({
 		lifetimeCoupons: bigNumZero,
 		nuclearPastaProducedThisRun: bigNumZero,
 	},
+	timeWarpCount: 0,
 	lastSavedAt: Date.now(),
 });

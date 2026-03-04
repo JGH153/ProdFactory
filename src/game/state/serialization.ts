@@ -50,6 +50,7 @@ export type SerializedGameState = {
 	labs?: Record<LabId, SerializedLabState> | undefined;
 	research?: Record<ResearchId, number> | undefined;
 	prestige?: SerializedPrestigeState | undefined;
+	timeWarpCount?: number | undefined;
 	lastSavedAt: number;
 	version: number;
 };
@@ -121,6 +122,7 @@ export const serializeGameState = (state: GameState): SerializedGameState => {
 		labs,
 		research: { ...state.research },
 		prestige: serializePrestige(state.prestige),
+		timeWarpCount: state.timeWarpCount,
 		lastSavedAt: Date.now(),
 		version: SAVE_VERSION,
 	};
@@ -136,6 +138,7 @@ export const deserializeOfflineSummary = (
 	})),
 	researchLevelUps: summary.researchLevelUps ?? [],
 	wasCapped: summary.wasCapped,
+	isTimeWarp: summary.isTimeWarp ?? false,
 });
 
 export const deserializeGameState = (data: SerializedGameState): GameState => {
@@ -168,6 +171,7 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 		prestige: data.prestige
 			? deserializePrestige(data.prestige)
 			: initialState.prestige,
+		timeWarpCount: data.timeWarpCount ?? 0,
 		lastSavedAt: data.lastSavedAt,
 	};
 };

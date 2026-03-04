@@ -1,8 +1,8 @@
 import { advanceResearchLevels } from "./research-calculator";
 import {
+	getMaxLevelForResearch,
 	getResearchTimeMultiplier,
 	LAB_ORDER,
-	MAX_RESEARCH_LEVEL,
 	RESEARCH_CONFIGS,
 } from "./research-config";
 import type { GameState, LabId, LabState, ResearchId } from "./types";
@@ -57,11 +57,15 @@ export const getAssignResearchError = ({
 	if (lab.activeResearchId !== null) {
 		return "Lab already has active research";
 	}
-	const resourceId = RESEARCH_CONFIGS[researchId].resourceId;
-	if (!state.resources[resourceId].isUnlocked) {
-		return "Resource is not unlocked";
+	const config = RESEARCH_CONFIGS[researchId];
+	if (config.resourceId !== null) {
+		if (!state.resources[config.resourceId].isUnlocked) {
+			return "Resource is not unlocked";
+		}
+	} else if (state.prestige.prestigeCount < 1) {
+		return "Prestige required to unlock utility research";
 	}
-	if (state.research[researchId] >= MAX_RESEARCH_LEVEL) {
+	if (state.research[researchId] >= getMaxLevelForResearch(researchId)) {
 		return "Research is already at max level";
 	}
 	for (const otherLabId of LAB_ORDER) {
@@ -175,10 +179,12 @@ export const advanceResearchWithReport = ({
 
 		const researchId = lab.activeResearchId;
 		const startLevel = newState.research[researchId];
+		const maxLevel = getMaxLevelForResearch(researchId);
 		const { newLevel, remainingMs } = advanceResearchLevels({
 			startLevel,
 			elapsedMs: now - lab.researchStartedAt,
 			researchTimeMultiplier,
+			maxLevel,
 		});
 
 		if (newLevel > startLevel) {
@@ -186,7 +192,7 @@ export const advanceResearchWithReport = ({
 				levelUps.push({ researchId, newLevel: lvl });
 			}
 
-			const isMaxed = newLevel >= MAX_RESEARCH_LEVEL;
+			const isMaxed = newLevel >= maxLevel;
 			const updatedLab: LabState = isMaxed
 				? {
 						...lab,
@@ -249,6 +255,7 @@ export const resetResearch = ({ state }: { state: GameState }): GameState => {
 			"speed-fused-modular-frame": 0,
 			"speed-pressure-conversion-cube": 0,
 			"speed-nuclear-pasta": 0,
+			"offline-progress": 0,
 		},
 		labs: {
 			"lab-1": {

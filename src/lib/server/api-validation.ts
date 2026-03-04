@@ -1,7 +1,7 @@
 import { RESOURCE_ORDER } from "@/game/config";
 import {
+	getMaxLevelForResearch,
 	LAB_ORDER,
-	MAX_RESEARCH_LEVEL,
 	RESEARCH_ORDER,
 } from "@/game/research-config";
 import type { LabId, ResearchId, ResourceId, ShopBoostId } from "@/game/types";
@@ -23,6 +23,7 @@ const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([
 	"automation-2x",
 	"runtime-50",
 	"research-2x",
+	"offline-2h",
 ]);
 
 const VALID_LAB_IDS: ReadonlySet<string> = new Set<string>(LAB_ORDER);
@@ -191,7 +192,7 @@ export const validateSerializedGameState = (
 			if (level !== undefined && !isNonNegativeInteger(level)) {
 				return `Invalid research level for ${id}`;
 			}
-			if (typeof level === "number" && level > MAX_RESEARCH_LEVEL) {
+			if (typeof level === "number" && level > getMaxLevelForResearch(id)) {
 				return `Research level exceeds maximum for ${id}`;
 			}
 		}

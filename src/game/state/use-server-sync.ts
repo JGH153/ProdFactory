@@ -13,12 +13,14 @@ import type {
 import {
 	loadGame as apiLoadGame,
 	postAction as apiPostAction,
+	postTimeWarp as apiPostTimeWarp,
 	resetGame as apiResetGame,
 	saveGame as apiSaveGame,
 	syncGame as apiSyncGame,
 	ConflictError,
 } from "@/lib/api-client";
 import { BUILD_ID } from "@/lib/build-id";
+import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 import { saveGame as saveToLocalStorage } from "./persistence";
 import type { SerializedGameState } from "./serialization";
 import { deserializeOfflineSummary, serializeGameState } from "./serialization";
@@ -70,6 +72,10 @@ export const useServerSync = ({
 		labId?: LabId | undefined;
 		researchId?: ResearchId | undefined;
 	}) => Promise<SerializedGameState>;
+	executeTimeWarp: () => Promise<{
+		state: SerializedGameState;
+		offlineSummary: SerializedOfflineSummary;
+	}>;
 	resetOnServer: () => void;
 } => {
 	const serverVersionRef = useRef(0);
@@ -98,6 +104,11 @@ export const useServerSync = ({
 	const { mutateAsync: executeAction } = useMutation({
 		mutationKey: ["game", "action"],
 		mutationFn: apiPostAction,
+	});
+
+	const { mutateAsync: executeTimeWarpMutation } = useMutation({
+		mutationKey: ["game", "time-warp"],
+		mutationFn: apiPostTimeWarp,
 	});
 
 	const { mutateAsync: executeReset } = useMutation({
@@ -287,6 +298,42 @@ export const useServerSync = ({
 		return () => clearInterval(interval);
 	}, [executeSync, reconcileState, stateRef]);
 
+	// Shared helper: wait for ready, drain queue, flush client state to server,
+	// then hold the processing lock. Caller MUST release in a finally block.
+	const acquireExclusiveLock = useCallback(async () => {
+		while (!isReadyRef.current) {
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+		while (processingRef.current || queueRef.current.length > 0) {
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+		if (inFlightSaveRef.current) {
+			await inFlightSaveRef.current;
+		}
+
+		processingRef.current = true;
+
+		const serialized = serializeGameState(stateRef.current);
+		try {
+			const saveResult = await executeSave({
+				state: serialized,
+				serverVersion: serverVersionRef.current,
+			});
+			serverVersionRef.current = saveResult.serverVersion;
+		} catch (saveError) {
+			if (saveError instanceof ConflictError) {
+				serverVersionRef.current = saveError.serverVersion;
+				const retrySave = await executeSave({
+					state: serialized,
+					serverVersion: serverVersionRef.current,
+				});
+				serverVersionRef.current = retrySave.serverVersion;
+			} else {
+				throw saveError;
+			}
+		}
+	}, [executeSave, stateRef]);
+
 	const executeAwaitedAction = useCallback(
 		async ({
 			endpoint,
@@ -301,46 +348,8 @@ export const useServerSync = ({
 			labId?: LabId | undefined;
 			researchId?: ResearchId | undefined;
 		}): Promise<SerializedGameState> => {
-			// Wait for initial server data to be reconciled
-			while (!isReadyRef.current) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-			}
-
-			// Wait for queue to drain
-			while (processingRef.current || queueRef.current.length > 0) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-			}
-
-			// Wait for any in-flight save/sync
-			if (inFlightSaveRef.current) {
-				await inFlightSaveRef.current;
-			}
-
-			// Block queue and save/sync from running
-			processingRef.current = true;
-
+			await acquireExclusiveLock();
 			try {
-				// Flush current client state so the server has latest run-accumulated resources
-				const serialized = serializeGameState(stateRef.current);
-				try {
-					const saveResult = await executeSave({
-						state: serialized,
-						serverVersion: serverVersionRef.current,
-					});
-					serverVersionRef.current = saveResult.serverVersion;
-				} catch (saveError) {
-					if (saveError instanceof ConflictError) {
-						serverVersionRef.current = saveError.serverVersion;
-						const retrySave = await executeSave({
-							state: serialized,
-							serverVersion: serverVersionRef.current,
-						});
-						serverVersionRef.current = retrySave.serverVersion;
-					} else {
-						throw saveError;
-					}
-				}
-
 				const result = await executeAction({
 					endpoint,
 					resourceId,
@@ -370,8 +379,37 @@ export const useServerSync = ({
 				processingRef.current = false;
 			}
 		},
-		[executeAction, executeSave, stateRef],
+		[acquireExclusiveLock, executeAction],
 	);
+
+	const executeTimeWarp = useCallback(async (): Promise<{
+		state: SerializedGameState;
+		offlineSummary: SerializedOfflineSummary;
+	}> => {
+		await acquireExclusiveLock();
+		try {
+			const result = await executeTimeWarpMutation({
+				serverVersion: serverVersionRef.current,
+			});
+			serverVersionRef.current = result.serverVersion;
+			return { state: result.state, offlineSummary: result.offlineSummary };
+		} catch (error) {
+			if (error instanceof ConflictError) {
+				serverVersionRef.current = error.serverVersion;
+				const retryResult = await executeTimeWarpMutation({
+					serverVersion: serverVersionRef.current,
+				});
+				serverVersionRef.current = retryResult.serverVersion;
+				return {
+					state: retryResult.state,
+					offlineSummary: retryResult.offlineSummary,
+				};
+			}
+			throw error;
+		} finally {
+			processingRef.current = false;
+		}
+	}, [acquireExclusiveLock, executeTimeWarpMutation]);
 
 	const enqueueAction = useCallback(
 		({
@@ -421,5 +459,10 @@ export const useServerSync = ({
 			});
 	}, [executeReset, reconcileState]);
 
-	return { enqueueAction, executeAwaitedAction, resetOnServer };
+	return {
+		enqueueAction,
+		executeAwaitedAction,
+		executeTimeWarp,
+		resetOnServer,
+	};
 };

@@ -70,6 +70,7 @@ const mockStoredGameState: StoredGameState = {
 		"automation-2x": false,
 		"runtime-50": false,
 		"research-2x": false,
+		"offline-2h": false,
 	},
 	lastSavedAt: 1700000000000,
 	version: 4,

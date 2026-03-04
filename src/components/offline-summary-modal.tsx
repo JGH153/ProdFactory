@@ -12,15 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { RESOURCE_CONFIGS } from "@/game/config";
-import { RESEARCH_CONFIGS } from "@/game/research-config";
+import { getOfflineCapSeconds, RESEARCH_CONFIGS } from "@/game/research-config";
+import { useGameState } from "@/game/state/game-state-context";
 import type {
 	OfflineResearchLevelUp,
 	OfflineSummary,
 	ResearchId,
 } from "@/game/types";
 import { bnFormat } from "@/lib/big-number";
-
-const MAX_OFFLINE_SECONDS = 8 * 3600;
+import { formatHoursMinutes } from "@/lib/format";
 
 const formatElapsed = (seconds: number): string => {
 	if (seconds < 60) {
@@ -59,8 +59,14 @@ type Props = {
 };
 
 export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
+	const { state } = useGameState();
+	const maxOfflineSeconds = getOfflineCapSeconds({
+		shopBoosts: state.shopBoosts,
+		research: state.research,
+	});
+
 	const progressPct = summary
-		? Math.min((summary.elapsedSeconds / MAX_OFFLINE_SECONDS) * 100, 100)
+		? Math.min((summary.elapsedSeconds / maxOfflineSeconds) * 100, 100)
 		: 0;
 
 	const researchLevelUps = summary
@@ -75,28 +81,36 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 				onEscapeKeyDown={(e) => e.preventDefault()}
 			>
 				<div className="flex flex-col gap-1">
-					<DialogTitle>Your factory kept running!</DialogTitle>
+					<DialogTitle>
+						{summary?.isTimeWarp
+							? "Time Warp Complete!"
+							: "Your factory kept running!"}
+					</DialogTitle>
 					<DialogDescription>
-						You were away for{" "}
-						{summary ? formatElapsed(summary.elapsedSeconds) : ""}
+						{summary?.isTimeWarp
+							? "You warped 1 hour forward"
+							: `You were away for ${summary ? formatElapsed(summary.elapsedSeconds) : ""}`}
 					</DialogDescription>
 				</div>
 
-				<div className="flex flex-col gap-1">
-					<Progress
-						value={progressPct}
-						aria-label="Offline time elapsed"
-						className="h-2 bg-border *:data-[slot=progress-indicator]:bg-accent-amber"
-					/>
-					<div className="flex justify-between text-xs text-text-muted">
-						<span>0h</span>
-						<span>8h max</span>
+				{!summary?.isTimeWarp && (
+					<div className="flex flex-col gap-1">
+						<Progress
+							value={progressPct}
+							aria-label="Offline time elapsed"
+							className="h-2 bg-border *:data-[slot=progress-indicator]:bg-accent-amber"
+						/>
+						<div className="flex justify-between text-xs text-text-muted">
+							<span>0h</span>
+							<span>{formatHoursMinutes(maxOfflineSeconds)} max</span>
+						</div>
 					</div>
-				</div>
+				)}
 
-				{summary?.wasCapped && (
+				{!summary?.isTimeWarp && summary?.wasCapped && (
 					<p className="text-xs text-accent-amber">
-						Capped at 8h — upgrade your producers!
+						Capped at {formatHoursMinutes(maxOfflineSeconds)} — upgrade your
+						producers!
 					</p>
 				)}
 

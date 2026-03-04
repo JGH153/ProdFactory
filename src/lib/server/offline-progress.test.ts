@@ -5,13 +5,14 @@ import { serializeGameState } from "@/game/state/serialization";
 import type { ResourceId, ShopBoosts } from "@/game/types";
 import type { BigNum } from "@/lib/big-number";
 import { bigNum, bnDeserialize, bnSerialize } from "@/lib/big-number";
-import { computeOfflineProgress } from "./offline-progress";
+import { computeOfflineProgress, computeTimeWarp } from "./offline-progress";
 
 const noBoosts: ShopBoosts = {
 	"production-20x": false,
 	"automation-2x": false,
 	"runtime-50": false,
 	"research-2x": false,
+	"offline-2h": false,
 };
 
 const makeState = (
@@ -221,6 +222,7 @@ describe("computeOfflineProgress", () => {
 						"automation-2x": false,
 						"runtime-50": false,
 						"research-2x": false,
+						"offline-2h": false,
 					},
 				},
 			);
@@ -245,6 +247,7 @@ describe("computeOfflineProgress", () => {
 						"automation-2x": false,
 						"runtime-50": true,
 						"research-2x": false,
+						"offline-2h": false,
 					},
 				},
 			);
@@ -269,6 +272,7 @@ describe("computeOfflineProgress", () => {
 						"automation-2x": true,
 						"runtime-50": false,
 						"research-2x": false,
+						"offline-2h": false,
 					},
 				},
 			);
@@ -616,5 +620,128 @@ describe("computeOfflineProgress", () => {
 			// Original state's resource amount should be unchanged
 			expect(state.resources["iron-ore"].amount).toBe(originalAmount);
 		});
+	});
+});
+
+describe("computeTimeWarp", () => {
+	it("produces exactly 1 hour of resource gains", () => {
+		const state = makeState(
+			{ "iron-ore": { isAutomated: true, producers: 1 } },
+			{ lastSavedAt: Date.now() },
+		);
+		const result = computeTimeWarp({
+			state,
+			durationSeconds: 3600,
+			serverNow: Date.now(),
+		});
+		const gain = gainFor(result.summary, "iron-ore");
+		expect(gain).toBeDefined();
+		// iron-ore: 1s run time, 3600 runs, 1 producer → gain = 3600
+		expect(gain?.mantissa).toBeCloseTo(3.6, 10);
+		expect(gain?.exponent).toBe(3);
+	});
+
+	it("summary has isTimeWarp=true and wasCapped=false", () => {
+		const state = makeState(
+			{ "iron-ore": { isAutomated: true, producers: 1 } },
+			{ lastSavedAt: Date.now() },
+		);
+		const result = computeTimeWarp({
+			state,
+			durationSeconds: 3600,
+			serverNow: Date.now(),
+		});
+		expect(result.summary).not.toBeNull();
+		expect(result.summary?.isTimeWarp).toBe(true);
+		expect(result.summary?.wasCapped).toBe(false);
+		expect(result.summary?.elapsedSeconds).toBe(3600);
+	});
+
+	it("does not modify lastSavedAt in the returned state", () => {
+		const lastSavedAt = Date.now() - 5000;
+		const state = makeState(
+			{ "iron-ore": { isAutomated: true, producers: 1 } },
+			{ lastSavedAt },
+		);
+		const result = computeTimeWarp({
+			state,
+			durationSeconds: 3600,
+			serverNow: Date.now(),
+		});
+		expect(result.updatedState.lastSavedAt).toBe(lastSavedAt);
+	});
+
+	it("returns null summary when no resources are automated", () => {
+		const state = makeState(
+			{ "iron-ore": { isAutomated: false, producers: 1 } },
+			{ lastSavedAt: Date.now() },
+		);
+		const result = computeTimeWarp({
+			state,
+			durationSeconds: 3600,
+			serverNow: Date.now(),
+		});
+		expect(result.summary).toBeNull();
+	});
+
+	it("advances research by the warp duration", () => {
+		const now = Date.now();
+		const state = makeState(
+			{ "iron-ore": { isAutomated: true, producers: 1 } },
+			{ lastSavedAt: now },
+		);
+		// Set up lab-1 with active research, started just now
+		state.labs = {
+			"lab-1": {
+				isUnlocked: true,
+				activeResearchId: "more-iron-ore",
+				researchStartedAt: now,
+			},
+			"lab-2": {
+				isUnlocked: false,
+				activeResearchId: null,
+				researchStartedAt: null,
+			},
+		};
+		state.research = {
+			...state.research,
+			"more-iron-ore": 0,
+		} as typeof state.research;
+
+		const result = computeTimeWarp({
+			state,
+			durationSeconds: 3600,
+			serverNow: Date.now(),
+		});
+		expect(result.summary).not.toBeNull();
+		// Research time per level: 10s * 2^level (level 0 = 10s, level 1 = 20s, ...)
+		// 1 hour = 3600s should advance multiple levels
+		expect(result.summary?.researchLevelUps.length).toBeGreaterThan(0);
+	});
+
+	it("respects production boosts", () => {
+		const state = makeState(
+			{ "iron-ore": { isAutomated: true, producers: 1 } },
+			{
+				lastSavedAt: Date.now(),
+				shopBoosts: {
+					"production-20x": true,
+					"automation-2x": false,
+					"runtime-50": false,
+					"research-2x": false,
+					"offline-2h": false,
+				},
+			},
+		);
+		const result = computeTimeWarp({
+			state,
+			durationSeconds: 3600,
+			serverNow: Date.now(),
+		});
+		const gain = gainFor(result.summary, "iron-ore");
+		expect(gain).toBeDefined();
+		// 3600 runs * 1 producer * 20x = 72000
+		expect(gain?.mantissa).toBeCloseTo(7.2, 10);
+		expect(gain?.exponent).toBe(4);
 	});
 });

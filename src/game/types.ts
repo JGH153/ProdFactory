@@ -26,7 +26,8 @@ export type ResearchId =
 	| "speed-heavy-modular-frame"
 	| "speed-fused-modular-frame"
 	| "speed-pressure-conversion-cube"
-	| "speed-nuclear-pasta";
+	| "speed-nuclear-pasta"
+	| "offline-progress";
 
 export type LabId = "lab-1" | "lab-2";
 
@@ -65,7 +66,8 @@ export type ShopBoostId =
 	| "production-20x"
 	| "automation-2x"
 	| "runtime-50"
-	| "research-2x";
+	| "research-2x"
+	| "offline-2h";
 
 export type ShopBoosts = Record<ShopBoostId, boolean>;
 
@@ -82,6 +84,7 @@ export type GameState = {
 	labs: Record<LabId, LabState>;
 	research: Record<ResearchId, number>;
 	prestige: PrestigeState;
+	timeWarpCount: number;
 	lastSavedAt: number;
 };
 
@@ -95,4 +98,5 @@ export type OfflineSummary = {
 	gains: { resourceId: ResourceId; amount: BigNum }[];
 	researchLevelUps: OfflineResearchLevelUp[];
 	wasCapped: boolean;
+	isTimeWarp: boolean;
 };

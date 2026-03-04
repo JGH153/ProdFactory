@@ -2,13 +2,15 @@
 
 import {
 	DashboardSpeed01Icon,
+	Forward02Icon,
+	Moon02Icon,
 	Rocket01Icon,
 	TestTubeIcon,
 	Timer01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { motion } from "motion/react";
-import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -56,16 +58,39 @@ const SHOP_MULTIPLIERS: ReadonlyArray<{
 		icon: TestTubeIcon,
 		colorClass: "text-accent-amber",
 	},
+	{
+		id: "offline-2h",
+		name: "Offline +2h",
+		description: "Increase offline progress cap by 2 hours.",
+		icon: Moon02Icon,
+		colorClass: "text-primary",
+	},
 ];
 
 export const ShopPage = () => {
-	const { state, activateShopBoost } = useGameState();
+	const { state, activateShopBoost, timeWarp } = useGameState();
 	const [activatingId, setActivatingId] = useState<ShopBoostId | null>(null);
+	const [isWarping, setIsWarping] = useState(false);
+	const [showWarpFlash, setShowWarpFlash] = useState(false);
+	const flashTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
 	const handleActivate = async (boostId: ShopBoostId) => {
 		setActivatingId(boostId);
 		await activateShopBoost(boostId);
 		setActivatingId(null);
+	};
+
+	const handleTimeWarp = async () => {
+		setIsWarping(true);
+		const success = await timeWarp();
+		if (success) {
+			setShowWarpFlash(true);
+			if (flashTimerRef.current) {
+				clearTimeout(flashTimerRef.current);
+			}
+			flashTimerRef.current = setTimeout(() => setShowWarpFlash(false), 600);
+		}
+		setIsWarping(false);
 	};
 
 	return (
@@ -144,6 +169,61 @@ export const ShopPage = () => {
 						</motion.div>
 					);
 				})}
+
+				<motion.div
+					variants={{
+						hidden: { opacity: 0, y: 20 },
+						visible: { opacity: 1, y: 0 },
+					}}
+				>
+					<Card className="relative overflow-hidden border-accent-amber/50">
+						<AnimatePresence>
+							{showWarpFlash && (
+								<motion.div
+									className="absolute inset-0 bg-accent-amber/20 pointer-events-none"
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									exit={{ opacity: 0 }}
+									transition={{ duration: 0.6 }}
+								/>
+							)}
+						</AnimatePresence>
+						<CardHeader>
+							<div className="flex items-center gap-3">
+								<div className="text-accent-amber">
+									<HugeiconsIcon
+										icon={Forward02Icon}
+										size={28}
+										aria-hidden="true"
+									/>
+								</div>
+								<div>
+									<CardTitle>Time Warp</CardTitle>
+									<CardDescription>
+										Jump forward 1 hour — gain resources and research as if time
+										passed.
+									</CardDescription>
+								</div>
+							</div>
+						</CardHeader>
+						<CardContent>
+							<Button
+								className="w-full"
+								onClick={handleTimeWarp}
+								disabled={isWarping}
+							>
+								{isWarping ? (
+									<>
+										<Spinner />
+										Warping...
+									</>
+								) : (
+									"Activate"
+								)}
+							</Button>
+						</CardContent>
+					</Card>
+				</motion.div>
 			</motion.div>
 		</div>
 	);

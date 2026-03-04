@@ -9,22 +9,25 @@ import { server } from "@/test/msw-server";
 import { renderWithProviders, screen } from "@/test/render-with-providers";
 
 describe("ShopPage", () => {
-	it("renders all boost cards", () => {
+	it("renders all boost cards and time warp", () => {
 		renderWithProviders(<ShopPage />);
 
 		expect(screen.getByText("20x All Production")).toBeInTheDocument();
 		expect(screen.getByText("2x Automation Speed")).toBeInTheDocument();
 		expect(screen.getByText("50% Run Time Reduction")).toBeInTheDocument();
 		expect(screen.getByText("2x Research Speed")).toBeInTheDocument();
+		expect(screen.getByText("Offline +2h")).toBeInTheDocument();
+		expect(screen.getByText("Time Warp")).toBeInTheDocument();
 	});
 
-	it("shows Activate buttons for inactive boosts", () => {
+	it("shows Activate buttons for inactive boosts and time warp", () => {
 		renderWithProviders(<ShopPage />);
 
 		const activateButtons = screen.getAllByRole("button", {
 			name: "Activate",
 		});
-		expect(activateButtons).toHaveLength(4);
+		// 5 boost cards + 1 time warp card
+		expect(activateButtons).toHaveLength(6);
 	});
 
 	it("shows Active state after activating a boost", async () => {

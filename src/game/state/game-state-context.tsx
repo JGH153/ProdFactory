@@ -31,7 +31,10 @@ import type {
 import { useMilestoneNotification } from "./milestone-context";
 import { clearSave, loadGame, saveGame } from "./persistence";
 import type { SerializedGameState } from "./serialization";
-import { deserializeGameState } from "./serialization";
+import {
+	deserializeGameState,
+	deserializeOfflineSummary,
+} from "./serialization";
 import { useServerSync } from "./use-server-sync";
 
 type GameActions = {
@@ -53,6 +56,7 @@ type GameActions = {
 	}) => Promise<boolean>;
 	unassignLabResearch: (labId: LabId) => Promise<boolean>;
 	unlockLab: (labId: LabId) => Promise<boolean>;
+	timeWarp: () => Promise<boolean>;
 	resetGame: () => void;
 	prestige: () => Promise<boolean>;
 };
@@ -108,6 +112,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 						labs,
 						research: serverState.research,
 						prestige: serverState.prestige,
+						timeWarpCount: serverState.timeWarpCount,
 						lastSavedAt: serverState.lastSavedAt,
 					};
 				});
@@ -125,7 +130,12 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		setOfflineSummary(null);
 	}, []);
 
-	const { enqueueAction, executeAwaitedAction, resetOnServer } = useServerSync({
+	const {
+		enqueueAction,
+		executeAwaitedAction,
+		executeTimeWarp,
+		resetOnServer,
+	} = useServerSync({
 		stateRef,
 		reconcileState,
 		onOfflineSummary,
@@ -239,6 +249,17 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[performAwaitedAction],
 	);
 
+	const timeWarp = useCallback(async (): Promise<boolean> => {
+		try {
+			const result = await executeTimeWarp();
+			reconcileState({ state: result.state, fullReplace: false });
+			setOfflineSummary(deserializeOfflineSummary(result.offlineSummary));
+			return true;
+		} catch {
+			return false;
+		}
+	}, [executeTimeWarp, reconcileState]);
+
 	const resetGame = useCallback(() => {
 		clearSave();
 		setState(createInitialGameState());
@@ -261,6 +282,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		assignLabResearch,
 		unassignLabResearch,
 		unlockLab,
+		timeWarp,
 		resetGame,
 		prestige,
 	};
