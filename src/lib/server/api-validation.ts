@@ -64,6 +64,9 @@ const isValidSerializedBigNum = (value: unknown): value is SerializedBigNum => {
 	if (value.m === 0 && value.e === 0) {
 		return true;
 	}
+	if (!Number.isFinite(value.m)) {
+		return false;
+	}
 	if (value.m < 1 || value.m >= 10) {
 		return false;
 	}

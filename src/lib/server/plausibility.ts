@@ -12,10 +12,11 @@ import {
 	RESEARCH_ORDER,
 } from "@/game/research-config";
 import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/run-timing";
-import type {
-	SerializedGameState,
-	SerializedLabState,
-	SerializedResourceState,
+import {
+	type SerializedGameState,
+	type SerializedLabState,
+	type SerializedResourceState,
+	serializeGameState,
 } from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId } from "@/game/types";
 import {
@@ -32,9 +33,96 @@ import {
 	bnToNumber,
 } from "@/lib/big-number";
 import { logger } from "./logger";
-import type { SyncSnapshot } from "./redis";
+import type { StoredGameState, SyncSnapshot } from "./redis";
 
 const PLAUSIBILITY_TOLERANCE = 1.15;
+
+const INITIAL_GAME_STATE = createInitialGameState();
+export const INITIAL_SERIALIZED = serializeGameState(INITIAL_GAME_STATE);
+
+export const stripServerVersion = (
+	stored: StoredGameState,
+): SerializedGameState => ({
+	resources: stored.resources,
+	shopBoosts: stored.shopBoosts,
+	labs: stored.labs,
+	research: stored.research,
+	prestige: stored.prestige,
+	timeWarpCount: stored.timeWarpCount,
+	lastSavedAt: stored.lastSavedAt,
+	version: stored.version,
+});
+
+/**
+ * Overlay server-authoritative fields from the stored (or initial) state onto
+ * the client's claimed state. Fields that can only change through dedicated
+ * action endpoints are restored from the server's copy, preventing spoofing
+ * via save/sync requests.
+ */
+export const buildProtectedState = ({
+	claimedState,
+	storedState,
+	serverNow,
+}: {
+	claimedState: SerializedGameState;
+	storedState: StoredGameState | null;
+	serverNow: number;
+}): SerializedGameState => {
+	const referenceState: SerializedGameState = storedState
+		? stripServerVersion(storedState)
+		: INITIAL_SERIALIZED;
+
+	// Overlay server-authoritative resource fields
+	const protectedResources = {} as Record<ResourceId, SerializedResourceState>;
+	for (const resourceId of RESOURCE_ORDER) {
+		const claimed = claimedState.resources[resourceId];
+		const ref = referenceState.resources[resourceId];
+		protectedResources[resourceId] = {
+			...claimed,
+			producers: ref.producers,
+			isUnlocked: ref.isUnlocked,
+			isAutomated: ref.isAutomated,
+			...(ref.isPaused !== undefined && { isPaused: ref.isPaused }),
+		};
+	}
+
+	// Overlay server-authoritative lab fields
+	const defaultLabs = INITIAL_SERIALIZED.labs as Record<
+		LabId,
+		SerializedLabState
+	>;
+	const claimedLabs = claimedState.labs ?? defaultLabs;
+	const refLabs = referenceState.labs ?? defaultLabs;
+	const protectedLabs = {} as Record<LabId, SerializedLabState>;
+	for (const labId of LAB_ORDER) {
+		const claimed = claimedLabs[labId];
+		const ref = refLabs[labId];
+		protectedLabs[labId] = {
+			...claimed,
+			isUnlocked: ref.isUnlocked,
+			activeResearchId: ref.activeResearchId,
+			researchStartedAt: ref.researchStartedAt,
+		};
+	}
+
+	// Overlay prestige fields (only nuclearPastaProducedThisRun is client-updatable)
+	const protectedPrestige = {
+		...claimedState.prestige,
+		prestigeCount: referenceState.prestige.prestigeCount,
+		couponBalance: referenceState.prestige.couponBalance,
+		lifetimeCoupons: referenceState.prestige.lifetimeCoupons,
+	};
+
+	return {
+		...claimedState,
+		resources: protectedResources,
+		shopBoosts: referenceState.shopBoosts,
+		labs: protectedLabs,
+		prestige: protectedPrestige,
+		timeWarpCount: referenceState.timeWarpCount,
+		lastSavedAt: serverNow,
+	};
+};
 
 type PlausibilityResult =
 	| { corrected: false; correctedState: null; warnings: string[] }
@@ -77,28 +165,25 @@ export const checkPlausibility = ({
 		return { corrected: false, correctedState: null, warnings: [] };
 	}
 
-	const defaultBoosts = createInitialGameState().shopBoosts;
-	const shopBoosts = claimedState.shopBoosts ?? defaultBoosts;
+	const shopBoosts = claimedState.shopBoosts;
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
 	// Use snapshot's lifetime coupons (trusted) rather than the client's claimed value.
 	// Falls back to claimed state for snapshots created before this field was added.
 	const trustedLifetimeCoupons =
-		lastSnapshot.lifetimeCoupons ?? claimedState.prestige?.lifetimeCoupons;
-	const prestigeMul = trustedLifetimeCoupons
-		? getPrestigePassiveMultiplier({
-				lifetimeCoupons: bnDeserialize(trustedLifetimeCoupons),
-			})
-		: 1;
+		lastSnapshot.lifetimeCoupons ?? claimedState.prestige.lifetimeCoupons;
+	const prestigeMul = getPrestigePassiveMultiplier({
+		lifetimeCoupons: bnDeserialize(trustedLifetimeCoupons),
+	});
 
 	let corrected = false;
 	const warnings: string[] = [];
 
 	// Research runs first so validated levels feed into the resource production check below
 	const validatedResearch = {
-		...(claimedState.research ?? createInitialGameState().research),
+		...claimedState.research,
 	} as Record<ResearchId, number>;
 	const correctedLabs = {
-		...(claimedState.labs ?? createInitialGameState().labs),
+		...claimedState.labs,
 	} as Record<LabId, SerializedLabState>;
 	let researchCorrected = false;
 	let labsCorrected = false;
@@ -347,7 +432,7 @@ export const checkPlausibility = ({
 
 	// Validate nuclearPastaProducedThisRun against plausible nuclear pasta production
 	let correctedPrestige = claimedState.prestige;
-	if (claimedState.prestige && lastSnapshot.nuclearPastaProducedThisRun) {
+	if (lastSnapshot.nuclearPastaProducedThisRun) {
 		const snapshotNpProduced = bnDeserialize(
 			lastSnapshot.nuclearPastaProducedThisRun,
 		);
@@ -417,8 +502,6 @@ export const buildSyncSnapshot = ({
 		}
 	}
 
-	const defaultState = createInitialGameState();
-
 	const research = {} as Record<ResearchId, number>;
 	for (const researchId of RESEARCH_ORDER) {
 		research[researchId] = state.research?.[researchId] ?? 0;
@@ -429,7 +512,7 @@ export const buildSyncSnapshot = ({
 		{ activeResearchId: ResearchId | null; researchStartedAt: number | null }
 	>;
 	for (const labId of LAB_ORDER) {
-		const lab = state.labs?.[labId] ?? defaultState.labs[labId];
+		const lab = state.labs[labId];
 		labs[labId] = {
 			activeResearchId: lab.activeResearchId ?? null,
 			researchStartedAt: lab.researchStartedAt ?? null,
@@ -441,9 +524,7 @@ export const buildSyncSnapshot = ({
 		resources,
 		research,
 		labs,
-		...(state.prestige && {
-			nuclearPastaProducedThisRun: state.prestige.nuclearPastaProducedThisRun,
-			lifetimeCoupons: state.prestige.lifetimeCoupons,
-		}),
+		nuclearPastaProducedThisRun: state.prestige.nuclearPastaProducedThisRun,
+		lifetimeCoupons: state.prestige.lifetimeCoupons,
 	};
 };

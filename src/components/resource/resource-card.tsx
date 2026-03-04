@@ -3,13 +3,16 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
+import { useGregerPeek } from "@/game/hooks/use-greger-peek";
 import { useResourceRuntime } from "@/game/hooks/use-resource-runtime";
 import { getRunInputCost } from "@/game/runs";
 import { useGameState } from "@/game/state/game-state-context";
+import { useSfx } from "@/game/state/sfx-context";
 import type { ResourceState } from "@/game/types";
 import { bigNum, bnFormat, bnMul } from "@/lib/big-number";
 import { AutomateButton } from "./automate-button";
 import { BuyButton } from "./buy-button";
+import { GregerPeek } from "./greger-peek";
 import { ProgressBar } from "./progress-bar";
 import { RunButton } from "./run-button";
 import { UnlockOverlay } from "./unlock-overlay";
@@ -20,6 +23,7 @@ type Props = {
 
 export const ResourceCard = ({ resource }: Props) => {
 	const { state } = useGameState();
+	const { playGregerSfx } = useSfx();
 	const { runTimeMultiplier, effectiveRunTime } = useResourceRuntime({
 		state,
 		resource,
@@ -34,6 +38,7 @@ export const ResourceCard = ({ resource }: Props) => {
 		runTimeMultiplier,
 	});
 	const isAutomatedActive = resource.isAutomated && !resource.isPaused;
+	const isGregerVisible = useGregerPeek({ resource, onTrigger: playGregerSfx });
 	const inputCostPerSecond =
 		isAutomatedActive && config.inputCostPerRun
 			? bnMul(
@@ -44,6 +49,7 @@ export const ResourceCard = ({ resource }: Props) => {
 
 	return (
 		<motion.div
+			className="relative"
 			variants={{
 				hidden: { opacity: 0, y: 20 },
 				visible: { opacity: 1, y: 0 },
@@ -51,7 +57,7 @@ export const ResourceCard = ({ resource }: Props) => {
 		>
 			<Card
 				aria-label={config.name}
-				className={`relative overflow-hidden border-border bg-card select-none
+				className={`relative z-10 overflow-hidden border-border bg-card select-none
 					${isLocked ? "opacity-50" : ""}
 					${isNuclearPasta && !isLocked ? "animate-nuclear-pulse" : ""}`}
 			>
@@ -91,6 +97,7 @@ export const ResourceCard = ({ resource }: Props) => {
 					{isLocked && <UnlockOverlay resourceId={resource.id} />}
 				</AnimatePresence>
 			</Card>
+			<GregerPeek isVisible={isGregerVisible} />
 		</motion.div>
 	);
 };

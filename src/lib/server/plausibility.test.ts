@@ -16,8 +16,13 @@ import {
 	bnDeserialize,
 	bnSerialize,
 } from "@/lib/big-number";
-import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
-import type { SyncSnapshot } from "./redis";
+import { validateSerializedGameState } from "./api-validation";
+import {
+	buildProtectedState,
+	buildSyncSnapshot,
+	checkPlausibility,
+} from "./plausibility";
+import type { StoredGameState, SyncSnapshot } from "./redis";
 
 const noBoosts: ShopBoosts = {
 	"production-20x": false,
@@ -1251,5 +1256,360 @@ describe("checkPlausibility", () => {
 			expect(result.corrected).toBe(true);
 			expect(result.warnings.some((w) => w.includes("Iron Ore"))).toBe(true);
 		});
+	});
+});
+
+// --- buildProtectedState tests ---
+
+const makeStoredState = (
+	overrides: Partial<SerializedGameState> = {},
+): StoredGameState => {
+	const base = serializeGameState(createInitialGameState());
+	return { ...base, ...overrides, serverVersion: 1 };
+};
+
+describe("buildProtectedState", () => {
+	const serverNow = 1_000_000;
+
+	it("overrides lastSavedAt with server time", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: { ...claimed, lastSavedAt: 0 },
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.lastSavedAt).toBe(serverNow);
+	});
+
+	it("reverts spoofed shopBoosts to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedWithBoosts: SerializedGameState = {
+			...claimed,
+			shopBoosts: {
+				"production-20x": true,
+				"automation-2x": true,
+				"runtime-50": true,
+				"research-2x": true,
+				"offline-2h": true,
+			},
+		};
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: claimedWithBoosts,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.shopBoosts).toEqual(stored.shopBoosts);
+		expect(result.shopBoosts?.["production-20x"]).toBe(false);
+	});
+
+	it("reverts spoofed producers to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			resources: {
+				...claimed.resources,
+				"iron-ore": { ...claimed.resources["iron-ore"], producers: 100 },
+			},
+		};
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.resources["iron-ore"].producers).toBe(
+			stored.resources["iron-ore"].producers,
+		);
+	});
+
+	it("reverts spoofed isUnlocked to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			resources: {
+				...claimed.resources,
+				"nuclear-pasta": {
+					...claimed.resources["nuclear-pasta"],
+					isUnlocked: true,
+				},
+			},
+		};
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.resources["nuclear-pasta"].isUnlocked).toBe(false);
+	});
+
+	it("reverts spoofed isAutomated to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			resources: {
+				...claimed.resources,
+				"iron-ore": { ...claimed.resources["iron-ore"], isAutomated: true },
+			},
+		};
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.resources["iron-ore"].isAutomated).toBe(false);
+	});
+
+	it("reverts spoofed lab isUnlocked to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const labs = claimed.labs as Record<LabId, SerializedLabState>;
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			labs: {
+				...labs,
+				"lab-2": {
+					...labs["lab-2"],
+					isUnlocked: true,
+				},
+			},
+		};
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.labs?.["lab-2"].isUnlocked).toBe(false);
+	});
+
+	it("reverts spoofed timeWarpCount to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			timeWarpCount: 0,
+		};
+		const stored = makeStoredState({ timeWarpCount: 5 });
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.timeWarpCount).toBe(5);
+	});
+
+	it("reverts spoofed prestige fields to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			prestige: {
+				prestigeCount: 99,
+				couponBalance: bnSerialize(bigNum(999)),
+				lifetimeCoupons: bnSerialize(bigNum(999)),
+				nuclearPastaProducedThisRun: bnSerialize(bigNum(42)),
+			},
+		};
+		const stored = makeStoredState({
+			prestige: {
+				prestigeCount: 1,
+				couponBalance: bnSerialize(bigNum(10)),
+				lifetimeCoupons: bnSerialize(bigNum(10)),
+				nuclearPastaProducedThisRun: bnSerialize(bigNumZero),
+			},
+		});
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.prestige?.prestigeCount).toBe(1);
+		expect(result.prestige?.couponBalance).toEqual(bnSerialize(bigNum(10)));
+		expect(result.prestige?.lifetimeCoupons).toEqual(bnSerialize(bigNum(10)));
+		// nuclearPastaProducedThisRun should keep the client's claimed value
+		expect(result.prestige?.nuclearPastaProducedThisRun).toEqual(
+			bnSerialize(bigNum(42)),
+		);
+	});
+
+	it("preserves client-controlled resource amount and runStartedAt", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedModified: SerializedGameState = {
+			...claimed,
+			resources: {
+				...claimed.resources,
+				"iron-ore": {
+					...claimed.resources["iron-ore"],
+					amount: bnSerialize(bigNum(50)),
+					runStartedAt: 12345,
+				},
+			},
+		};
+		const stored = makeStoredState();
+		const result = buildProtectedState({
+			claimedState: claimedModified,
+			storedState: stored,
+			serverNow,
+		});
+		expect(bnDeserialize(result.resources["iron-ore"].amount)).toEqual(
+			bnDeserialize(bnSerialize(bigNum(50))),
+		);
+		expect(result.resources["iron-ore"].runStartedAt).toBe(12345);
+	});
+
+	it("uses initial game state as reference when storedState is null", () => {
+		const initial = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...initial,
+			resources: {
+				...initial.resources,
+				"iron-ore": { ...initial.resources["iron-ore"], producers: 100 },
+				"nuclear-pasta": {
+					...initial.resources["nuclear-pasta"],
+					isUnlocked: true,
+					isAutomated: true,
+					producers: 50,
+				},
+			},
+			shopBoosts: {
+				"production-20x": true,
+				"automation-2x": true,
+				"runtime-50": true,
+				"research-2x": true,
+				"offline-2h": true,
+			},
+		};
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: null,
+			serverNow,
+		});
+		// Should revert to initial state producers
+		expect(result.resources["iron-ore"].producers).toBe(
+			initial.resources["iron-ore"].producers,
+		);
+		expect(result.resources["nuclear-pasta"].isUnlocked).toBe(false);
+		expect(result.resources["nuclear-pasta"].producers).toBe(0);
+		// Should revert boosts to initial (all false)
+		expect(result.shopBoosts?.["production-20x"]).toBe(false);
+	});
+
+	it("reverts spoofed activeResearchId to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const labs = claimed.labs as Record<LabId, SerializedLabState>;
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			labs: {
+				...labs,
+				"lab-1": {
+					...labs["lab-1"],
+					activeResearchId: "more-plates",
+					researchStartedAt: 500,
+				},
+			},
+		};
+		const stored = makeStoredState({
+			labs: {
+				"lab-1": {
+					isUnlocked: true,
+					activeResearchId: "more-iron-ore",
+					researchStartedAt: 100,
+				},
+				"lab-2": labs["lab-2"],
+			},
+		});
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.labs?.["lab-1"].activeResearchId).toBe("more-iron-ore");
+		expect(result.labs?.["lab-1"].researchStartedAt).toBe(100);
+	});
+
+	it("reverts spoofed researchStartedAt to stored values", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const labs = claimed.labs as Record<LabId, SerializedLabState>;
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			labs: {
+				...labs,
+				"lab-1": {
+					...labs["lab-1"],
+					activeResearchId: "more-iron-ore",
+					researchStartedAt: 1,
+				},
+			},
+		};
+		const stored = makeStoredState({
+			labs: {
+				"lab-1": {
+					isUnlocked: true,
+					activeResearchId: "more-iron-ore",
+					researchStartedAt: 5000,
+				},
+				"lab-2": labs["lab-2"],
+			},
+		});
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		expect(result.labs?.["lab-1"].researchStartedAt).toBe(5000);
+	});
+
+	it("protects prestige from spoofed values while allowing client-controlled fields", () => {
+		const claimed = serializeGameState(createInitialGameState());
+		const claimedSpoofed: SerializedGameState = {
+			...claimed,
+			prestige: {
+				prestigeCount: 99,
+				couponBalance: bnSerialize(bigNum(999)),
+				lifetimeCoupons: bnSerialize(bigNum(999)),
+				nuclearPastaProducedThisRun: bnSerialize(bigNum(42)),
+			},
+		};
+		const stored: StoredGameState = {
+			...serializeGameState(createInitialGameState()),
+			serverVersion: 1,
+		};
+		const result = buildProtectedState({
+			claimedState: claimedSpoofed,
+			storedState: stored,
+			serverNow,
+		});
+		// Server-controlled fields should use stored values (all zeros)
+		expect(result.prestige.prestigeCount).toBe(0);
+		expect(result.prestige.couponBalance).toEqual(bnSerialize(bigNumZero));
+		expect(result.prestige.lifetimeCoupons).toEqual(bnSerialize(bigNumZero));
+		// nuclearPastaProducedThisRun is client-controlled
+		expect(result.prestige.nuclearPastaProducedThisRun).toEqual(
+			bnSerialize(bigNum(42)),
+		);
+	});
+});
+
+// --- BigNum NaN validation tests ---
+
+describe("validateSerializedGameState", () => {
+	it("rejects BigNum with NaN mantissa", () => {
+		const base = serializeGameState(createInitialGameState());
+		const state = {
+			...base,
+			resources: {
+				...base.resources,
+				"iron-ore": {
+					...base.resources["iron-ore"],
+					amount: { m: Number.NaN, e: 0 },
+				},
+			},
+		};
+		const result = validateSerializedGameState(
+			state as unknown as Record<string, unknown>,
+		);
+		expect(result).not.toBeNull();
+		expect(result).toContain("Invalid amount");
 	});
 });

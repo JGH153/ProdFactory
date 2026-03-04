@@ -20,7 +20,8 @@ vi.mock("ioredis", () => ({
 }));
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SerializedResourceState } from "@/game/state/serialization";
+import { createInitialGameState } from "@/game/initial-state";
+import { serializeGameState } from "@/game/state/serialization";
 import type { ResourceId } from "@/game/types";
 import {
 	deleteSyncSnapshot,
@@ -49,31 +50,9 @@ const ALL_RESOURCE_IDS: ResourceId[] = [
 	"nuclear-pasta",
 ];
 
-const makeMinimalResource = (id: ResourceId): SerializedResourceState => ({
-	id,
-	amount: { m: 0, e: 0 },
-	producers: 0,
-	isUnlocked: true,
-	isAutomated: false,
-	runStartedAt: null,
-});
-
-const makeResources = (): Record<ResourceId, SerializedResourceState> =>
-	Object.fromEntries(
-		ALL_RESOURCE_IDS.map((id) => [id, makeMinimalResource(id)]),
-	) as Record<ResourceId, SerializedResourceState>;
-
 const mockStoredGameState: StoredGameState = {
-	resources: makeResources(),
-	shopBoosts: {
-		"production-20x": false,
-		"automation-2x": false,
-		"runtime-50": false,
-		"research-2x": false,
-		"offline-2h": false,
-	},
+	...serializeGameState(createInitialGameState()),
 	lastSavedAt: 1700000000000,
-	version: 4,
 	serverVersion: 1,
 };
 

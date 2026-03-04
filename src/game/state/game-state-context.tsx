@@ -157,15 +157,16 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	const buyResourceProducer = useCallback(
 		(resourceId: ResourceId) => {
 			const currentState = stateRef.current;
+			if (!canBuyProducer({ state: currentState, resourceId })) {
+				return;
+			}
 			const before = currentState.resources[resourceId].producers;
 			setState((current) => buyProducer({ state: current, resourceId }));
-			if (canBuyProducer({ state: currentState, resourceId })) {
-				const after = before + 1;
-				const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
-				const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
-				if (milestoneAfter > milestoneBefore) {
-					showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
-				}
+			const after = before + 1;
+			const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
+			const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);
+			if (milestoneAfter > milestoneBefore) {
+				showMilestone({ resourceId, multiplier: 2 ** milestoneAfter });
 			}
 			enqueueAction({ endpoint: "buy-producer", resourceId });
 		},
@@ -178,6 +179,9 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 			const before = currentState.resources[resourceId].producers;
 			const simResult = buyMaxProducers({ state: currentState, resourceId });
 			const after = simResult.resources[resourceId].producers;
+			if (before === after) {
+				return;
+			}
 			setState((current) => buyMaxProducers({ state: current, resourceId }));
 			const milestoneBefore = Math.floor(before / SPEED_MILESTONE_INTERVAL);
 			const milestoneAfter = Math.floor(after / SPEED_MILESTONE_INTERVAL);

@@ -45,10 +45,14 @@ vi.mock("./session", () => ({
 	incrementWarnings: vi.fn(),
 }));
 
-vi.mock("./plausibility", () => ({
-	buildSyncSnapshot: vi.fn(),
-	checkPlausibility: vi.fn(),
-}));
+vi.mock("./plausibility", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("./plausibility")>();
+	return {
+		...actual,
+		buildSyncSnapshot: vi.fn(),
+		checkPlausibility: vi.fn(),
+	};
+});
 
 // --- Helpers ---
 

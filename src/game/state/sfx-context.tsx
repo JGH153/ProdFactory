@@ -33,6 +33,7 @@ type SfxContextValue = {
 	toggleSfx: () => void;
 	playClickSfx: () => void;
 	playMilestoneSfx: () => void;
+	playGregerSfx: () => void;
 };
 
 const SfxContext = createContext<SfxContextValue | null>(null);
@@ -82,9 +83,19 @@ export const SfxProvider = ({ children }: PropsWithChildren) => {
 		playSound("/high-speed.mp3", 0.2);
 	}, [playSound]);
 
+	const playGregerSfx = useCallback(() => {
+		playSound("/nice.mp3", 0.2);
+	}, [playSound]);
+
 	return (
 		<SfxContext
-			value={{ sfxEnabled, toggleSfx, playClickSfx, playMilestoneSfx }}
+			value={{
+				sfxEnabled,
+				toggleSfx,
+				playClickSfx,
+				playMilestoneSfx,
+				playGregerSfx,
+			}}
 		>
 			{children}
 		</SfxContext>

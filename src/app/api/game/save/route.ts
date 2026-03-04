@@ -39,7 +39,7 @@ const saveGame = async ({
 	return persistWithPlausibility({
 		sessionId,
 		claimedState,
-		storedPrestige: stored?.prestige,
+		storedState: stored ?? null,
 		newVersion,
 		updateSnapshotOnClean: true,
 	});

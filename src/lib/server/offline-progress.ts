@@ -1,5 +1,4 @@
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
-import { createInitialGameState } from "@/game/initial-state";
 import { getPrestigePassiveMultiplier } from "@/game/prestige-config";
 import { getProductionForRuns } from "@/game/production";
 import { advanceResearchLevels } from "@/game/research-calculator";
@@ -37,7 +36,7 @@ export type SerializedOfflineSummary = {
 	gains: { resourceId: ResourceId; amount: SerializedBigNum }[];
 	researchLevelUps: { researchId: ResearchId; newLevel: number }[];
 	wasCapped: boolean;
-	isTimeWarp?: boolean;
+	isTimeWarp: boolean;
 };
 
 export const computeOfflineProgress = ({
@@ -54,9 +53,8 @@ export const computeOfflineProgress = ({
 		return { updatedState: state, summary: null };
 	}
 
-	const defaults = createInitialGameState();
-	const shopBoosts = state.shopBoosts ?? defaults.shopBoosts;
-	const initialResearch = state.research ?? defaults.research;
+	const shopBoosts = state.shopBoosts;
+	const initialResearch = state.research;
 	const maxOfflineSeconds = getOfflineCapSeconds({
 		shopBoosts,
 		research: initialResearch as Record<ResearchId, number>,
@@ -71,16 +69,13 @@ export const computeOfflineProgress = ({
 	}
 
 	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
-	const prestigeMul = state.prestige?.lifetimeCoupons
-		? getPrestigePassiveMultiplier({
-				lifetimeCoupons: bnDeserialize(state.prestige.lifetimeCoupons),
-			})
-		: 1;
+	const prestigeMul = getPrestigePassiveMultiplier({
+		lifetimeCoupons: bnDeserialize(state.prestige.lifetimeCoupons),
+	});
 
 	// Advance research before computing resource production
 	const research = { ...initialResearch } as Record<ResearchId, number>;
-	const initialLabs = state.labs ?? defaults.labs;
-	const updatedLabs = { ...initialLabs } as Record<LabId, SerializedLabState>;
+	const updatedLabs = { ...state.labs } as Record<LabId, SerializedLabState>;
 
 	const researchLevelUps: SerializedOfflineSummary["researchLevelUps"] = [];
 	const researchTimeMultiplier = getResearchTimeMultiplier({ shopBoosts });
@@ -138,11 +133,7 @@ export const computeOfflineProgress = ({
 		const config = RESOURCE_CONFIGS[resourceId];
 		const savedAmount = bnDeserialize(resource.amount);
 
-		if (
-			!resource.isUnlocked ||
-			!resource.isAutomated ||
-			(resource.isPaused ?? false)
-		) {
+		if (!resource.isUnlocked || !resource.isAutomated || resource.isPaused) {
 			netAvailable[resourceId] = savedAmount;
 			continue;
 		}
@@ -213,18 +204,17 @@ export const computeOfflineProgress = ({
 
 	// Track Nuclear Pasta offline production in prestige state
 	const npGain = gains.find((g) => g.resourceId === "nuclear-pasta");
-	const updatedPrestige =
-		npGain && state.prestige
-			? {
-					...state.prestige,
-					nuclearPastaProducedThisRun: bnSerialize(
-						bnAdd(
-							bnDeserialize(state.prestige.nuclearPastaProducedThisRun),
-							bnDeserialize(npGain.amount),
-						),
+	const updatedPrestige = npGain
+		? {
+				...state.prestige,
+				nuclearPastaProducedThisRun: bnSerialize(
+					bnAdd(
+						bnDeserialize(state.prestige.nuclearPastaProducedThisRun),
+						bnDeserialize(npGain.amount),
 					),
-				}
-			: state.prestige;
+				),
+			}
+		: state.prestige;
 
 	return {
 		updatedState: {
@@ -234,9 +224,15 @@ export const computeOfflineProgress = ({
 				labs: updatedLabs,
 				research,
 			}),
-			...(updatedPrestige && { prestige: updatedPrestige }),
+			prestige: updatedPrestige,
 		},
-		summary: { elapsedSeconds, gains, researchLevelUps, wasCapped },
+		summary: {
+			elapsedSeconds,
+			gains,
+			researchLevelUps,
+			wasCapped,
+			isTimeWarp: false,
+		},
 	};
 };
 
@@ -254,8 +250,7 @@ export const computeTimeWarp = ({
 } => {
 	const durationMs = durationSeconds * 1000;
 
-	const defaults = createInitialGameState();
-	const initialLabs = state.labs ?? defaults.labs;
+	const initialLabs = state.labs;
 
 	// Shift researchStartedAt back by durationMs so research advances by exactly
 	// that duration (preserving any partial progress in the current level).

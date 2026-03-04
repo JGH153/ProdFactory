@@ -74,7 +74,8 @@ export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 					const isLocked =
 						requiresUnlock !== undefined &&
 						!state.resources[requiresUnlock.resourceId].isUnlocked &&
-						!(tab.id === "prestige" && state.prestige.prestigeCount >= 1);
+						!(tab.id === "prestige" && state.prestige.prestigeCount >= 1) &&
+						!(tab.id === "shop" && state.prestige.prestigeCount >= 1);
 
 					if (isLocked && requiresUnlock) {
 						return (

@@ -1,5 +1,4 @@
 import { RESOURCE_ORDER } from "@/game/config";
-import { createInitialGameState } from "@/game/initial-state";
 import { LAB_ORDER, RESEARCH_ORDER } from "@/game/research-config";
 import type {
 	GameState,
@@ -19,7 +18,7 @@ import {
 } from "@/lib/big-number";
 import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 1;
 
 export type SerializedResourceState = {
 	id: ResourceId;
@@ -27,7 +26,7 @@ export type SerializedResourceState = {
 	producers: number;
 	isUnlocked: boolean;
 	isAutomated: boolean;
-	isPaused?: boolean;
+	isPaused: boolean;
 	runStartedAt: number | null;
 };
 
@@ -46,11 +45,11 @@ export type SerializedPrestigeState = {
 
 export type SerializedGameState = {
 	resources: Record<ResourceId, SerializedResourceState>;
-	shopBoosts?: ShopBoosts | undefined;
-	labs?: Record<LabId, SerializedLabState> | undefined;
-	research?: Record<ResearchId, number> | undefined;
-	prestige?: SerializedPrestigeState | undefined;
-	timeWarpCount?: number | undefined;
+	shopBoosts: ShopBoosts;
+	labs: Record<LabId, SerializedLabState>;
+	research: Record<ResearchId, number>;
+	prestige: SerializedPrestigeState;
+	timeWarpCount: number;
 	lastSavedAt: number;
 	version: number;
 };
@@ -73,7 +72,7 @@ const deserializeResource = (data: SerializedResourceState): ResourceState => ({
 	producers: data.producers,
 	isUnlocked: data.isUnlocked,
 	isAutomated: data.isAutomated,
-	isPaused: data.isPaused ?? false,
+	isPaused: data.isPaused,
 	runStartedAt: data.runStartedAt,
 });
 
@@ -136,42 +135,31 @@ export const deserializeOfflineSummary = (
 		resourceId,
 		amount: bnDeserialize(amount),
 	})),
-	researchLevelUps: summary.researchLevelUps ?? [],
+	researchLevelUps: summary.researchLevelUps,
 	wasCapped: summary.wasCapped,
-	isTimeWarp: summary.isTimeWarp ?? false,
+	isTimeWarp: summary.isTimeWarp,
 });
 
 export const deserializeGameState = (data: SerializedGameState): GameState => {
-	const initialState = createInitialGameState();
 	const resources = {} as Record<ResourceId, ResourceState>;
 	for (const id of RESOURCE_ORDER) {
-		if (data.resources[id]) {
-			resources[id] = deserializeResource(data.resources[id]);
-		} else {
-			resources[id] = initialState.resources[id];
-		}
+		resources[id] = deserializeResource(data.resources[id]);
 	}
 	const labs = {} as Record<LabId, LabState>;
 	for (const id of LAB_ORDER) {
-		if (data.labs?.[id]) {
-			labs[id] = deserializeLab(data.labs[id]);
-		} else {
-			labs[id] = initialState.labs[id];
-		}
+		labs[id] = deserializeLab(data.labs[id]);
 	}
 	const research = {} as Record<ResearchId, number>;
 	for (const id of RESEARCH_ORDER) {
-		research[id] = data.research?.[id] ?? 0;
+		research[id] = data.research[id];
 	}
 	return {
 		resources,
-		shopBoosts: data.shopBoosts ?? initialState.shopBoosts,
+		shopBoosts: data.shopBoosts,
 		labs,
 		research,
-		prestige: data.prestige
-			? deserializePrestige(data.prestige)
-			: initialState.prestige,
-		timeWarpCount: data.timeWarpCount ?? 0,
+		prestige: deserializePrestige(data.prestige),
+		timeWarpCount: data.timeWarpCount,
 		lastSavedAt: data.lastSavedAt,
 	};
 };

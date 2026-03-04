@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import {
 	deserializeGameState,
 	type SerializedGameState,
-	type SerializedPrestigeState,
 	serializeGameState,
 } from "@/game/state/serialization";
 import type {
@@ -23,7 +22,13 @@ import {
 	validateSerializedGameState,
 } from "./api-validation";
 import { logger } from "./logger";
-import { buildSyncSnapshot, checkPlausibility } from "./plausibility";
+import {
+	buildProtectedState,
+	buildSyncSnapshot,
+	checkPlausibility,
+	INITIAL_SERIALIZED,
+	stripServerVersion,
+} from "./plausibility";
 import { checkRateLimit } from "./rate-limit";
 import {
 	getSyncSnapshot,
@@ -87,18 +92,7 @@ const checkActionRateLimit = async (
 	return null;
 };
 
-export const stripServerVersion = (
-	stored: StoredGameState,
-): SerializedGameState => ({
-	resources: stored.resources,
-	shopBoosts: stored.shopBoosts,
-	labs: stored.labs,
-	research: stored.research,
-	prestige: stored.prestige,
-	timeWarpCount: stored.timeWarpCount,
-	lastSavedAt: stored.lastSavedAt,
-	version: stored.version,
-});
+export { stripServerVersion };
 
 // --- Generic body parser builder ---
 
@@ -220,6 +214,10 @@ export const parseSaveActionBody = async (
 
 // --- Plausibility ---
 
+// Grace period for the first save — covers the time between session creation
+// and the first auto-save (~5s) with generous headroom for slow networks.
+const FIRST_SAVE_GRACE_MS = 30_000;
+
 export type PlausibilitySaveResult =
 	| { type: "accepted"; serverVersion: number }
 	| {
@@ -232,51 +230,37 @@ export type PlausibilitySaveResult =
 export const persistWithPlausibility = async ({
 	sessionId,
 	claimedState,
-	storedPrestige,
+	storedState,
 	newVersion,
 	updateSnapshotOnClean,
 }: {
 	sessionId: string;
 	claimedState: SerializedGameState;
-	storedPrestige: SerializedPrestigeState | undefined;
+	storedState: StoredGameState | null;
 	newVersion: number;
 	updateSnapshotOnClean: boolean;
 }): Promise<PlausibilitySaveResult> => {
-	// Protect prestige fields that should only change through server-authoritative
-	// endpoints (prestige, reset). The client may only update nuclearPastaProducedThisRun
-	// (tracked during normal gameplay), which is validated by the plausibility check.
-	const protectedState: SerializedGameState =
-		storedPrestige && claimedState.prestige
-			? {
-					...claimedState,
-					prestige: {
-						...claimedState.prestige,
-						prestigeCount: storedPrestige.prestigeCount,
-						couponBalance: storedPrestige.couponBalance,
-						lifetimeCoupons: storedPrestige.lifetimeCoupons,
-					},
-				}
-			: claimedState;
-
 	const serverNow = Date.now();
-	const lastSnapshot = await getSyncSnapshot(sessionId);
+	const protectedState = buildProtectedState({
+		claimedState,
+		storedState,
+		serverNow,
+	});
 
-	if (!lastSnapshot) {
-		await saveStoredGameState({
-			sessionId,
-			stored: { ...protectedState, serverVersion: newVersion },
+	const existingSnapshot = await getSyncSnapshot(sessionId);
+
+	// When no snapshot exists (first save or snapshot expired), build a baseline
+	// from the initial game state so the plausibility check still runs.
+	const effectiveSnapshot =
+		existingSnapshot ??
+		buildSyncSnapshot({
+			state: INITIAL_SERIALIZED,
+			timestamp: serverNow - FIRST_SAVE_GRACE_MS,
 		});
-		const snapshot = buildSyncSnapshot({
-			state: protectedState,
-			timestamp: serverNow,
-		});
-		await setSyncSnapshot({ sessionId, snapshot });
-		return { type: "accepted", serverVersion: newVersion };
-	}
 
 	const result = checkPlausibility({
 		claimedState: protectedState,
-		lastSnapshot,
+		lastSnapshot: effectiveSnapshot,
 		serverNow,
 	});
 
@@ -287,15 +271,17 @@ export const persistWithPlausibility = async ({
 		);
 		await incrementWarnings(sessionId);
 
-		await saveStoredGameState({
-			sessionId,
-			stored: { ...result.correctedState, serverVersion: newVersion },
-		});
 		const snapshot = buildSyncSnapshot({
 			state: result.correctedState,
 			timestamp: serverNow,
 		});
-		await setSyncSnapshot({ sessionId, snapshot });
+		await Promise.all([
+			saveStoredGameState({
+				sessionId,
+				stored: { ...result.correctedState, serverVersion: newVersion },
+			}),
+			setSyncSnapshot({ sessionId, snapshot }),
+		]);
 		return {
 			type: "corrected",
 			state: result.correctedState,
@@ -304,16 +290,18 @@ export const persistWithPlausibility = async ({
 		};
 	}
 
-	await saveStoredGameState({
+	const savePromise = saveStoredGameState({
 		sessionId,
 		stored: { ...protectedState, serverVersion: newVersion },
 	});
-	if (updateSnapshotOnClean) {
+	if (updateSnapshotOnClean || !existingSnapshot) {
 		const snapshot = buildSyncSnapshot({
 			state: protectedState,
 			timestamp: serverNow,
 		});
-		await setSyncSnapshot({ sessionId, snapshot });
+		await Promise.all([savePromise, setSyncSnapshot({ sessionId, snapshot })]);
+	} else {
+		await savePromise;
 	}
 	return { type: "accepted", serverVersion: newVersion };
 };

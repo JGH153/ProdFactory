@@ -11,10 +11,11 @@ import {
 	stripServerVersion,
 } from "@/lib/server/api-helpers";
 import { logger } from "@/lib/server/logger";
+import { buildSyncSnapshot } from "@/lib/server/plausibility";
 import {
-	deleteSyncSnapshot,
 	loadStoredGameState,
 	saveStoredGameState,
+	setSyncSnapshot,
 } from "@/lib/server/redis";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
@@ -67,12 +68,19 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const newSerialized = serializeGameState(newState);
 	const newVersion = stored.serverVersion + 1;
 
+	const serverNow = Date.now();
 	await Promise.all([
 		saveStoredGameState({
 			sessionId,
 			stored: { ...newSerialized, serverVersion: newVersion },
 		}),
-		deleteSyncSnapshot(sessionId),
+		setSyncSnapshot({
+			sessionId,
+			snapshot: buildSyncSnapshot({
+				state: newSerialized,
+				timestamp: serverNow,
+			}),
+		}),
 	]);
 
 	return NextResponse.json({
