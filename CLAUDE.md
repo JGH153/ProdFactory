@@ -21,10 +21,12 @@ ProdFactory is an incremental/idle game combining Adventure Capitalist mechanics
 - **Speed milestones**: Every 10 producers halves that tier's run time.
 - **Continuous mode**: When effective run time drops below 0.5s, it clamps there and a continuous multiplier compensates production.
 - **Automation**: Unlock per-tier automation to eliminate manual clicking. Can be paused without losing the unlock.
-- **Shop boosts**: Four one-time multipliers — `production-20x`, `automation-2x` (halves run time), `runtime-50` (50% faster), `research-2x` (halves research time).
-- **Research**: 2 labs run independently. 8 research types (one per resource) each give +10% production per level, max level 10. Time per level: `10s x 2^level`.
-- **Offline progress**: On return, the server computes up to 8 hours of offline production and research advancement.
+- **Shop boosts**: Five one-time multipliers — `production-20x`, `automation-2x` (halves automated run time), `runtime-50` (50% faster), `research-2x` (halves research time), `offline-2h` (increases offline cap by 2 hours).
+- **Research**: 2 labs run independently (lab-2 requires 1 prestige to unlock). 17 research types: **Efficiency** (8): `more-{resource}` — +10% production per level, max 20. **Speed** (8): `speed-{resource}` — reduces run time by `1/(1 + level*0.1)`, max 20. **Utility** (1): `offline-progress` — +5 min offline cap per level, max 12 (requires prestige). Time per level: `10s x 2^level`.
+- **Offline progress**: On return, the server computes offline production and research advancement. Base cap: 8 hours, +2h with `offline-2h` boost, +5 min/level with `offline-progress` research (max level 12).
 - **Big numbers**: Custom BigNumber system (`BigNum = {mantissa, exponent}`) handles values beyond `Number.MAX_SAFE_INTEGER`. Displays as digits up to 999,999, then million/billion/trillion, then letter notation (aa, ab, ...).
+- **Prestige**: Available once Nuclear Pasta has been produced. Coupons earned: `floor(sqrt(nuclear_pasta_produced))`. Passive bonus: `1 + (coupons * 0.02)` multiplier to all production. Milestones at 1, 2, 3, 5 prestiges grant starting bonuses. Resets resources but keeps shop boosts, lab unlocks, and research levels.
+- **Time Warp**: Simulates 1 hour of offline progress on demand. Rate-limited to 30 per session per 60s. Increments `timeWarpCount`.
 
 ### Resource Chain
 
@@ -120,8 +122,10 @@ pnpm update-deps-minor # Interactive dependency updater (minor only)
 - **localStorage cache**: Client renders from localStorage immediately on mount (no loading screen), then fetches authoritative state from the server.
 - **Optimistic concurrency**: All state-changing API calls include `serverVersion`. On mismatch (409), the client adopts the server's state while preserving client-managed `runStartedAt` values.
 - **Mutation queue**: Actions are enqueued and processed serially using the `serverVersion` from the previous response.
-- **Auto-save** every 5s (`POST /api/game/save`). **Plausibility sync** every 15s (`POST /api/game/sync`) — server compares claimed production against maximum possible rates (10% tolerance) and corrects if needed.
-- **Sessions**: Anonymous UUID via `pf-session` HttpOnly cookie (30-day TTL). Rate-limited to 10 creations per IP per hour.
+- **Auto-save** every 10s (`POST /api/game/save`). **Plausibility sync** every 30s (`POST /api/game/sync`) — server compares claimed production against maximum possible rates (10% tolerance) and corrects if needed. Sync snapshots in Redis (`sync:{sessionId}`) store the baseline for each check.
+- **Sessions**: Anonymous UUID via `pf-session` HttpOnly cookie (30-day TTL). Rate-limited to 10 creations per IP per hour. Game actions limited to 120 per session per 60s; time warps limited to 30 per session per 60s.
+- **Flush on exit**: On tab visibility change, the client sends unsaved state via `navigator.sendBeacon` to prevent data loss.
+- **Build ID tracking**: Save/sync responses include a `buildId`. On mismatch the client reloads to pick up new deployments.
 
 ### API Routes
 
@@ -143,6 +147,8 @@ pnpm update-deps-minor # Interactive dependency updater (minor only)
 | `/api/game/unlock-lab` | POST | Unlock a lab |
 | `/api/game/reset-research` | POST | Reset all research |
 | `/api/game/reset` | POST | Full game reset |
+| `/api/game/prestige` | POST | Perform prestige reset, earn coupons |
+| `/api/game/time-warp` | POST | Simulate 1 hour of offline progress |
 
 ---
 

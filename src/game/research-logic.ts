@@ -7,14 +7,31 @@ import {
 } from "./research-config";
 import type { GameState, LabId, LabState, ResearchId } from "./types";
 
-/** Check if a lab can be unlocked (not already unlocked). */
+/** Return a descriptive error if a lab cannot be unlocked, or null if allowed. */
+export const getUnlockLabError = ({
+	state,
+	labId,
+}: {
+	state: GameState;
+	labId: LabId;
+}): string | null => {
+	if (state.labs[labId].isUnlocked) {
+		return "Lab is already unlocked";
+	}
+	if (labId === "lab-2" && state.prestige.prestigeCount < 1) {
+		return "Prestige required to unlock Lab 2";
+	}
+	return null;
+};
+
+/** Check if a lab can be unlocked. */
 export const canUnlockLab = ({
 	state,
 	labId,
 }: {
 	state: GameState;
 	labId: LabId;
-}): boolean => !state.labs[labId].isUnlocked;
+}): boolean => getUnlockLabError({ state, labId }) === null;
 
 /** Unlock a lab (free for now). */
 export const unlockLab = ({

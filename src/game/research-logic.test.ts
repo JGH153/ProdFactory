@@ -13,6 +13,7 @@ import {
 	canAssignResearch,
 	canUnlockLab,
 	getAssignResearchError,
+	getUnlockLabError,
 	resetResearch,
 	unassignResearch,
 	unlockLab,
@@ -61,6 +62,23 @@ describe("unlockLab", () => {
 		const result = unlockLab({ state, labId: "lab-1" });
 		expect(result).toBe(state);
 	});
+
+	it("does not unlock lab-2 when prestige count is 0", () => {
+		const state = createInitialGameState();
+		const result = unlockLab({ state, labId: "lab-2" });
+		expect(result).toBe(state);
+		expect(result.labs["lab-2"].isUnlocked).toBe(false);
+	});
+
+	it("unlocks lab-2 when prestige count is >= 1", () => {
+		const state = createInitialGameState();
+		const withPrestige: GameState = {
+			...state,
+			prestige: { ...state.prestige, prestigeCount: 1 },
+		};
+		const result = unlockLab({ state: withPrestige, labId: "lab-2" });
+		expect(result.labs["lab-2"].isUnlocked).toBe(true);
+	});
 });
 
 describe("canUnlockLab", () => {
@@ -72,6 +90,57 @@ describe("canUnlockLab", () => {
 	it("returns false for unlocked lab", () => {
 		const state = withUnlockedLab("lab-1");
 		expect(canUnlockLab({ state, labId: "lab-1" })).toBe(false);
+	});
+
+	it("returns false for lab-2 when prestige count is 0", () => {
+		const state = createInitialGameState();
+		expect(canUnlockLab({ state, labId: "lab-2" })).toBe(false);
+	});
+
+	it("returns true for lab-2 when prestige count is >= 1", () => {
+		const state = createInitialGameState();
+		const withPrestige: GameState = {
+			...state,
+			prestige: { ...state.prestige, prestigeCount: 1 },
+		};
+		expect(canUnlockLab({ state: withPrestige, labId: "lab-2" })).toBe(true);
+	});
+
+	it("returns true for lab-1 regardless of prestige count", () => {
+		const state = createInitialGameState();
+		expect(canUnlockLab({ state, labId: "lab-1" })).toBe(true);
+	});
+});
+
+describe("getUnlockLabError", () => {
+	it("returns null for unlockable lab-1", () => {
+		const state = createInitialGameState();
+		expect(getUnlockLabError({ state, labId: "lab-1" })).toBeNull();
+	});
+
+	it("returns error for already unlocked lab", () => {
+		const state = withUnlockedLab("lab-1");
+		expect(getUnlockLabError({ state, labId: "lab-1" })).toBe(
+			"Lab is already unlocked",
+		);
+	});
+
+	it("returns prestige error for lab-2 without prestige", () => {
+		const state = createInitialGameState();
+		expect(getUnlockLabError({ state, labId: "lab-2" })).toBe(
+			"Prestige required to unlock Lab 2",
+		);
+	});
+
+	it("returns null for lab-2 with prestige", () => {
+		const state: GameState = {
+			...createInitialGameState(),
+			prestige: {
+				...createInitialGameState().prestige,
+				prestigeCount: 1,
+			},
+		};
+		expect(getUnlockLabError({ state, labId: "lab-2" })).toBeNull();
 	});
 });
 
@@ -261,12 +330,12 @@ describe("advanceResearch", () => {
 
 	it("clears lab assignment when reaching max level", () => {
 		const now = Date.now();
-		// Research from level 9 to 10: getResearchTime(9) = 10 * 2^9 = 5120s
-		const levelTime = getResearchTime(9);
+		const startLevel = MAX_RESEARCH_LEVEL - 1;
+		const levelTime = getResearchTime(startLevel);
 		const state = withUnlockedLab("lab-1");
-		const atLevel9: GameState = {
+		const nearMax: GameState = {
 			...state,
-			research: { ...state.research, "more-iron-ore": 9 },
+			research: { ...state.research, "more-iron-ore": startLevel },
 			labs: {
 				...state.labs,
 				"lab-1": {
@@ -276,8 +345,8 @@ describe("advanceResearch", () => {
 				},
 			},
 		};
-		const result = advanceResearch({ state: atLevel9, now });
-		expect(result.research["more-iron-ore"]).toBe(10);
+		const result = advanceResearch({ state: nearMax, now });
+		expect(result.research["more-iron-ore"]).toBe(MAX_RESEARCH_LEVEL);
 		expect(result.labs["lab-1"].activeResearchId).toBeNull();
 		expect(result.labs["lab-1"].researchStartedAt).toBeNull();
 	});
@@ -525,13 +594,14 @@ describe("advanceResearchWithReport", () => {
 		]);
 	});
 
-	it("reports level 10 when reaching max", () => {
+	it("reports max level when reaching max", () => {
 		const now = Date.now();
-		const levelTime = getResearchTime(9) * 1000;
+		const startLevel = MAX_RESEARCH_LEVEL - 1;
+		const levelTime = getResearchTime(startLevel) * 1000;
 		const state = withUnlockedLab("lab-1");
-		const atLevel9: GameState = {
+		const nearMax: GameState = {
 			...state,
-			research: { ...state.research, "more-iron-ore": 9 },
+			research: { ...state.research, "more-iron-ore": startLevel },
 			labs: {
 				...state.labs,
 				"lab-1": {
@@ -541,9 +611,9 @@ describe("advanceResearchWithReport", () => {
 				},
 			},
 		};
-		const result = advanceResearchWithReport({ state: atLevel9, now });
+		const result = advanceResearchWithReport({ state: nearMax, now });
 		expect(result.levelUps).toEqual([
-			{ researchId: "more-iron-ore", newLevel: 10 },
+			{ researchId: "more-iron-ore", newLevel: MAX_RESEARCH_LEVEL },
 		]);
 		expect(result.state.labs["lab-1"].activeResearchId).toBeNull();
 	});

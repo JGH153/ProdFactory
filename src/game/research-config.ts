@@ -1,6 +1,6 @@
 import type { LabId, ResearchId, ResourceId, ShopBoosts } from "./types";
 
-export const MAX_RESEARCH_LEVEL = 10;
+export const MAX_RESEARCH_LEVEL = 20;
 const MAX_UTILITY_RESEARCH_LEVEL = 12;
 const RESEARCH_BASE_TIME = 10;
 export const RESEARCH_BONUS_PER_LEVEL = 0.1;

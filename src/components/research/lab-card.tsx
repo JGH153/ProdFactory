@@ -106,6 +106,7 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 
 	// Locked state
 	if (!lab.isUnlocked) {
+		const needsPrestige = labId === "lab-2" && state.prestige.prestigeCount < 1;
 		return (
 			<div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4">
 				<div className="text-text-muted">
@@ -114,14 +115,18 @@ export const LabCard = ({ labId, labIndex, onAssign }: Props) => {
 				<span className="text-xs font-semibold text-text-secondary">
 					Lab {labIndex}
 				</span>
-				<Button
-					size="sm"
-					className="w-full text-xs"
-					onClick={handleUnlock}
-					disabled={isUnlocking}
-				>
-					{isUnlocking ? "Unlocking..." : "Unlock (Free)"}
-				</Button>
+				{needsPrestige ? (
+					<span className="text-xs text-text-muted">Requires Prestige</span>
+				) : (
+					<Button
+						size="sm"
+						className="w-full text-xs"
+						onClick={handleUnlock}
+						disabled={isUnlocking}
+					>
+						{isUnlocking ? "Unlocking..." : "Unlock (Free)"}
+					</Button>
+				)}
 			</div>
 		);
 	}

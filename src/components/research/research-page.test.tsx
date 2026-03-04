@@ -36,12 +36,18 @@ describe("ResearchPage", () => {
 		expect(screen.getByText("Plate Speed")).toBeInTheDocument();
 	});
 
-	it("shows Unlock (Free) button for locked labs", () => {
+	it("shows Unlock (Free) button for lab-1 when locked", () => {
 		renderWithProviders(<ResearchPage />);
 
 		const unlockButtons = screen.getAllByRole("button", {
 			name: /unlock \(free\)/i,
 		});
-		expect(unlockButtons).toHaveLength(2);
+		expect(unlockButtons).toHaveLength(1);
+	});
+
+	it("shows Requires Prestige for lab-2 when prestige count is 0", () => {
+		renderWithProviders(<ResearchPage />);
+
+		expect(screen.getByText("Requires Prestige")).toBeInTheDocument();
 	});
 });

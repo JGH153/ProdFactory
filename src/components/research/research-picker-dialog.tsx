@@ -70,19 +70,22 @@ const getUtilityBonusDisplay = ({
 const getPercentBonusDisplay = ({
 	level,
 	nextLevel,
+	maxLevel,
 	isSpeedResearch,
 }: {
 	level: number;
 	nextLevel: number;
+	maxLevel: number;
 	isSpeedResearch: boolean;
 }): BonusDisplay => {
 	const currentBonus = Math.round(level * RESEARCH_BONUS_PER_LEVEL * 100);
 	const nextBonus = Math.round(nextLevel * RESEARCH_BONUS_PER_LEVEL * 100);
+	const completeBonus = Math.round(maxLevel * RESEARCH_BONUS_PER_LEVEL * 100);
 	const suffix = isSpeedResearch ? " speed" : "";
 	return {
 		current: `+${currentBonus}%${suffix}`,
 		next: `+${nextBonus}%${suffix}`,
-		complete: `Complete (+100%${suffix})`,
+		complete: `Complete (+${completeBonus}%${suffix})`,
 	};
 };
 
@@ -125,7 +128,7 @@ const ResearchPickerItem = ({
 
 	const bonusDisplay = isUtility
 		? getUtilityBonusDisplay({ level, nextLevel, maxLevel })
-		: getPercentBonusDisplay({ level, nextLevel, isSpeedResearch });
+		: getPercentBonusDisplay({ level, nextLevel, maxLevel, isSpeedResearch });
 
 	return (
 		<button
