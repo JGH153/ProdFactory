@@ -19,7 +19,7 @@ import {
 	syncGame as apiSyncGame,
 	ConflictError,
 } from "@/lib/api-client";
-import { BUILD_ID } from "@/lib/build-id";
+import { BUILD_ID } from "@/lib/env-frontend";
 import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 import { saveGame as saveToLocalStorage } from "./persistence";
 import type { SerializedGameState } from "./serialization";

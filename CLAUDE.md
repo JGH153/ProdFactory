@@ -110,6 +110,7 @@ pnpm update-deps-minor # Interactive dependency updater (minor only)
 - **No IIFEs** — extract into named functions.
 - **No lodash** — write utilities from scratch. Minimize external dependencies.
 - **Logging**: Use the pino `logger` from `src/lib/server/logger.ts` in server-side code — never use `console.log`/`console.info`/etc. in API routes or server utilities.
+- **Environment variables** — never read `process.env` directly in `src/`. Use `@/lib/env-frontend` (client) or `@/lib/server/env-backend` (server). `next.config.ts` is the only exception.
 - **Client-side rendering only** — all pages use `'use client'`.
 
 ---

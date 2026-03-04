@@ -1,3 +1,4 @@
+import { IS_DEVELOPMENT } from "./env-backend";
 import { logger } from "./logger";
 import { getSessionData, type SessionData, setSessionData } from "./redis";
 
@@ -51,6 +52,6 @@ export const incrementWarnings = async (sessionId: string): Promise<number> => {
 };
 
 export const buildSessionCookie = (sessionId: string): string => {
-	const secure = process.env.NODE_ENV !== "development" ? "; Secure" : "";
+	const secure = IS_DEVELOPMENT ? "" : "; Secure";
 	return `${COOKIE_NAME}=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${COOKIE_MAX_AGE}; Path=/${secure}`;
 };

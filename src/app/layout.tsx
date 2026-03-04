@@ -1,10 +1,11 @@
 "use client";
 
 import LogRocket from "logrocket";
+import { IS_PRODUCTION } from "@/lib/env-frontend";
 import { AppProviders } from "@/providers/app-providers";
 import "./globals.css";
 
-if (process.env.NODE_ENV === "production") {
+if (IS_PRODUCTION) {
 	LogRocket.init("vibing-projects/prodfactory");
 }
 

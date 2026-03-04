@@ -1,13 +1,14 @@
-const { mockGet, mockSet, mockDel, mockIncr, mockExpire } = vi.hoisted(() => {
-	process.env.REDIS_URL = "redis://localhost:6380";
-	return {
-		mockGet: vi.fn(),
-		mockSet: vi.fn(),
-		mockDel: vi.fn(),
-		mockIncr: vi.fn(),
-		mockExpire: vi.fn(),
-	};
-});
+const { mockGet, mockSet, mockDel, mockIncr, mockExpire } = vi.hoisted(() => ({
+	mockGet: vi.fn(),
+	mockSet: vi.fn(),
+	mockDel: vi.fn(),
+	mockIncr: vi.fn(),
+	mockExpire: vi.fn(),
+}));
+
+vi.mock("./env-backend", () => ({
+	getRedisUrl: () => "redis://localhost:6380",
+}));
 
 vi.mock("ioredis", () => ({
 	default: class {

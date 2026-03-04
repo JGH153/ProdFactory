@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { SerializedGameState } from "@/game/state/serialization";
-import { BUILD_ID } from "@/lib/build-id";
+import { BUILD_ID } from "@/lib/env-frontend";
 import {
 	getSessionFromRequest,
 	type PlausibilitySaveResult,

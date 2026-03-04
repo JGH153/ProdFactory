@@ -2,16 +2,9 @@ import Redis from "ioredis";
 import type { SerializedGameState } from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
+import { getRedisUrl } from "./env-backend";
 
 const TTL_30_DAYS = 60 * 60 * 24 * 30;
-
-const getRedisUrl = (): string => {
-	const url = process.env.REDIS_URL;
-	if (!url) {
-		throw new Error("REDIS_URL environment variable is not set");
-	}
-	return url;
-};
 
 const redis = new Redis(getRedisUrl(), {
 	maxRetriesPerRequest: 3,

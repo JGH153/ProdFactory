@@ -12,6 +12,7 @@ import {
 	parseVersionOnlyBody,
 	stripServerVersion,
 } from "@/lib/server/api-helpers";
+import { IS_DEVELOPMENT } from "@/lib/server/env-backend";
 import { logger } from "@/lib/server/logger";
 import { buildSyncSnapshot } from "@/lib/server/plausibility";
 import {
@@ -45,7 +46,7 @@ const applyDevBoost = (state: SerializedGameState): SerializedGameState => {
 };
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	if (process.env.NODE_ENV !== "development") {
+	if (!IS_DEVELOPMENT) {
 		return NextResponse.json({ error: "Dev-only endpoint" }, { status: 403 });
 	}
 

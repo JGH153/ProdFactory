@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useGameState } from "@/game/state/game-state-context";
 import { useMilestoneNotification } from "@/game/state/milestone-context";
 import { MusicProvider } from "@/game/state/music-context";
+import { IS_DEV_MODE } from "@/lib/env-frontend";
 
 type ActiveTab = "game" | "shop" | "research" | "prestige" | "settings";
 
@@ -86,12 +87,8 @@ export default function Home() {
 			>
 				<header className="flex items-center gap-3">
 					<Logo />
-					{process.env.NEXT_PUBLIC_DEV_MODE === "true" && (
-						<Button
-							variant="secondary"
-							size="xs"
-							onClick={() => devBoost()}
-						>
+					{IS_DEV_MODE && (
+						<Button variant="secondary" size="xs" onClick={() => devBoost()}>
 							DEV BOOST
 						</Button>
 					)}

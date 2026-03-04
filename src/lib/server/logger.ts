@@ -1,14 +1,9 @@
 import pino from "pino";
-
-const isTest = Boolean(process.env.VITEST);
-
-const level = isTest
-	? (process.env.TEST_LOG_LEVEL ?? "silent")
-	: (process.env.LOG_LEVEL ?? "info");
+import { IS_DEVELOPMENT, LOG_HIDE_OBJECT, LOG_LEVEL } from "./env-backend";
 
 export const logger = pino({
-	level,
-	...(process.env.NODE_ENV === "development" && {
+	level: LOG_LEVEL,
+	...(IS_DEVELOPMENT && {
 		transport: {
 			target: "pino-pretty",
 			options: {
@@ -16,7 +11,7 @@ export const logger = pino({
 				levelFirst: true,
 				translateTime: "HH:MM:ss.l",
 				ignore: "pid,hostname",
-				hideObject: process.env.LOG_HIDE_OBJECT === "true",
+				hideObject: LOG_HIDE_OBJECT,
 			},
 		},
 	}),
