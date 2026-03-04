@@ -59,6 +59,7 @@ type GameActions = {
 	timeWarp: () => Promise<boolean>;
 	resetGame: () => void;
 	prestige: () => Promise<boolean>;
+	devBoost: () => Promise<boolean>;
 };
 
 const GameStateContext = createContext<GameActions | null>(null);
@@ -253,6 +254,11 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[performAwaitedAction],
 	);
 
+	const devBoost = useCallback(
+		() => performAwaitedAction({ endpoint: "dev-boost", fullReplace: true }),
+		[performAwaitedAction],
+	);
+
 	const timeWarp = useCallback(async (): Promise<boolean> => {
 		try {
 			const result = await executeTimeWarp();
@@ -289,6 +295,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		timeWarp,
 		resetGame,
 		prestige,
+		devBoost,
 	};
 
 	return <GameStateContext value={value}>{children}</GameStateContext>;

@@ -73,7 +73,13 @@ export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 				onPrestigeComplete();
 			}, 3000);
 		}
-	}, [doPrestige, couponsToEarn, prestige.lifetimeCoupons, playPrestigeSfx, onPrestigeComplete]);
+	}, [
+		doPrestige,
+		couponsToEarn,
+		prestige.lifetimeCoupons,
+		playPrestigeSfx,
+		onPrestigeComplete,
+	]);
 
 	const dismissSuccess = useCallback(() => {
 		setSuccessInfo(null);

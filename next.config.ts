@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
 	reactCompiler: true,
 	env: {
 		NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+		NEXT_PUBLIC_DEV_MODE: isDev ? "true" : "",
 	},
 	headers: async () => [
 		{

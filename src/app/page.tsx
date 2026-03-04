@@ -13,6 +13,7 @@ import { PrestigePage } from "@/components/prestige/prestige-page";
 import { ResearchPage } from "@/components/research/research-page";
 import { SettingsPage } from "@/components/settings/settings-page";
 import { ShopPage } from "@/components/shop-page";
+import { Button } from "@/components/ui/button";
 import { useGameState } from "@/game/state/game-state-context";
 import { useMilestoneNotification } from "@/game/state/milestone-context";
 import { MusicProvider } from "@/game/state/music-context";
@@ -59,7 +60,7 @@ const TabPanel = ({
 export default function Home() {
 	const [activeTab, setActiveTab] = useState<ActiveTab>(loadActiveTab);
 	const [introOpen, setIntroOpen] = useState(false);
-	const { offlineSummary, collectOfflineProgress } = useGameState();
+	const { offlineSummary, collectOfflineProgress, devBoost } = useGameState();
 	const { registerNavigate } = useMilestoneNotification();
 
 	const changeTab = useCallback((tab: ActiveTab) => {
@@ -83,8 +84,17 @@ export default function Home() {
 				id="main-content"
 				className="min-h-screen flex flex-col items-center px-4 pt-8 pb-24"
 			>
-				<header>
+				<header className="flex items-center gap-3">
 					<Logo />
+					{process.env.NEXT_PUBLIC_DEV_MODE === "true" && (
+						<Button
+							variant="secondary"
+							size="xs"
+							onClick={() => devBoost()}
+						>
+							DEV BOOST
+						</Button>
+					)}
 				</header>
 				{activeTab === "game" && (
 					<TabPanel id="game">
