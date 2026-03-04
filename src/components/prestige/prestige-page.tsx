@@ -12,6 +12,7 @@ import {
 } from "@/game/prestige-config";
 import { computeCouponsEarned } from "@/game/prestige-logic";
 import { useGameState } from "@/game/state/game-state-context";
+import { useSfx } from "@/game/state/sfx-context";
 import { bigNum, bnFormat, bnIsZero, bnToNumber } from "@/lib/big-number";
 import { PrestigeConfirmModal } from "./prestige-confirm-modal";
 import { PrestigeMilestones } from "./prestige-milestones";
@@ -23,6 +24,7 @@ type SuccessInfo = {
 
 export const PrestigePage = () => {
 	const { state, prestige: doPrestige } = useGameState();
+	const { playPrestigeSfx } = useSfx();
 	const [showConfirm, setShowConfirm] = useState(false);
 	const [isPrestiging, setIsPrestiging] = useState(false);
 	const [successInfo, setSuccessInfo] = useState<SuccessInfo | null>(null);
@@ -60,12 +62,13 @@ export const PrestigePage = () => {
 		setShowConfirm(false);
 
 		if (success) {
+			playPrestigeSfx();
 			setSuccessInfo({ couponsEarned: earnedStr, newBonusPercent: newBonus });
 			successTimerRef.current = setTimeout(() => {
 				setSuccessInfo(null);
 			}, 3000);
 		}
-	}, [doPrestige, couponsToEarn, prestige.lifetimeCoupons]);
+	}, [doPrestige, couponsToEarn, prestige.lifetimeCoupons, playPrestigeSfx]);
 
 	const dismissSuccess = useCallback(() => {
 		setSuccessInfo(null);

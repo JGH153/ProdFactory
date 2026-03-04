@@ -14,7 +14,7 @@ import {
 	INTRO_CLOSED_EVENT,
 } from "@/components/intro-video-dialog";
 
-type MusicTrackId = "gemini" | "gemini-calm" | "classic";
+type MusicTrackId = "cave" | "gemini" | "gemini-calm" | "classic";
 
 type MusicTrack = {
 	id: MusicTrackId;
@@ -23,6 +23,7 @@ type MusicTrack = {
 };
 
 const MUSIC_TRACKS: readonly MusicTrack[] = [
+	{ id: "cave", label: "Cave", src: "/cave-music.mp3" },
 	{ id: "gemini", label: "Gemini", src: "/game-music-gemini.mp3" },
 	{
 		id: "gemini-calm",
@@ -33,9 +34,9 @@ const MUSIC_TRACKS: readonly MusicTrack[] = [
 ];
 
 const DEFAULT_TRACK: MusicTrack = {
-	id: "gemini-calm",
-	label: "Gemini Calm",
-	src: "/game-music-gemini-calm.mp3",
+	id: "cave",
+	label: "Cave",
+	src: "/cave-music.mp3",
 };
 
 const MUSIC_PREFERENCE_KEY = "prodfactory-music-playing";
@@ -103,7 +104,7 @@ export const MusicProvider = ({ children }: PropsWithChildren) => {
 				DEFAULT_TRACK;
 			const audio = new Audio(track.src);
 			audio.loop = true;
-			audio.volume = 1;
+			audio.volume = 0.2;
 			audioRef.current = audio;
 		}
 		return audioRef.current;
