@@ -121,12 +121,42 @@ export const useServerSync = ({
 		if (processingRef.current || !isReadyRef.current) {
 			return;
 		}
+		if (queueRef.current.length === 0) {
+			return;
+		}
+
+		// Capture BEFORE any await — reflects production gains, not the optimistic buy
+		const stateForFlush = serializeGameState(stateRef.current);
 
 		if (inFlightSaveRef.current) {
 			await inFlightSaveRef.current;
 		}
 
 		processingRef.current = true;
+
+		// Pre-flush: sync production gains to server before running mutations
+		try {
+			const preFlushResult = await executeSave({
+				state: stateForFlush,
+				serverVersion: serverVersionRef.current,
+			});
+			if (isStaleDeployment(preFlushResult.buildId)) {
+				window.location.reload();
+				return;
+			}
+			serverVersionRef.current = preFlushResult.serverVersion;
+			if (preFlushResult.state != null) {
+				reconcileState({ state: preFlushResult.state, fullReplace: false });
+			}
+		} catch (preFlushError) {
+			if (preFlushError instanceof ConflictError) {
+				serverVersionRef.current = preFlushError.serverVersion;
+			} else {
+				queueRef.current = [];
+				processingRef.current = false;
+				return;
+			}
+		}
 
 		while (queueRef.current.length > 0) {
 			const item = queueRef.current[0];
@@ -172,7 +202,7 @@ export const useServerSync = ({
 		}
 
 		processingRef.current = false;
-	}, [executeAction, reconcileState]);
+	}, [executeAction, executeSave, reconcileState, stateRef]);
 
 	useEffect(() => {
 		if (initialData === undefined || isReadyRef.current) {

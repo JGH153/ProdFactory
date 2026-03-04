@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	hasSeenIntro,
 	IntroVideoDialog,
@@ -18,6 +18,26 @@ import { useMilestoneNotification } from "@/game/state/milestone-context";
 import { MusicProvider } from "@/game/state/music-context";
 
 type ActiveTab = "game" | "shop" | "research" | "prestige" | "settings";
+
+const ACTIVE_TAB_KEY = "pf-active-tab";
+const VALID_TABS: ReadonlySet<string> = new Set<ActiveTab>([
+	"game",
+	"shop",
+	"research",
+	"prestige",
+	"settings",
+]);
+
+const loadActiveTab = (): ActiveTab => {
+	if (typeof window === "undefined") {
+		return "game";
+	}
+	const stored = localStorage.getItem(ACTIVE_TAB_KEY);
+	if (stored !== null && VALID_TABS.has(stored)) {
+		return stored as ActiveTab;
+	}
+	return "game";
+};
 
 const TabPanel = ({
 	id,
@@ -37,14 +57,19 @@ const TabPanel = ({
 );
 
 export default function Home() {
-	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
+	const [activeTab, setActiveTab] = useState<ActiveTab>(loadActiveTab);
 	const [introOpen, setIntroOpen] = useState(false);
 	const { offlineSummary, collectOfflineProgress } = useGameState();
 	const { registerNavigate } = useMilestoneNotification();
 
+	const changeTab = useCallback((tab: ActiveTab) => {
+		setActiveTab(tab);
+		localStorage.setItem(ACTIVE_TAB_KEY, tab);
+	}, []);
+
 	useEffect(() => {
-		registerNavigate(setActiveTab);
-	}, [registerNavigate]);
+		registerNavigate(changeTab);
+	}, [registerNavigate, changeTab]);
 
 	useEffect(() => {
 		if (!hasSeenIntro()) {
@@ -78,13 +103,13 @@ export default function Home() {
 				)}
 				{activeTab === "prestige" && (
 					<TabPanel id="prestige">
-						<PrestigePage />
+						<PrestigePage onPrestigeComplete={() => changeTab("game")} />
 					</TabPanel>
 				)}
 				{activeTab === "settings" && (
 					<TabPanel id="settings">
 						<SettingsPage
-							onReset={() => setActiveTab("game")}
+							onReset={() => changeTab("game")}
 							onWatchIntro={() => setIntroOpen(true)}
 						/>
 					</TabPanel>
@@ -95,7 +120,7 @@ export default function Home() {
 					onCollect={collectOfflineProgress}
 				/>
 			</main>
-			<BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+			<BottomNav activeTab={activeTab} onTabChange={changeTab} />
 		</MusicProvider>
 	);
 }

@@ -10,13 +10,13 @@ import {
 import { loadStoredGameState } from "@/lib/server/redis";
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
-	const clonedRequest = request.clone() as NextRequest;
+	const clonedRequest = request.clone();
 
-	const sessionResult = await getSessionFromRequest(clonedRequest);
+	const sessionResult = await getSessionFromRequest(request);
 	if (sessionResult instanceof NextResponse) {
 		return sessionResult;
 	}
-	const body = await parseLabActionBody(clonedRequest);
+	const body = await parseLabActionBody(clonedRequest as NextRequest);
 	if (body instanceof NextResponse) {
 		return body;
 	}

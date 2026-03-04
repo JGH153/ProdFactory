@@ -22,7 +22,11 @@ type SuccessInfo = {
 	newBonusPercent: number;
 };
 
-export const PrestigePage = () => {
+type Props = {
+	onPrestigeComplete: () => void;
+};
+
+export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 	const { state, prestige: doPrestige } = useGameState();
 	const { playPrestigeSfx } = useSfx();
 	const [showConfirm, setShowConfirm] = useState(false);
@@ -66,16 +70,18 @@ export const PrestigePage = () => {
 			setSuccessInfo({ couponsEarned: earnedStr, newBonusPercent: newBonus });
 			successTimerRef.current = setTimeout(() => {
 				setSuccessInfo(null);
+				onPrestigeComplete();
 			}, 3000);
 		}
-	}, [doPrestige, couponsToEarn, prestige.lifetimeCoupons, playPrestigeSfx]);
+	}, [doPrestige, couponsToEarn, prestige.lifetimeCoupons, playPrestigeSfx, onPrestigeComplete]);
 
 	const dismissSuccess = useCallback(() => {
 		setSuccessInfo(null);
 		if (successTimerRef.current) {
 			clearTimeout(successTimerRef.current);
 		}
-	}, []);
+		onPrestigeComplete();
+	}, [onPrestigeComplete]);
 
 	return (
 		<div className="w-full max-w-lg flex flex-col gap-6">
