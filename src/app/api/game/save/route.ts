@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { SerializedGameState } from "@/game/state/serialization";
+import { BUILD_ID } from "@/lib/build-id";
 import {
 	getSessionFromRequest,
 	type PlausibilitySaveResult,
@@ -73,6 +74,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 			serverVersion: result.serverVersion,
 			state: result.state,
 			warning: result.warning,
+			buildId: BUILD_ID,
 		});
 	}
 
@@ -80,5 +82,6 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 		serverVersion: result.serverVersion,
 		state: null,
 		warning: null,
+		buildId: BUILD_ID,
 	});
 };

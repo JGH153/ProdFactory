@@ -18,6 +18,7 @@ import {
 	syncGame as apiSyncGame,
 	ConflictError,
 } from "@/lib/api-client";
+import { BUILD_ID } from "@/lib/build-id";
 import { saveGame as saveToLocalStorage } from "./persistence";
 import type { SerializedGameState } from "./serialization";
 import { deserializeOfflineSummary, serializeGameState } from "./serialization";
@@ -25,6 +26,13 @@ import { useFlushOnExit } from "./use-flush-on-exit";
 
 const AUTO_SAVE_INTERVAL_MS = 10_000;
 const AUTO_SYNC_INTERVAL_MS = 30_000;
+
+const isStaleDeployment = (responseBuildId: string | undefined): boolean => {
+	if (!BUILD_ID || !responseBuildId) {
+		return false;
+	}
+	return BUILD_ID !== responseBuildId;
+};
 
 type QueueItem = {
 	endpoint: string;
@@ -201,6 +209,10 @@ export const useServerSync = ({
 				serverVersion: serverVersionRef.current,
 			})
 				.then((result) => {
+					if (isStaleDeployment(result.buildId)) {
+						window.location.reload();
+						return;
+					}
 					if (queueRef.current.length === 0 && !processingRef.current) {
 						serverVersionRef.current = result.serverVersion;
 						if (result.state) {
@@ -246,6 +258,10 @@ export const useServerSync = ({
 				serverVersion: serverVersionRef.current,
 			})
 				.then((result) => {
+					if (isStaleDeployment(result.buildId)) {
+						window.location.reload();
+						return;
+					}
 					if (queueRef.current.length === 0 && !processingRef.current) {
 						serverVersionRef.current = result.serverVersion;
 						if (result.state !== null) {
