@@ -12,7 +12,7 @@ import {
 } from "@/game/prestige-config";
 import { computeCouponsEarned } from "@/game/prestige-logic";
 import { useGameState } from "@/game/state/game-state-context";
-import { bnFormat, bnIsZero, bnToNumber } from "@/lib/big-number";
+import { bigNum, bnFormat, bnIsZero, bnToNumber } from "@/lib/big-number";
 import { PrestigeConfirmModal } from "./prestige-confirm-modal";
 import { PrestigeMilestones } from "./prestige-milestones";
 
@@ -131,9 +131,8 @@ export const PrestigePage = () => {
 							transition={{ delay: 0.35 }}
 							className="text-sm text-text-muted"
 						>
-							Passive bonus: +
-							{successInfo.newBonusPercent.toLocaleString("en-US")}% all
-							production
+							Passive bonus: +{bnFormat(bigNum(successInfo.newBonusPercent))}%
+							all production
 						</motion.p>
 					</motion.div>
 				) : (
@@ -163,7 +162,7 @@ export const PrestigePage = () => {
 									<span className="text-text-muted">Passive Bonus</span>
 									<span className="font-medium text-text-primary">
 										{passiveBonusPercent > 0
-											? `+${passiveBonusPercent.toLocaleString("en-US")}% all production`
+											? `+${bnFormat(bigNum(passiveBonusPercent))}% all production`
 											: "None yet"}
 									</span>
 								</div>

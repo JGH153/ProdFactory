@@ -13,8 +13,13 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { COUPON_BONUS_PER_UNIT } from "@/game/prestige-config";
-import type { BigNum } from "@/lib/big-number";
-import { bnAdd, bnFormat, bnToNumber } from "@/lib/big-number";
+import {
+	type BigNum,
+	bigNum,
+	bnAdd,
+	bnFormat,
+	bnToNumber,
+} from "@/lib/big-number";
 
 type Props = {
 	open: boolean;
@@ -82,7 +87,7 @@ export const PrestigeConfirmModal = ({
 						<div className="flex items-center justify-between text-sm">
 							<span className="text-text-muted">New passive bonus</span>
 							<span className="font-medium text-text-primary">
-								+{newBonusPercent.toLocaleString("en-US")}%
+								+{bnFormat(bigNum(newBonusPercent))}%
 							</span>
 						</div>
 					</div>
