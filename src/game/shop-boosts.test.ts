@@ -5,14 +5,14 @@ import { activateBoost, resetShopBoosts } from "./shop-boosts";
 describe("activateBoost", () => {
 	it("activates inactive boost", () => {
 		const state = createInitialGameState();
-		const next = activateBoost({ state, boostId: "production-20x" });
-		expect(next.shopBoosts["production-20x"]).toBe(true);
+		const next = activateBoost({ state, boostId: "production-2x" });
+		expect(next.shopBoosts["production-2x"]).toBe(true);
 	});
 
 	it("already active boost → returns same state", () => {
 		const state = createInitialGameState();
-		const withBoost = activateBoost({ state, boostId: "production-20x" });
-		expect(activateBoost({ state: withBoost, boostId: "production-20x" })).toBe(
+		const withBoost = activateBoost({ state, boostId: "production-2x" });
+		expect(activateBoost({ state: withBoost, boostId: "production-2x" })).toBe(
 			withBoost,
 		);
 	});
@@ -20,7 +20,7 @@ describe("activateBoost", () => {
 	it("activating one boost does not affect others", () => {
 		const state = createInitialGameState();
 		const next = activateBoost({ state, boostId: "runtime-50" });
-		expect(next.shopBoosts["production-20x"]).toBe(false);
+		expect(next.shopBoosts["production-2x"]).toBe(false);
 		expect(next.shopBoosts["automation-2x"]).toBe(false);
 	});
 });
@@ -31,7 +31,7 @@ describe("resetShopBoosts", () => {
 		const withBoosts = {
 			...state,
 			shopBoosts: {
-				"production-20x": true,
+				"production-2x": true,
 				"automation-2x": true,
 				"runtime-50": true,
 				"research-2x": true,
@@ -39,7 +39,7 @@ describe("resetShopBoosts", () => {
 			},
 		};
 		const next = resetShopBoosts({ state: withBoosts });
-		expect(next.shopBoosts["production-20x"]).toBe(false);
+		expect(next.shopBoosts["production-2x"]).toBe(false);
 		expect(next.shopBoosts["automation-2x"]).toBe(false);
 		expect(next.shopBoosts["runtime-50"]).toBe(false);
 		expect(next.shopBoosts["research-2x"]).toBe(false);

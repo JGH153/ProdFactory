@@ -77,7 +77,7 @@ export const createInitialGameState = (): GameState => ({
 		},
 	},
 	shopBoosts: {
-		"production-20x": false,
+		"production-2x": false,
 		"automation-2x": false,
 		"runtime-50": false,
 		"research-2x": false,

@@ -63,7 +63,7 @@ export type LabState = {
 };
 
 export type ShopBoostId =
-	| "production-20x"
+	| "production-2x"
 	| "automation-2x"
 	| "runtime-50"
 	| "research-2x"

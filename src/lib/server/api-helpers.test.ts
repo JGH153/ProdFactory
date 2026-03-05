@@ -236,7 +236,7 @@ describe("parseSaveActionBody", () => {
 	it("returns 400 for shopBoosts with non-boolean value", async () => {
 		const stateWithBadValue = {
 			...validState,
-			shopBoosts: { "production-20x": 1 },
+			shopBoosts: { "production-2x": 1 },
 		};
 		const res = asRes(
 			await parseSaveActionBody(

@@ -166,7 +166,7 @@ export const checkPlausibility = ({
 	}
 
 	const shopBoosts = claimedState.shopBoosts;
-	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
+	const productionMul = shopBoosts["production-2x"] ? 2 : 1;
 	// Use snapshot's lifetime coupons (trusted) rather than the client's claimed value.
 	// Falls back to claimed state for snapshots created before this field was added.
 	const trustedLifetimeCoupons =

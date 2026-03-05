@@ -21,7 +21,7 @@ ProdFactory is an incremental/idle game combining Adventure Capitalist mechanics
 - **Speed milestones**: Every 10 producers halves that tier's run time.
 - **Continuous mode**: When effective run time drops below 0.5s, it clamps there and a continuous multiplier compensates production.
 - **Automation**: Unlock per-tier automation to eliminate manual clicking. Can be paused without losing the unlock.
-- **Shop boosts**: Five one-time multipliers — `production-20x`, `automation-2x` (halves automated run time), `runtime-50` (50% faster), `research-2x` (halves research time), `offline-2h` (increases offline cap by 2 hours).
+- **Shop boosts**: Five one-time multipliers — `production-2x` (2x output), `automation-2x` (halves automated run time), `runtime-50` (50% faster), `research-2x` (halves research time), `offline-2h` (increases offline cap by 2 hours).
 - **Research**: 2 labs run independently (lab-2 requires 1 prestige to unlock). 17 research types: **Efficiency** (8): `more-{resource}` — +10% production per level, max 20. **Speed** (8): `speed-{resource}` — reduces run time by `1/(1 + level*0.1)`, max 20. **Utility** (1): `offline-progress` — +5 min offline cap per level, max 12 (requires prestige). Time per level: `10s x 2^level`.
 - **Offline progress**: On return, the server computes offline production and research advancement. Base cap: 8 hours, +2h with `offline-2h` boost, +5 min/level with `offline-progress` research (max level 12).
 - **Big numbers**: Custom BigNumber system (`BigNum = {mantissa, exponent}`) handles values beyond `Number.MAX_SAFE_INTEGER`. Displays as digits up to 999,999, then million/billion/trillion, then letter notation (aa, ab, ...).

@@ -25,7 +25,7 @@ import {
 import type { StoredGameState, SyncSnapshot } from "./redis";
 
 const noBoosts: ShopBoosts = {
-	"production-20x": false,
+	"production-2x": false,
 	"automation-2x": false,
 	"runtime-50": false,
 	"research-2x": false,
@@ -382,15 +382,15 @@ describe("checkPlausibility", () => {
 	});
 
 	describe("shop boosts", () => {
-		it("production-20x: gain within boosted tolerance is not corrected", () => {
-			// productionMul=20 → maxProd=2*1*20=40, tolerance=46
-			// gain=40 → 46>=40 → no correction
+		it("production-2x: gain within boosted tolerance is not corrected", () => {
+			// productionMul=2 → maxProd=2*1*2=4, tolerance=4.6
+			// gain=4 → 4.6>=4 → no correction
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState(
-				{ amount: bnSerialize(bigNum(40)) },
+				{ amount: bnSerialize(bigNum(4)) },
 				{
-					"production-20x": true,
+					"production-2x": true,
 					"automation-2x": false,
 					"runtime-50": false,
 					"research-2x": false,
@@ -405,14 +405,14 @@ describe("checkPlausibility", () => {
 			expect(result.corrected).toBe(false);
 		});
 
-		it("production-20x: gain exceeding boosted tolerance is corrected", () => {
-			// maxProd=40, tolerance=46, gain=1000 → corrected
+		it("production-2x: gain exceeding boosted tolerance is corrected", () => {
+			// maxProd=4, tolerance=4.6, gain=1000 → corrected
 			const t0 = 0;
 			const snapshot = makeSnapshot(t0, 0, 1);
 			const claimed = makeClaimedState(
 				{ amount: bnSerialize(bigNum(1000)) },
 				{
-					"production-20x": true,
+					"production-2x": true,
 					"automation-2x": false,
 					"runtime-50": false,
 					"research-2x": false,
@@ -435,7 +435,7 @@ describe("checkPlausibility", () => {
 			const claimed = makeClaimedState(
 				{ amount: bnSerialize(bigNum(3)) },
 				{
-					"production-20x": false,
+					"production-2x": false,
 					"automation-2x": false,
 					"runtime-50": true,
 					"research-2x": false,
@@ -457,7 +457,7 @@ describe("checkPlausibility", () => {
 			const claimed = makeClaimedState(
 				{ amount: bnSerialize(bigNum(3)), isAutomated: true },
 				{
-					"production-20x": false,
+					"production-2x": false,
 					"automation-2x": true,
 					"runtime-50": false,
 					"research-2x": false,
@@ -1287,7 +1287,7 @@ describe("buildProtectedState", () => {
 		const claimedWithBoosts: SerializedGameState = {
 			...claimed,
 			shopBoosts: {
-				"production-20x": true,
+				"production-2x": true,
 				"automation-2x": true,
 				"runtime-50": true,
 				"research-2x": true,
@@ -1301,7 +1301,7 @@ describe("buildProtectedState", () => {
 			serverNow,
 		});
 		expect(result.shopBoosts).toEqual(stored.shopBoosts);
-		expect(result.shopBoosts?.["production-20x"]).toBe(false);
+		expect(result.shopBoosts?.["production-2x"]).toBe(false);
 	});
 
 	it("reverts spoofed producers to stored values", () => {
@@ -1473,7 +1473,7 @@ describe("buildProtectedState", () => {
 				},
 			},
 			shopBoosts: {
-				"production-20x": true,
+				"production-2x": true,
 				"automation-2x": true,
 				"runtime-50": true,
 				"research-2x": true,
@@ -1492,7 +1492,7 @@ describe("buildProtectedState", () => {
 		expect(result.resources["nuclear-pasta"].isUnlocked).toBe(false);
 		expect(result.resources["nuclear-pasta"].producers).toBe(0);
 		// Should revert boosts to initial (all false)
-		expect(result.shopBoosts?.["production-20x"]).toBe(false);
+		expect(result.shopBoosts?.["production-2x"]).toBe(false);
 	});
 
 	it("reverts spoofed activeResearchId to stored values", () => {

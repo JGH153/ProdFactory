@@ -12,7 +12,7 @@ describe("ShopPage", () => {
 	it("renders all boost cards and time warp", () => {
 		renderWithProviders(<ShopPage />);
 
-		expect(screen.getByText("20x All Production")).toBeInTheDocument();
+		expect(screen.getByText("2x All Production")).toBeInTheDocument();
 		expect(screen.getByText("2x Automation Speed")).toBeInTheDocument();
 		expect(screen.getByText("50% Run Time Reduction")).toBeInTheDocument();
 		expect(screen.getByText("2x Research Speed")).toBeInTheDocument();

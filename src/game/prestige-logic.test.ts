@@ -99,9 +99,9 @@ describe("performPrestige", () => {
 
 	it("preserves shop boosts", () => {
 		const state = withNuclearPasta(1);
-		state.shopBoosts["production-20x"] = true;
+		state.shopBoosts["production-2x"] = true;
 		const result = performPrestige({ state });
-		expect(result.shopBoosts["production-20x"]).toBe(true);
+		expect(result.shopBoosts["production-2x"]).toBe(true);
 	});
 
 	it("preserves research levels", () => {

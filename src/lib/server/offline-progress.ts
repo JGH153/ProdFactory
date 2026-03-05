@@ -68,7 +68,7 @@ export const computeOfflineProgress = ({
 		return { updatedState: state, summary: null };
 	}
 
-	const productionMul = shopBoosts["production-20x"] ? 20 : 1;
+	const productionMul = shopBoosts["production-2x"] ? 2 : 1;
 	const prestigeMul = getPrestigePassiveMultiplier({
 		lifetimeCoupons: bnDeserialize(state.prestige.lifetimeCoupons),
 	});

@@ -102,6 +102,27 @@ describe("deserializeGameState", () => {
 		expect(result.resources["iron-ore"].runStartedAt).toBe(ts);
 	});
 
+	it("migrates legacy production-20x to production-2x", () => {
+		const state = createInitialGameState();
+		const serialized = serializeGameState(state);
+		// Simulate a legacy save with old key
+		const legacy = {
+			...serialized,
+			shopBoosts: {
+				"production-20x": true,
+				"automation-2x": false,
+				"runtime-50": false,
+				"research-2x": false,
+				"offline-2h": false,
+			},
+		};
+		const result = deserializeGameState(
+			legacy as unknown as ReturnType<typeof serializeGameState>,
+		);
+		expect(result.shopBoosts["production-2x"]).toBe(true);
+		expect("production-20x" in result.shopBoosts).toBe(false);
+	});
+
 	it("isPaused=true survives round-trip", () => {
 		const state = createInitialGameState();
 		const modified = {

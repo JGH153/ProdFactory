@@ -102,16 +102,16 @@ describe("completeRun", () => {
 		expect(next.resources["iron-ore"].runStartedAt).toBeNull();
 	});
 
-	it("production-20x boost multiplies output by 20", () => {
+	it("production-2x boost multiplies output by 2", () => {
 		const base = withIronOre({ producers: 1, runStartedAt: Date.now() - 5000 });
 		const state = {
 			...base,
-			shopBoosts: { ...base.shopBoosts, "production-20x": true },
+			shopBoosts: { ...base.shopBoosts, "production-2x": true },
 		};
 		const next = completeRun({ state, resourceId: "iron-ore" });
 		const amount = next.resources["iron-ore"].amount;
-		expect(amount.mantissa).toBeCloseTo(2, 8); // 1 * 20 * 1 = 20 → {m:2, e:1}
-		expect(amount.exponent).toBe(1);
+		expect(amount.mantissa).toBeCloseTo(2, 8); // 1 * 2 * 1 = 2 → {m:2, e:0}
+		expect(amount.exponent).toBe(0);
 	});
 
 	it("continuous mode scales output by continuousMultiplier", () => {

@@ -3,6 +3,7 @@
 import {
 	DashboardSpeed01Icon,
 	Forward02Icon,
+	InformationCircleIcon,
 	Moon02Icon,
 	Rocket01Icon,
 	TestTubeIcon,
@@ -11,6 +12,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -31,9 +33,9 @@ const SHOP_MULTIPLIERS: ReadonlyArray<{
 	colorClass: string;
 }> = [
 	{
-		id: "production-20x",
-		name: "20x All Production",
-		description: "Multiply the output of all resource production runs by 20.",
+		id: "production-2x",
+		name: "2x All Production",
+		description: "Multiply the output of all resource production runs by 2.",
 		icon: Rocket01Icon,
 		colorClass: "text-primary",
 	},
@@ -96,135 +98,167 @@ export const ShopPage = () => {
 	return (
 		<div className="w-full max-w-lg flex flex-col gap-6">
 			<h2 className="text-2xl font-bold text-text-primary">Shop</h2>
-			<motion.div
-				className="flex flex-col gap-4"
-				initial="hidden"
-				animate="visible"
-				variants={{
-					hidden: {},
-					visible: { transition: { staggerChildren: 0.1 } },
-				}}
-			>
-				{SHOP_MULTIPLIERS.map((multiplier) => {
-					const isActive = state.shopBoosts[multiplier.id];
-					const isActivating = activatingId === multiplier.id;
-					return (
-						<motion.div
-							key={multiplier.id}
-							variants={{
-								hidden: { opacity: 0, y: 20 },
-								visible: { opacity: 1, y: 0 },
-							}}
-						>
-							<Card
-								className={isActive ? "border-success/50 bg-success/5" : ""}
-							>
-								<CardHeader>
-									<div className="flex items-center gap-3">
-										<div
-											className={
-												isActive ? "text-success" : multiplier.colorClass
-											}
-										>
-											<HugeiconsIcon
-												icon={multiplier.icon}
-												size={28}
-												aria-hidden="true"
-											/>
-										</div>
-										<div>
-											<CardTitle>{multiplier.name}</CardTitle>
-											<CardDescription>
-												{multiplier.description}
-											</CardDescription>
-										</div>
-									</div>
-								</CardHeader>
-								<CardContent>
-									{isActive ? (
-										<Button
-											disabled
-											className="w-full bg-success/20 text-success border-success/30"
-										>
-											Active
-										</Button>
-									) : (
-										<Button
-											className="w-full"
-											onClick={() => handleActivate(multiplier.id)}
-											disabled={activatingId !== null}
-										>
-											{isActivating ? (
-												<>
-													<Spinner />
-													Activating...
-												</>
-											) : (
-												"Activate"
-											)}
-										</Button>
-									)}
-								</CardContent>
-							</Card>
-						</motion.div>
-					);
-				})}
 
+			<Alert>
+				<HugeiconsIcon
+					icon={InformationCircleIcon}
+					size={16}
+					aria-hidden="true"
+				/>
+				<AlertTitle>Limited Time</AlertTitle>
+				<AlertDescription>
+					All shop items are free for a limited time.
+				</AlertDescription>
+			</Alert>
+
+			<div className="flex flex-col gap-2">
+				<h3 className="text-lg font-semibold text-text-secondary">
+					One Time Upgrades
+				</h3>
 				<motion.div
+					className="flex flex-col gap-4"
+					initial="hidden"
+					animate="visible"
 					variants={{
-						hidden: { opacity: 0, y: 20 },
-						visible: { opacity: 1, y: 0 },
+						hidden: {},
+						visible: { transition: { staggerChildren: 0.1 } },
 					}}
 				>
-					<Card className="relative overflow-hidden border-accent-amber/50">
-						<AnimatePresence>
-							{showWarpFlash && (
-								<motion.div
-									className="absolute inset-0 bg-accent-amber/20 pointer-events-none"
-									initial={{ opacity: 0 }}
-									animate={{ opacity: 1 }}
-									exit={{ opacity: 0 }}
-									transition={{ duration: 0.6 }}
-								/>
-							)}
-						</AnimatePresence>
-						<CardHeader>
-							<div className="flex items-center gap-3">
-								<div className="text-accent-amber">
-									<HugeiconsIcon
-										icon={Forward02Icon}
-										size={28}
-										aria-hidden="true"
-									/>
-								</div>
-								<div>
-									<CardTitle>Time Warp</CardTitle>
-									<CardDescription>
-										Jump forward 1 hour — gain resources and research as if time
-										passed.
-									</CardDescription>
-								</div>
-							</div>
-						</CardHeader>
-						<CardContent>
-							<Button
-								className="w-full"
-								onClick={handleTimeWarp}
-								disabled={isWarping}
+					{SHOP_MULTIPLIERS.map((multiplier) => {
+						const isActive = state.shopBoosts[multiplier.id];
+						const isActivating = activatingId === multiplier.id;
+						return (
+							<motion.div
+								key={multiplier.id}
+								variants={{
+									hidden: { opacity: 0, y: 20 },
+									visible: { opacity: 1, y: 0 },
+								}}
 							>
-								{isWarping ? (
-									<>
-										<Spinner />
-										Warping...
-									</>
-								) : (
-									"Activate"
-								)}
-							</Button>
-						</CardContent>
-					</Card>
+								<Card
+									className={isActive ? "border-success/50 bg-success/5" : ""}
+								>
+									<CardHeader>
+										<div className="flex items-center gap-3">
+											<div
+												className={
+													isActive ? "text-success" : multiplier.colorClass
+												}
+											>
+												<HugeiconsIcon
+													icon={multiplier.icon}
+													size={28}
+													aria-hidden="true"
+												/>
+											</div>
+											<div>
+												<CardTitle>{multiplier.name}</CardTitle>
+												<CardDescription>
+													{multiplier.description}
+												</CardDescription>
+											</div>
+										</div>
+									</CardHeader>
+									<CardContent>
+										{isActive ? (
+											<Button
+												disabled
+												className="w-full bg-success/20 text-success border-success/30"
+											>
+												Active
+											</Button>
+										) : (
+											<Button
+												className="w-full"
+												onClick={() => handleActivate(multiplier.id)}
+												disabled={activatingId !== null}
+											>
+												{isActivating ? (
+													<>
+														<Spinner />
+														Activating...
+													</>
+												) : (
+													"Activate"
+												)}
+											</Button>
+										)}
+									</CardContent>
+								</Card>
+							</motion.div>
+						);
+					})}
 				</motion.div>
-			</motion.div>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<h3 className="text-lg font-semibold text-text-secondary">
+					Repeatable Purchases
+				</h3>
+				<motion.div
+					initial="hidden"
+					animate="visible"
+					variants={{
+						hidden: {},
+						visible: { transition: { staggerChildren: 0.1 } },
+					}}
+				>
+					<motion.div
+						variants={{
+							hidden: { opacity: 0, y: 20 },
+							visible: { opacity: 1, y: 0 },
+						}}
+					>
+						<Card className="relative overflow-hidden border-accent-amber/50">
+							<AnimatePresence>
+								{showWarpFlash && (
+									<motion.div
+										className="absolute inset-0 bg-accent-amber/20 pointer-events-none"
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										exit={{ opacity: 0 }}
+										transition={{ duration: 0.6 }}
+									/>
+								)}
+							</AnimatePresence>
+							<CardHeader>
+								<div className="flex items-center gap-3">
+									<div className="text-accent-amber">
+										<HugeiconsIcon
+											icon={Forward02Icon}
+											size={28}
+											aria-hidden="true"
+										/>
+									</div>
+									<div>
+										<CardTitle>Time Warp</CardTitle>
+										<CardDescription>
+											Jump forward 1 hour — gain resources and research as if
+											time passed.
+										</CardDescription>
+									</div>
+								</div>
+							</CardHeader>
+							<CardContent>
+								<Button
+									className="w-full"
+									onClick={handleTimeWarp}
+									disabled={isWarping}
+								>
+									{isWarping ? (
+										<>
+											<Spinner />
+											Warping...
+										</>
+									) : (
+										"Activate"
+									)}
+								</Button>
+							</CardContent>
+						</Card>
+					</motion.div>
+				</motion.div>
+			</div>
 		</div>
 	);
 };

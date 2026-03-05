@@ -140,6 +140,16 @@ export const deserializeOfflineSummary = (
 	isTimeWarp: summary.isTimeWarp,
 });
 
+export const migrateShopBoosts = (
+	boosts: Record<string, boolean>,
+): ShopBoosts => {
+	if ("production-20x" in boosts) {
+		const { "production-20x": oldValue, ...rest } = boosts;
+		return { ...rest, "production-2x": oldValue } as ShopBoosts;
+	}
+	return boosts as ShopBoosts;
+};
+
 export const deserializeGameState = (data: SerializedGameState): GameState => {
 	const resources = {} as Record<ResourceId, ResourceState>;
 	for (const id of RESOURCE_ORDER) {
@@ -155,7 +165,9 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 	}
 	return {
 		resources,
-		shopBoosts: data.shopBoosts,
+		shopBoosts: migrateShopBoosts(
+			data.shopBoosts as unknown as Record<string, boolean>,
+		),
 		labs,
 		research,
 		prestige: deserializePrestige(data.prestige),

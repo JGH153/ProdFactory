@@ -30,17 +30,6 @@ const VALID_TABS: ReadonlySet<string> = new Set<ActiveTab>([
 	"settings",
 ]);
 
-const loadActiveTab = (): ActiveTab => {
-	if (typeof window === "undefined") {
-		return "game";
-	}
-	const stored = localStorage.getItem(ACTIVE_TAB_KEY);
-	if (stored !== null && VALID_TABS.has(stored)) {
-		return stored as ActiveTab;
-	}
-	return "game";
-};
-
 const TabPanel = ({
 	id,
 	children,
@@ -59,7 +48,7 @@ const TabPanel = ({
 );
 
 export default function Home() {
-	const [activeTab, setActiveTab] = useState<ActiveTab>(loadActiveTab);
+	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
 	const [introOpen, setIntroOpen] = useState(false);
 	const { offlineSummary, collectOfflineProgress, devBoost } = useGameState();
 	const { registerNavigate } = useMilestoneNotification();
@@ -72,6 +61,13 @@ export default function Home() {
 	useEffect(() => {
 		registerNavigate(changeTab);
 	}, [registerNavigate, changeTab]);
+
+	useEffect(() => {
+		const stored = localStorage.getItem(ACTIVE_TAB_KEY);
+		if (stored !== null && VALID_TABS.has(stored)) {
+			setActiveTab(stored as ActiveTab);
+		}
+	}, []);
 
 	useEffect(() => {
 		if (!hasSeenIntro()) {

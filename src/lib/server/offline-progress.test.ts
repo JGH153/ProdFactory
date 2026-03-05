@@ -8,7 +8,7 @@ import { bigNum, bnDeserialize, bnSerialize } from "@/lib/big-number";
 import { computeOfflineProgress, computeTimeWarp } from "./offline-progress";
 
 const noBoosts: ShopBoosts = {
-	"production-20x": false,
+	"production-2x": false,
 	"automation-2x": false,
 	"runtime-50": false,
 	"research-2x": false,
@@ -212,13 +212,13 @@ describe("computeOfflineProgress", () => {
 	});
 
 	describe("production boosts", () => {
-		it("production-20x multiplies gain by 20", () => {
+		it("production-2x multiplies gain by 2", () => {
 			const state = makeState(
 				{ "iron-ore": { isAutomated: true, producers: 1 } },
 				{
 					lastSavedAt: 100_000,
 					shopBoosts: {
-						"production-20x": true,
+						"production-2x": true,
 						"automation-2x": false,
 						"runtime-50": false,
 						"research-2x": false,
@@ -232,9 +232,9 @@ describe("computeOfflineProgress", () => {
 			});
 			const gain = gainFor(result.summary, "iron-ore");
 			expect(gain).toBeDefined();
-			// maxRuns=100, gain = 100 * 1 * 20 = 2000
+			// maxRuns=100, gain = 100 * 1 * 2 = 200
 			expect(gain?.mantissa).toBeCloseTo(2, 10);
-			expect(gain?.exponent).toBe(3);
+			expect(gain?.exponent).toBe(2);
 		});
 
 		it("runtime-50 halves run time, doubling runs", () => {
@@ -243,7 +243,7 @@ describe("computeOfflineProgress", () => {
 				{
 					lastSavedAt: 100_000,
 					shopBoosts: {
-						"production-20x": false,
+						"production-2x": false,
 						"automation-2x": false,
 						"runtime-50": true,
 						"research-2x": false,
@@ -268,7 +268,7 @@ describe("computeOfflineProgress", () => {
 				{
 					lastSavedAt: 100_000,
 					shopBoosts: {
-						"production-20x": false,
+						"production-2x": false,
 						"automation-2x": true,
 						"runtime-50": false,
 						"research-2x": false,
@@ -725,7 +725,7 @@ describe("computeTimeWarp", () => {
 			{
 				lastSavedAt: Date.now(),
 				shopBoosts: {
-					"production-20x": true,
+					"production-2x": true,
 					"automation-2x": false,
 					"runtime-50": false,
 					"research-2x": false,
@@ -740,8 +740,8 @@ describe("computeTimeWarp", () => {
 		});
 		const gain = gainFor(result.summary, "iron-ore");
 		expect(gain).toBeDefined();
-		// 3600 runs * 1 producer * 20x = 72000
+		// 3600 runs * 1 producer * 2x = 7200
 		expect(gain?.mantissa).toBeCloseTo(7.2, 10);
-		expect(gain?.exponent).toBe(4);
+		expect(gain?.exponent).toBe(3);
 	});
 });

@@ -19,7 +19,7 @@ const VALID_RESOURCE_IDS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const VALID_BOOST_IDS: ReadonlySet<string> = new Set<string>([
-	"production-20x",
+	"production-2x",
 	"automation-2x",
 	"runtime-50",
 	"research-2x",
@@ -146,6 +146,12 @@ export const validateSerializedGameState = (
 	if (state.shopBoosts !== undefined) {
 		if (!isRecord(state.shopBoosts)) {
 			return "Invalid shopBoosts";
+		}
+		// Migrate legacy "production-20x" → "production-2x" in-place
+		if ("production-20x" in state.shopBoosts) {
+			const boosts = state.shopBoosts as Record<string, unknown>;
+			boosts["production-2x"] = boosts["production-20x"];
+			delete boosts["production-20x"];
 		}
 		for (const key of Object.keys(state.shopBoosts)) {
 			if (!VALID_BOOST_IDS.has(key)) {

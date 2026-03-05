@@ -1,5 +1,8 @@
 import Redis from "ioredis";
-import type { SerializedGameState } from "@/game/state/serialization";
+import {
+	migrateShopBoosts,
+	type SerializedGameState,
+} from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId } from "@/game/types";
 import type { SerializedBigNum } from "@/lib/big-number";
 import { getRedisUrl } from "./env-backend";
@@ -51,7 +54,11 @@ export const loadStoredGameState = async (
 	if (!raw) {
 		return null;
 	}
-	return JSON.parse(raw) as StoredGameState;
+	const stored = JSON.parse(raw) as StoredGameState;
+	stored.shopBoosts = migrateShopBoosts(
+		stored.shopBoosts as unknown as Record<string, boolean>,
+	);
+	return stored;
 };
 
 export const saveStoredGameState = async ({

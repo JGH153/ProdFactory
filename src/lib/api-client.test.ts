@@ -226,12 +226,12 @@ describe("postAction", () => {
 
 		await postAction({
 			endpoint: "buy-boost",
-			boostId: "production-20x",
+			boostId: "production-2x",
 			serverVersion: 1,
 		});
 
 		const sentBody = getSentBody();
-		expect(sentBody.boostId).toBe("production-20x");
+		expect(sentBody.boostId).toBe("production-2x");
 		expect(sentBody).not.toHaveProperty("resourceId");
 	});
 
