@@ -310,7 +310,7 @@ describe("advanceResearch", () => {
 
 	it("auto-advances multiple levels", () => {
 		const now = Date.now();
-		// Level 0→1 = 10s, level 1→2 = 20s → total 30s
+		// Level 0→1 = 10s, level 1→2 = 15s → total 25s
 		const totalTimeMs = (getResearchTime(0) + getResearchTime(1)) * 1000;
 		const state = withUnlockedLab("lab-1");
 		const assigned: GameState = {
@@ -341,7 +341,7 @@ describe("advanceResearch", () => {
 				"lab-1": {
 					isUnlocked: true,
 					activeResearchId: "more-iron-ore",
-					researchStartedAt: now - levelTime * 1000,
+					researchStartedAt: now - Math.ceil(levelTime * 1000),
 				},
 			},
 		};
@@ -597,7 +597,7 @@ describe("advanceResearchWithReport", () => {
 	it("reports max level when reaching max", () => {
 		const now = Date.now();
 		const startLevel = MAX_RESEARCH_LEVEL - 1;
-		const levelTime = getResearchTime(startLevel) * 1000;
+		const levelTime = Math.ceil(getResearchTime(startLevel) * 1000);
 		const state = withUnlockedLab("lab-1");
 		const nearMax: GameState = {
 			...state,
@@ -624,12 +624,12 @@ describe("getResearchTime", () => {
 		expect(getResearchTime(0)).toBe(10);
 	});
 
-	it("returns 20 for level 1", () => {
-		expect(getResearchTime(1)).toBe(20);
+	it("returns 15 for level 1", () => {
+		expect(getResearchTime(1)).toBe(15);
 	});
 
-	it("returns 5120 for level 9", () => {
-		expect(getResearchTime(9)).toBe(5120);
+	it("returns ~384.43 for level 9", () => {
+		expect(getResearchTime(9)).toBeCloseTo(10 * 1.5 ** 9, 5);
 	});
 });
 
@@ -692,7 +692,7 @@ describe("advanceResearch with research-2x boost", () => {
 
 	it("auto-advances multiple levels with boost", () => {
 		const now = Date.now();
-		// With boost: level 0→1 = 5s, level 1→2 = 10s → total 15s
+		// With boost: level 0→1 = 5s, level 1→2 = 7.5s → total 12.5s
 		const totalTimeMs =
 			(getResearchTime(0) * 0.5 + getResearchTime(1) * 0.5) * 1000;
 		const state: GameState = {

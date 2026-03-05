@@ -5,7 +5,11 @@ type PrestigeMilestoneId =
 	| "first-evaluation"
 	| "returning-employee"
 	| "familiar-process"
-	| "experienced-builder";
+	| "experienced-builder"
+	| "supply-chain-expert"
+	| "full-automation"
+	| "industrial-magnate"
+	| "factory-tycoon";
 
 type PrestigeMilestone = {
 	id: PrestigeMilestoneId;
@@ -39,9 +43,34 @@ export const PRESTIGE_MILESTONES: PrestigeMilestone[] = [
 		name: "Experienced Builder",
 		description: "Start with Plates already unlocked",
 	},
+	{
+		id: "supply-chain-expert",
+		requiredPrestiges: 7,
+		name: "Supply Chain Expert",
+		description: "Start with Reinforced Plate unlocked",
+	},
+	{
+		id: "full-automation",
+		requiredPrestiges: 10,
+		name: "Full Automation",
+		description: "Start with Iron Ore through Modular Frame automated",
+	},
+	{
+		id: "industrial-magnate",
+		requiredPrestiges: 15,
+		name: "Industrial Magnate",
+		description: "Start with tiers through Heavy Modular Frame unlocked",
+	},
+	{
+		id: "factory-tycoon",
+		requiredPrestiges: 20,
+		name: "Factory Tycoon",
+		description:
+			"Start with Modular Frame unlocked and 5 producers on early tiers",
+	},
 ];
 
-export const COUPON_BONUS_PER_UNIT = 0.02;
+export const COUPON_BONUS_PER_UNIT = 0.05;
 
 export const getPrestigePassiveMultiplier = ({
 	lifetimeCoupons,

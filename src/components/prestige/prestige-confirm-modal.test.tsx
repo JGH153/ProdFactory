@@ -31,8 +31,8 @@ describe("PrestigeConfirmModal", () => {
 	it("displays new passive bonus percentage", () => {
 		renderWithProviders(<PrestigeConfirmModal {...defaultProps} />);
 
-		// 15 lifetime * 0.02 * 100 = 30%
-		expect(screen.getByText("+30%")).toBeInTheDocument();
+		// 15 lifetime * 0.05 * 100 = 75%
+		expect(screen.getByText("+75%")).toBeInTheDocument();
 	});
 
 	it("shows keep and lose lists", () => {

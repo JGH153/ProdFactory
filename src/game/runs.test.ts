@@ -20,13 +20,13 @@ describe("canStartRun", () => {
 	});
 
 	it("plates with enough iron-ore → true", () => {
-		// plates needs 4 iron-ore per run (1 producer, no continuous mode)
-		const state = withPlates(4, { isUnlocked: true, producers: 1 });
+		// plates needs 2 iron-ore per run (1 producer, no continuous mode)
+		const state = withPlates(2, { isUnlocked: true, producers: 1 });
 		expect(canStartRun({ state, resourceId: "plates" })).toBe(true);
 	});
 
 	it("plates with insufficient iron-ore → false", () => {
-		const state = withPlates(3, { isUnlocked: true, producers: 1 });
+		const state = withPlates(1, { isUnlocked: true, producers: 1 });
 		expect(canStartRun({ state, resourceId: "plates" })).toBe(false);
 	});
 });
@@ -46,9 +46,9 @@ describe("startRun", () => {
 	it("deducts input cost for plates run", () => {
 		const state = withPlates(8, { isUnlocked: true, producers: 1 });
 		const next = startRun({ state, resourceId: "plates" });
-		// 8 iron-ore - (4 inputCostPerRun * 1 producer) = 4
+		// 8 iron-ore - (2 inputCostPerRun * 1 producer) = 6
 		const ironOreAmount = next.resources["iron-ore"].amount;
-		expect(ironOreAmount.mantissa).toBeCloseTo(4, 10);
+		expect(ironOreAmount.mantissa).toBeCloseTo(6, 10);
 		expect(ironOreAmount.exponent).toBe(0);
 	});
 

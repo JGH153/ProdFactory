@@ -13,16 +13,16 @@ describe("getPrestigePassiveMultiplier", () => {
 		);
 	});
 
-	it("returns 1.02 with 1 lifetime coupon", () => {
+	it("returns 1.05 with 1 lifetime coupon", () => {
 		expect(
 			getPrestigePassiveMultiplier({ lifetimeCoupons: bigNum(1) }),
 		).toBeCloseTo(1 + COUPON_BONUS_PER_UNIT);
 	});
 
-	it("returns 2.0 with 50 lifetime coupons", () => {
+	it("returns 3.5 with 50 lifetime coupons", () => {
 		expect(
 			getPrestigePassiveMultiplier({ lifetimeCoupons: bigNum(50) }),
-		).toBeCloseTo(2.0);
+		).toBeCloseTo(3.5);
 	});
 
 	it("does not return Infinity for very large coupon counts", () => {
@@ -98,6 +98,30 @@ describe("isMilestoneEarned", () => {
 			isMilestoneEarned({
 				milestoneId: "experienced-builder",
 				prestigeCount: 100,
+			}),
+		).toBe(true);
+		expect(
+			isMilestoneEarned({
+				milestoneId: "factory-tycoon",
+				prestigeCount: 100,
+			}),
+		).toBe(true);
+	});
+
+	it("factory-tycoon not earned at prestige count 19", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "factory-tycoon",
+				prestigeCount: 19,
+			}),
+		).toBe(false);
+	});
+
+	it("factory-tycoon earned at prestige count 20", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "factory-tycoon",
+				prestigeCount: 20,
 			}),
 		).toBe(true);
 	});

@@ -176,7 +176,7 @@ const RESOURCE_TO_SPEED_RESEARCH: Record<ResourceId, ResearchId> = {
 
 /** Time in seconds to research from `level` to `level + 1`. */
 export const getResearchTime = (level: number): number =>
-	RESEARCH_BASE_TIME * 2 ** level;
+	RESEARCH_BASE_TIME * 1.5 ** level;
 
 /** Research time multiplier from shop boosts (0.5 when research-2x is active). */
 export const getResearchTimeMultiplier = ({
