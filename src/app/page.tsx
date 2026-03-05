@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
 	hasSeenIntro,
@@ -21,7 +22,6 @@ import { IS_DEV_MODE } from "@/lib/env-frontend";
 
 type ActiveTab = "game" | "shop" | "research" | "prestige" | "settings";
 
-const ACTIVE_TAB_KEY = "pf-active-tab";
 const VALID_TABS: ReadonlySet<string> = new Set<ActiveTab>([
 	"game",
 	"shop",
@@ -48,26 +48,24 @@ const TabPanel = ({
 );
 
 export default function Home() {
-	const [activeTab, setActiveTab] = useState<ActiveTab>("game");
+	const searchParams = useSearchParams();
+	const tabParam = searchParams.get("tab");
+	const activeTab: ActiveTab =
+		tabParam !== null && VALID_TABS.has(tabParam)
+			? (tabParam as ActiveTab)
+			: "game";
 	const [introOpen, setIntroOpen] = useState(false);
 	const { offlineSummary, collectOfflineProgress, devBoost } = useGameState();
 	const { registerNavigate } = useMilestoneNotification();
 
 	const changeTab = useCallback((tab: ActiveTab) => {
-		setActiveTab(tab);
-		localStorage.setItem(ACTIVE_TAB_KEY, tab);
+		const url = tab === "game" ? "/" : `?tab=${tab}`;
+		window.history.replaceState(null, "", url);
 	}, []);
 
 	useEffect(() => {
 		registerNavigate(changeTab);
 	}, [registerNavigate, changeTab]);
-
-	useEffect(() => {
-		const stored = localStorage.getItem(ACTIVE_TAB_KEY);
-		if (stored !== null && VALID_TABS.has(stored)) {
-			setActiveTab(stored as ActiveTab);
-		}
-	}, []);
 
 	useEffect(() => {
 		if (!hasSeenIntro()) {

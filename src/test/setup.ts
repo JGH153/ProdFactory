@@ -84,6 +84,29 @@ if (isDOM) {
 		};
 	});
 
+	// Mock: next/navigation
+	vi.mock("next/navigation", () => {
+		const ReactMod = require("react");
+		return {
+			useSearchParams: () => {
+				const [search, setSearch] = ReactMod.useState(window.location.search);
+				ReactMod.useEffect(() => {
+					const original = window.history.replaceState.bind(window.history);
+					window.history.replaceState = (
+						...args: Parameters<typeof original>
+					) => {
+						original(...args);
+						setSearch(window.location.search);
+					};
+					return () => {
+						window.history.replaceState = original;
+					};
+				}, []);
+				return new URLSearchParams(search);
+			},
+		};
+	});
+
 	// Mock: Audio
 	class MockAudio {
 		src = "";

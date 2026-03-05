@@ -163,7 +163,7 @@ export const ShopPage = () => {
 										{isActive ? (
 											<Button
 												disabled
-												className="w-full bg-success/20 text-success border-success/30"
+												className="w-full bg-success/20 hover:bg-success/20 text-success border-success/30"
 											>
 												Active
 											</Button>
