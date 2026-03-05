@@ -19,4 +19,6 @@ Run the full validation suite and fix any issues found.
    - **Knip errors**: Remove unused exports, dependencies, or dead code
 3. Re-run `pnpm validate` to confirm all issues are resolved
 4. Repeat until the output is clean
-5. Report a summary of what was found and fixed
+5. Run `pnpm build` to verify the production build succeeds
+6. If the build fails, fix the errors and re-run from step 1
+7. Report a summary of what was found and fixed

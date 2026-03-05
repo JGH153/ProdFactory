@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import {
 	hasSeenIntro,
 	IntroVideoDialog,
@@ -47,7 +47,7 @@ const TabPanel = ({
 	</div>
 );
 
-export default function Home() {
+const HomeContent = () => {
 	const searchParams = useSearchParams();
 	const tabParam = searchParams.get("tab");
 	const activeTab: ActiveTab =
@@ -123,5 +123,13 @@ export default function Home() {
 			</main>
 			<BottomNav activeTab={activeTab} onTabChange={changeTab} />
 		</MusicProvider>
+	);
+};
+
+export default function Home() {
+	return (
+		<Suspense>
+			<HomeContent />
+		</Suspense>
 	);
 }
