@@ -13,16 +13,16 @@ describe("getPrestigePassiveMultiplier", () => {
 		);
 	});
 
-	it("returns 1.05 with 1 lifetime coupon", () => {
+	it("returns 1.1 with 1 lifetime coupon", () => {
 		expect(
 			getPrestigePassiveMultiplier({ lifetimeCoupons: bigNum(1) }),
 		).toBeCloseTo(1 + COUPON_BONUS_PER_UNIT);
 	});
 
-	it("returns 3.5 with 50 lifetime coupons", () => {
+	it("returns 6 with 50 lifetime coupons", () => {
 		expect(
 			getPrestigePassiveMultiplier({ lifetimeCoupons: bigNum(50) }),
-		).toBeCloseTo(3.5);
+		).toBeCloseTo(6);
 	});
 
 	it("does not return Infinity for very large coupon counts", () => {
@@ -69,6 +69,24 @@ describe("isMilestoneEarned", () => {
 		).toBe(true);
 	});
 
+	it("assembly-line earned at prestige count 4", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "assembly-line",
+				prestigeCount: 4,
+			}),
+		).toBe(true);
+	});
+
+	it("assembly-line not earned at prestige count 3", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "assembly-line",
+				prestigeCount: 3,
+			}),
+		).toBe(false);
+	});
+
 	it("experienced-builder not earned at prestige count 4", () => {
 		expect(
 			isMilestoneEarned({
@@ -85,6 +103,33 @@ describe("isMilestoneEarned", () => {
 				prestigeCount: 5,
 			}),
 		).toBe(true);
+	});
+
+	it("resource-manager earned at prestige count 6", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "resource-manager",
+				prestigeCount: 6,
+			}),
+		).toBe(true);
+	});
+
+	it("efficiency-expert earned at prestige count 8", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "efficiency-expert",
+				prestigeCount: 8,
+			}),
+		).toBe(true);
+	});
+
+	it("efficiency-expert not earned at prestige count 7", () => {
+		expect(
+			isMilestoneEarned({
+				milestoneId: "efficiency-expert",
+				prestigeCount: 7,
+			}),
+		).toBe(false);
 	});
 
 	it("all milestones earned at high prestige count", () => {

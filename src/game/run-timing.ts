@@ -1,4 +1,5 @@
 import { RESOURCE_CONFIGS } from "./config";
+import { getSpeedSurgeMultiplier } from "./coupon-shop-config";
 import type { ResourceId, ShopBoosts } from "./types";
 
 export const SPEED_MILESTONE_INTERVAL = 10;
@@ -8,10 +9,12 @@ export const getRunTimeMultiplier = ({
 	shopBoosts,
 	isAutomated,
 	speedResearchMultiplier = 1,
+	speedSurgeLevel = 0,
 }: {
 	shopBoosts: ShopBoosts;
 	isAutomated: boolean;
 	speedResearchMultiplier?: number;
+	speedSurgeLevel?: number;
 }): number => {
 	let m = 1;
 	if (shopBoosts["runtime-50"]) {
@@ -21,6 +24,9 @@ export const getRunTimeMultiplier = ({
 		m *= 0.5;
 	}
 	m *= speedResearchMultiplier;
+	if (speedSurgeLevel > 0) {
+		m *= getSpeedSurgeMultiplier({ level: speedSurgeLevel });
+	}
 	return m;
 };
 

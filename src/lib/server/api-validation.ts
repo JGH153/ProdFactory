@@ -1,4 +1,6 @@
 import { RESOURCE_ORDER } from "@/game/config";
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
+import { COUPON_UPGRADE_ORDER } from "@/game/coupon-shop-config";
 import {
 	getMaxLevelForResearch,
 	LAB_ORDER,
@@ -48,6 +50,16 @@ export const isValidLabId = (value: unknown): value is LabId => {
 
 export const isValidResearchId = (value: unknown): value is ResearchId => {
 	return typeof value === "string" && VALID_RESEARCH_IDS.has(value);
+};
+
+const VALID_COUPON_UPGRADE_IDS: ReadonlySet<string> = new Set<string>(
+	COUPON_UPGRADE_ORDER,
+);
+
+export const isValidCouponUpgradeId = (
+	value: unknown,
+): value is CouponUpgradeId => {
+	return typeof value === "string" && VALID_COUPON_UPGRADE_IDS.has(value);
 };
 
 export const isNonNegativeInteger = (value: unknown): value is number => {
@@ -203,6 +215,20 @@ export const validateSerializedGameState = (
 			}
 			if (typeof level === "number" && level > getMaxLevelForResearch(id)) {
 				return `Research level exceeds maximum for ${id}`;
+			}
+		}
+	}
+
+	if (state.couponUpgrades !== undefined) {
+		if (!isRecord(state.couponUpgrades)) {
+			return "Invalid couponUpgrades";
+		}
+		for (const key of Object.keys(state.couponUpgrades)) {
+			if (!VALID_COUPON_UPGRADE_IDS.has(key)) {
+				return `Invalid coupon upgrade id: ${key}`;
+			}
+			if (!isNonNegativeInteger(state.couponUpgrades[key])) {
+				return `Invalid coupon upgrade level for ${key}`;
 			}
 		}
 	}

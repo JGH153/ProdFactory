@@ -8,19 +8,24 @@ import {
 	bnSub,
 } from "@/lib/big-number";
 import { RESOURCE_CONFIGS } from "./config";
+import { getEffectiveCostScaling } from "./coupon-shop-config";
 import type { GameState, ResourceId } from "./types";
 
 export const getProducerCost = ({
 	resourceId,
 	owned,
+	producerDiscountLevel = 0,
 }: {
 	resourceId: ResourceId;
 	owned: number;
+	producerDiscountLevel?: number;
 }): BigNum => {
 	const config = RESOURCE_CONFIGS[resourceId];
-	return bnFloor(
-		bnMul(config.baseCost, bnPow(bigNum(config.costScaling), owned)),
-	);
+	const scaling =
+		producerDiscountLevel > 0
+			? getEffectiveCostScaling({ level: producerDiscountLevel })
+			: config.costScaling;
+	return bnFloor(bnMul(config.baseCost, bnPow(bigNum(scaling), owned)));
 };
 
 export const canBuyProducer = ({
@@ -34,7 +39,11 @@ export const canBuyProducer = ({
 	if (!resource.isUnlocked) {
 		return false;
 	}
-	const cost = getProducerCost({ resourceId, owned: resource.producers });
+	const cost = getProducerCost({
+		resourceId,
+		owned: resource.producers,
+		producerDiscountLevel: state.couponUpgrades["producer-discount"],
+	});
 	return bnGte(resource.amount, cost);
 };
 
@@ -50,7 +59,11 @@ export const buyProducer = ({
 	}
 
 	const resource = state.resources[resourceId];
-	const cost = getProducerCost({ resourceId, owned: resource.producers });
+	const cost = getProducerCost({
+		resourceId,
+		owned: resource.producers,
+		producerDiscountLevel: state.couponUpgrades["producer-discount"],
+	});
 
 	return {
 		...state,
@@ -80,9 +93,10 @@ export const getMaxAffordableProducers = ({
 	let remaining = resource.amount;
 	let owned = resource.producers;
 	let count = 0;
+	const producerDiscountLevel = state.couponUpgrades["producer-discount"];
 
 	while (true) {
-		const cost = getProducerCost({ resourceId, owned });
+		const cost = getProducerCost({ resourceId, owned, producerDiscountLevel });
 		if (!bnGte(remaining, cost)) {
 			break;
 		}

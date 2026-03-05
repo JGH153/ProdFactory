@@ -509,6 +509,44 @@ describe("checkPlausibility", () => {
 		});
 	});
 
+	describe("continuous mode (short sync window)", () => {
+		it("one clamped run completing in a short window is not flagged", () => {
+			// producers=20: effectiveRunTime=0.25s, clampedRunTime=0.5s, continuousMul=2
+			// elapsed=300ms: maxRuns=floor(300/500)+1=1
+			// maxProd=1*20*2=40, tolerance=46
+			// gain=40 → 46>=40 → no correction
+			const t0 = 0;
+			const snapshot = makeSnapshot(t0, 0, 20);
+			const claimed = makeClaimedState({
+				amount: bnSerialize(bigNum(40)),
+				producers: 20,
+			});
+			const result = checkPlausibility({
+				claimedState: claimed,
+				lastSnapshot: snapshot,
+				serverNow: t0 + 300,
+			});
+			expect(result.corrected).toBe(false);
+		});
+
+		it("excessive gain in continuous mode is still corrected", () => {
+			// Same setup as above: maxProd=40, tolerance=46
+			// gain=100 → 46<100 → corrected
+			const t0 = 0;
+			const snapshot = makeSnapshot(t0, 0, 20);
+			const claimed = makeClaimedState({
+				amount: bnSerialize(bigNum(100)),
+				producers: 20,
+			});
+			const result = checkPlausibility({
+				claimedState: claimed,
+				lastSnapshot: snapshot,
+				serverNow: t0 + 300,
+			});
+			expect(result.corrected).toBe(true);
+		});
+	});
+
 	describe("producer count", () => {
 		it("uses max of snapshot producers and claimed producers", () => {
 			// snapshot=1 producer, claimed=2 producers → max=2

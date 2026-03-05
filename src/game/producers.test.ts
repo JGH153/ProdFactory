@@ -31,6 +31,26 @@ describe("getProducerCost", () => {
 		const cost = getProducerCost({ resourceId: "plates", owned: 0 });
 		expect(cost).toEqual(bigNum(4));
 	});
+
+	it("producer discount level 5 uses reduced scaling (1.125)", () => {
+		const discounted = getProducerCost({
+			resourceId: "iron-ore",
+			owned: 10,
+			producerDiscountLevel: 5,
+		});
+		const expected = bnFloor(bnMul(bigNum(2), bnPow(bigNum(1.125), 10)));
+		expect(discounted).toEqual(expected);
+	});
+
+	it("producer discount level 10 (max) uses minimum scaling (1.10)", () => {
+		const discounted = getProducerCost({
+			resourceId: "iron-ore",
+			owned: 10,
+			producerDiscountLevel: 10,
+		});
+		const expected = bnFloor(bnMul(bigNum(2), bnPow(bigNum(1.1), 10)));
+		expect(discounted).toEqual(expected);
+	});
 });
 
 describe("canBuyProducer", () => {

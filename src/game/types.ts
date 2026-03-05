@@ -1,4 +1,5 @@
 import type { BigNum } from "@/lib/big-number";
+import type { CouponUpgradeId } from "./coupon-shop-config";
 
 export type ResourceId =
 	| "iron-ore"
@@ -76,6 +77,7 @@ export type PrestigeState = {
 	couponBalance: BigNum;
 	lifetimeCoupons: BigNum;
 	nuclearPastaProducedThisRun: BigNum;
+	lastPrestigeAt: number | null;
 };
 
 export type GameState = {
@@ -84,6 +86,7 @@ export type GameState = {
 	labs: Record<LabId, LabState>;
 	research: Record<ResearchId, number>;
 	prestige: PrestigeState;
+	couponUpgrades: Record<CouponUpgradeId, number>;
 	timeWarpCount: number;
 	lastSavedAt: number;
 };

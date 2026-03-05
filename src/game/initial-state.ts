@@ -114,11 +114,18 @@ export const createInitialGameState = (): GameState => ({
 		"speed-nuclear-pasta": 0,
 		"offline-progress": 0,
 	},
+	couponUpgrades: {
+		"producer-discount": 0,
+		"offline-capacity": 0,
+		"coupon-magnet": 0,
+		"speed-surge": 0,
+	},
 	prestige: {
 		prestigeCount: 0,
 		couponBalance: bigNumZero,
 		lifetimeCoupons: bigNumZero,
 		nuclearPastaProducedThisRun: bigNumZero,
+		lastPrestigeAt: null,
 	},
 	timeWarpCount: 0,
 	lastSavedAt: Date.now(),

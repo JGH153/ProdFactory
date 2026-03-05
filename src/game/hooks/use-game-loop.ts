@@ -48,6 +48,7 @@ export const useGameLoop = ({
 							research: next.research,
 							resourceId,
 						}),
+						speedSurgeLevel: next.couponUpgrades["speed-surge"],
 					});
 
 					if (

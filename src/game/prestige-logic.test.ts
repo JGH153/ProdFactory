@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { bigNum, bigNumZero } from "@/lib/big-number";
 import { createInitialGameState } from "./initial-state";
+import { PRESTIGE_STREAK_WINDOW_MS } from "./prestige-config";
 import {
 	canPrestige,
 	computeCouponsEarned,
+	isPrestigeStreak,
 	performPrestige,
 } from "./prestige-logic";
 import { withNuclearPasta } from "./test-helpers";
 
 describe("computeCouponsEarned", () => {
-	it("0 Nuclear Pasta → 5 base coupons", () => {
+	it("0 Nuclear Pasta → 5 base coupons (no streak)", () => {
 		const result = computeCouponsEarned({
 			nuclearPastaProducedThisRun: bigNumZero,
+			streakActive: false,
 		});
 		expect(result).toEqual(bigNum(5));
 	});
@@ -19,6 +22,7 @@ describe("computeCouponsEarned", () => {
 	it("1 Nuclear Pasta → 6 coupons (floor(sqrt(1)) + 5)", () => {
 		const result = computeCouponsEarned({
 			nuclearPastaProducedThisRun: bigNum(1),
+			streakActive: false,
 		});
 		expect(result).toEqual(bigNum(6));
 	});
@@ -26,6 +30,7 @@ describe("computeCouponsEarned", () => {
 	it("4 Nuclear Pasta → 7 coupons (floor(sqrt(4)) + 5)", () => {
 		const result = computeCouponsEarned({
 			nuclearPastaProducedThisRun: bigNum(4),
+			streakActive: false,
 		});
 		expect(result).toEqual(bigNum(7));
 	});
@@ -33,15 +38,97 @@ describe("computeCouponsEarned", () => {
 	it("10 Nuclear Pasta → 8 coupons (floor(sqrt(10)) + 5)", () => {
 		const result = computeCouponsEarned({
 			nuclearPastaProducedThisRun: bigNum(10),
+			streakActive: false,
 		});
 		expect(result).toEqual(bigNum(8));
 	});
 
-	it("100 Nuclear Pasta → 15 coupons", () => {
+	it("100 Nuclear Pasta → 15 coupons (no streak)", () => {
 		const result = computeCouponsEarned({
 			nuclearPastaProducedThisRun: bigNum(100),
+			streakActive: false,
 		});
 		expect(result).toEqual(bigNum(15));
+	});
+
+	it("100 Nuclear Pasta with streak → 18 coupons (floor(15 * 1.2))", () => {
+		const result = computeCouponsEarned({
+			nuclearPastaProducedThisRun: bigNum(100),
+			streakActive: true,
+		});
+		expect(result).toEqual(bigNum(18));
+	});
+
+	it("0 Nuclear Pasta with streak → 6 coupons (floor(5 * 1.2))", () => {
+		const result = computeCouponsEarned({
+			nuclearPastaProducedThisRun: bigNumZero,
+			streakActive: true,
+		});
+		expect(result).toEqual(bigNum(6));
+	});
+
+	it("coupon magnet level 1 → 10% bonus (floor(15 * 1.1) = 16)", () => {
+		const result = computeCouponsEarned({
+			nuclearPastaProducedThisRun: bigNum(100),
+			streakActive: false,
+			couponMagnetLevel: 1,
+		});
+		expect(result).toEqual(bigNum(16));
+	});
+
+	it("coupon magnet level 4 (max) → 40% bonus (floor(5 * 1.4) = 7)", () => {
+		const result = computeCouponsEarned({
+			nuclearPastaProducedThisRun: bigNumZero,
+			streakActive: false,
+			couponMagnetLevel: 4,
+		});
+		// 5 base * 1.4 = 7.0
+		expect(result).toEqual(bigNum(7));
+	});
+
+	it("coupon magnet + streak stack additively (floor(15 * 1.5) = 22)", () => {
+		const result = computeCouponsEarned({
+			nuclearPastaProducedThisRun: bigNum(100),
+			streakActive: true,
+			couponMagnetLevel: 3,
+		});
+		// multiplier = 1 + 0.2 (streak) + 0.3 (magnet) = 1.5
+		expect(result).toEqual(bigNum(22));
+	});
+});
+
+describe("isPrestigeStreak", () => {
+	it("returns false when lastPrestigeAt is null", () => {
+		expect(isPrestigeStreak({ lastPrestigeAt: null, now: Date.now() })).toBe(
+			false,
+		);
+	});
+
+	it("returns true when within streak window", () => {
+		const now = Date.now();
+		expect(
+			isPrestigeStreak({ lastPrestigeAt: now - 10 * 60 * 1000, now }),
+		).toBe(true);
+	});
+
+	it("returns true at exactly the streak window boundary", () => {
+		const now = Date.now();
+		expect(
+			isPrestigeStreak({
+				lastPrestigeAt: now - PRESTIGE_STREAK_WINDOW_MS,
+				now,
+			}),
+		).toBe(true);
+	});
+
+	it("returns false when outside streak window", () => {
+		const now = Date.now();
+		expect(
+			isPrestigeStreak({
+				lastPrestigeAt: now - PRESTIGE_STREAK_WINDOW_MS - 1,
+				now,
+			}),
+		).toBe(false);
 	});
 });
 
@@ -136,6 +223,15 @@ describe("performPrestige", () => {
 		expect(result.resources["iron-ore"].isAutomated).toBe(true);
 	});
 
+	it("milestone: 4 prestiges → Plates automation", () => {
+		const state = withNuclearPasta(1);
+		state.prestige.prestigeCount = 3;
+		const result = performPrestige({ state });
+		expect(result.resources.plates.isUnlocked).toBe(true);
+		expect(result.resources.plates.isAutomated).toBe(true);
+		expect(result.resources.plates.producers).toBeGreaterThanOrEqual(1);
+	});
+
 	it("milestone: 5 prestiges → Plates unlocked with 1 producer", () => {
 		const state = withNuclearPasta(1);
 		state.prestige.prestigeCount = 4;
@@ -144,12 +240,32 @@ describe("performPrestige", () => {
 		expect(result.resources.plates.producers).toBe(1);
 	});
 
+	it("milestone: 6 prestiges → start with 500 Iron Ore and 100 Plates", () => {
+		const state = withNuclearPasta(1);
+		state.prestige.prestigeCount = 5;
+		const result = performPrestige({ state });
+		expect(result.resources["iron-ore"].amount).toEqual(bigNum(500));
+		expect(result.resources.plates.amount).toEqual(bigNum(100));
+		expect(result.resources.plates.isUnlocked).toBe(true);
+	});
+
 	it("milestone: 7 prestiges → Reinforced Plate unlocked", () => {
 		const state = withNuclearPasta(1);
 		state.prestige.prestigeCount = 6;
 		const result = performPrestige({ state });
 		expect(result.resources["reinforced-plate"].isUnlocked).toBe(true);
 		expect(result.resources["reinforced-plate"].producers).toBe(1);
+	});
+
+	it("milestone: 8 prestiges → Reinforced Plate automation", () => {
+		const state = withNuclearPasta(1);
+		state.prestige.prestigeCount = 7;
+		const result = performPrestige({ state });
+		expect(result.resources["reinforced-plate"].isUnlocked).toBe(true);
+		expect(result.resources["reinforced-plate"].isAutomated).toBe(true);
+		expect(
+			result.resources["reinforced-plate"].producers,
+		).toBeGreaterThanOrEqual(1);
 	});
 
 	it("milestone: 10 prestiges → tiers 0-3 automated", () => {
@@ -179,5 +295,51 @@ describe("performPrestige", () => {
 		expect(result.resources.plates.producers).toBe(5);
 		expect(result.resources["reinforced-plate"].producers).toBe(5);
 		expect(result.resources["modular-frame"].producers).toBe(5);
+	});
+
+	it("preserves couponUpgrades across prestige", () => {
+		const state = withNuclearPasta(1);
+		state.couponUpgrades["producer-discount"] = 5;
+		state.couponUpgrades["speed-surge"] = 2;
+		const result = performPrestige({ state });
+		expect(result.couponUpgrades["producer-discount"]).toBe(5);
+		expect(result.couponUpgrades["speed-surge"]).toBe(2);
+	});
+
+	it("accumulates coupon balance across prestiges", () => {
+		const state = withNuclearPasta(100);
+		const first = performPrestige({ state });
+		// first prestige: 15 coupons
+		expect(first.prestige.couponBalance).toEqual(bigNum(15));
+
+		// Set up for second prestige
+		const second = performPrestige({
+			state: {
+				...first,
+				prestige: {
+					...first.prestige,
+					nuclearPastaProducedThisRun: bigNum(100),
+					lastPrestigeAt: null,
+				},
+			},
+		});
+		// second prestige: 15 more coupons → 30 total
+		expect(second.prestige.couponBalance).toEqual(bigNum(30));
+	});
+
+	it("uses coupon magnet level when computing prestige coupons", () => {
+		const state = withNuclearPasta(100);
+		state.couponUpgrades["coupon-magnet"] = 2;
+		const result = performPrestige({ state });
+		// multiplier = 1 + 0.2 (magnet level 2) = 1.2 → floor(15 * 1.2) = 18
+		expect(result.prestige.couponBalance).toEqual(bigNum(18));
+	});
+
+	it("sets lastPrestigeAt on prestige", () => {
+		const state = withNuclearPasta(1);
+		const before = Date.now();
+		const result = performPrestige({ state });
+		expect(result.prestige.lastPrestigeAt).toBeGreaterThanOrEqual(before);
+		expect(result.prestige.lastPrestigeAt).toBeLessThanOrEqual(Date.now());
 	});
 });

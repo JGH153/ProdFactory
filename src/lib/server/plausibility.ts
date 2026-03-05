@@ -11,7 +11,11 @@ import {
 	LAB_ORDER,
 	RESEARCH_ORDER,
 } from "@/game/research-config";
-import { getEffectiveRunTime, getRunTimeMultiplier } from "@/game/run-timing";
+import {
+	getClampedRunTime,
+	getContinuousMultiplier,
+	getRunTimeMultiplier,
+} from "@/game/run-timing";
 import {
 	type SerializedGameState,
 	type SerializedLabState,
@@ -48,6 +52,12 @@ export const stripServerVersion = (
 	labs: stored.labs,
 	research: stored.research,
 	prestige: stored.prestige,
+	couponUpgrades: stored.couponUpgrades ?? {
+		"producer-discount": 0,
+		"offline-capacity": 0,
+		"coupon-magnet": 0,
+		"speed-surge": 0,
+	},
 	timeWarpCount: stored.timeWarpCount,
 	lastSavedAt: stored.lastSavedAt,
 	version: stored.version,
@@ -111,6 +121,7 @@ export const buildProtectedState = ({
 		prestigeCount: referenceState.prestige.prestigeCount,
 		couponBalance: referenceState.prestige.couponBalance,
 		lifetimeCoupons: referenceState.prestige.lifetimeCoupons,
+		lastPrestigeAt: referenceState.prestige.lastPrestigeAt ?? null,
 	};
 
 	return {
@@ -119,6 +130,12 @@ export const buildProtectedState = ({
 		shopBoosts: referenceState.shopBoosts,
 		labs: protectedLabs,
 		prestige: protectedPrestige,
+		couponUpgrades: referenceState.couponUpgrades ?? {
+			"producer-discount": 0,
+			"offline-capacity": 0,
+			"coupon-magnet": 0,
+			"speed-surge": 0,
+		},
 		timeWarpCount: referenceState.timeWarpCount,
 		lastSavedAt: serverNow,
 	};
@@ -352,25 +369,34 @@ export const checkPlausibility = ({
 				research: validatedResearch,
 				resourceId,
 			}),
+			speedSurgeLevel: claimedState.couponUpgrades?.["speed-surge"] ?? 0,
 		});
 		const runTimeMs =
-			getEffectiveRunTime({
+			getClampedRunTime({
 				resourceId,
 				producers,
 				runTimeMultiplier,
 			}) * 1000;
+		const continuousMul = getContinuousMultiplier({
+			resourceId,
+			producers,
+			runTimeMultiplier,
+		});
 		const maxRuns = Math.floor(elapsed / runTimeMs) + 1;
 		const researchMul = getResearchMultiplier({
 			research: validatedResearch,
 			resourceId,
 		});
-		return getProductionForRuns({
-			runs: maxRuns,
-			producers,
-			productionMul,
-			researchMul,
-			prestigeMul,
-		});
+		return bnMul(
+			getProductionForRuns({
+				runs: maxRuns,
+				producers,
+				productionMul,
+				researchMul,
+				prestigeMul,
+			}),
+			bigNum(continuousMul),
+		);
 	};
 
 	for (const resourceId of RESOURCE_ORDER) {

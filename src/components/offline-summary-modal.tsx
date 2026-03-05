@@ -63,6 +63,7 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 	const maxOfflineSeconds = getOfflineCapSeconds({
 		shopBoosts: state.shopBoosts,
 		research: state.research,
+		offlineCapacityLevel: state.couponUpgrades["offline-capacity"],
 	});
 
 	const progressPct = summary

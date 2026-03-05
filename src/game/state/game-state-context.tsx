@@ -11,6 +11,7 @@ import {
 } from "react";
 import { buyAutomation, togglePause } from "@/game/automation";
 import { RESOURCE_ORDER } from "@/game/config";
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import { useAwaitedAction } from "@/game/hooks/use-awaited-action";
 import { useGameLoop } from "@/game/hooks/use-game-loop";
 import { createInitialGameState } from "@/game/initial-state";
@@ -58,6 +59,7 @@ type GameActions = {
 	unlockLab: (labId: LabId) => Promise<boolean>;
 	timeWarp: () => Promise<boolean>;
 	resetGame: () => void;
+	buyCouponUpgrade: (upgradeId: CouponUpgradeId) => Promise<boolean>;
 	prestige: () => Promise<boolean>;
 	devBoost: () => Promise<boolean>;
 };
@@ -113,6 +115,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 						labs,
 						research: serverState.research,
 						prestige: serverState.prestige,
+						couponUpgrades: serverState.couponUpgrades,
 						timeWarpCount: serverState.timeWarpCount,
 						lastSavedAt: serverState.lastSavedAt,
 					};
@@ -249,6 +252,12 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[performAwaitedAction],
 	);
 
+	const buyCouponUpgrade = useCallback(
+		(upgradeId: CouponUpgradeId) =>
+			performAwaitedAction({ endpoint: "buy-coupon-upgrade", upgradeId }),
+		[performAwaitedAction],
+	);
+
 	const prestige = useCallback(
 		() => performAwaitedAction({ endpoint: "prestige", fullReplace: true }),
 		[performAwaitedAction],
@@ -292,6 +301,7 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		assignLabResearch,
 		unassignLabResearch,
 		unlockLab,
+		buyCouponUpgrade,
 		timeWarp,
 		resetGame,
 		prestige,

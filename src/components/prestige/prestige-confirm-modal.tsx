@@ -26,6 +26,8 @@ type Props = {
 	onOpenChange: (open: boolean) => void;
 	couponsToEarn: BigNum;
 	currentLifetimeCoupons: BigNum;
+	streakActive: boolean;
+	couponMagnetLevel: number;
 	isPrestiging: boolean;
 	onConfirm: () => void;
 };
@@ -38,6 +40,8 @@ export const PrestigeConfirmModal = ({
 	onOpenChange,
 	couponsToEarn,
 	currentLifetimeCoupons,
+	streakActive,
+	couponMagnetLevel,
 	isPrestiging,
 	onConfirm,
 }: Props) => {
@@ -78,6 +82,20 @@ export const PrestigeConfirmModal = ({
 								+{bnFormat(couponsToEarn)}
 							</span>
 						</div>
+						{streakActive && (
+							<div className="flex items-center justify-between text-xs">
+								<span className="text-text-muted">Includes streak bonus</span>
+								<span className="text-accent-amber">+20%</span>
+							</div>
+						)}
+						{couponMagnetLevel > 0 && (
+							<div className="flex items-center justify-between text-xs">
+								<span className="text-text-muted">Includes Coupon Magnet</span>
+								<span className="text-accent-amber">
+									+{couponMagnetLevel * 10}%
+								</span>
+							</div>
+						)}
 						<div className="flex items-center justify-between text-sm">
 							<span className="text-text-muted">New lifetime total</span>
 							<span className="font-medium text-text-primary">

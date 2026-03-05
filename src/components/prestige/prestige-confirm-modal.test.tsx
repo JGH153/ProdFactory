@@ -10,6 +10,8 @@ const defaultProps = {
 	onOpenChange: vi.fn(),
 	couponsToEarn: bigNum(10),
 	currentLifetimeCoupons: bigNum(5),
+	streakActive: false,
+	couponMagnetLevel: 0,
 	isPrestiging: false,
 	onConfirm: vi.fn(),
 };
@@ -31,8 +33,8 @@ describe("PrestigeConfirmModal", () => {
 	it("displays new passive bonus percentage", () => {
 		renderWithProviders(<PrestigeConfirmModal {...defaultProps} />);
 
-		// 15 lifetime * 0.05 * 100 = 75%
-		expect(screen.getByText("+75%")).toBeInTheDocument();
+		// 15 lifetime * 0.10 * 100 = 150%
+		expect(screen.getByText("+150%")).toBeInTheDocument();
 	});
 
 	it("shows keep and lose lists", () => {

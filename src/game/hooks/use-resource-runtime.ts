@@ -28,6 +28,7 @@ export const useResourceRuntime = ({
 			research: state.research,
 			resourceId: resource.id,
 		}),
+		speedSurgeLevel: state.couponUpgrades["speed-surge"],
 	});
 
 	const effectiveRunTime = getEffectiveRunTime({

@@ -5,23 +5,57 @@ import {
 	bnAdd,
 	bnFloor,
 	bnIsZero,
+	bnMul,
 	bnSqrt,
 } from "@/lib/big-number";
+import { COUPON_MAGNET_BONUS_PER_LEVEL } from "./coupon-shop-config";
 import { createInitialGameState } from "./initial-state";
+import {
+	PRESTIGE_STREAK_BONUS,
+	PRESTIGE_STREAK_WINDOW_MS,
+} from "./prestige-config";
 import { LAB_ORDER } from "./research-config";
 import type { GameState, LabId, LabState } from "./types";
 
 const BASE_COUPONS_PER_PRESTIGE = 5;
 
+export const isPrestigeStreak = ({
+	lastPrestigeAt,
+	now,
+}: {
+	lastPrestigeAt: number | null;
+	now: number;
+}): boolean => {
+	if (lastPrestigeAt === null) {
+		return false;
+	}
+	return now - lastPrestigeAt <= PRESTIGE_STREAK_WINDOW_MS;
+};
+
 export const computeCouponsEarned = ({
 	nuclearPastaProducedThisRun,
+	streakActive,
+	couponMagnetLevel = 0,
 }: {
 	nuclearPastaProducedThisRun: BigNum;
+	streakActive: boolean;
+	couponMagnetLevel?: number;
 }): BigNum => {
-	return bnAdd(
+	const baseCoupons = bnAdd(
 		bnFloor(bnSqrt(nuclearPastaProducedThisRun)),
 		bigNum(BASE_COUPONS_PER_PRESTIGE),
 	);
+	let multiplier = 1;
+	if (streakActive) {
+		multiplier += PRESTIGE_STREAK_BONUS;
+	}
+	if (couponMagnetLevel > 0) {
+		multiplier += couponMagnetLevel * COUPON_MAGNET_BONUS_PER_LEVEL;
+	}
+	if (multiplier === 1) {
+		return baseCoupons;
+	}
+	return bnFloor(bnMul(baseCoupons, bigNum(multiplier)));
 };
 
 export const canPrestige = ({ state }: { state: GameState }): boolean => {
@@ -33,8 +67,15 @@ export const performPrestige = ({ state }: { state: GameState }): GameState => {
 		return state;
 	}
 
+	const now = Date.now();
+	const streakActive = isPrestigeStreak({
+		lastPrestigeAt: state.prestige.lastPrestigeAt,
+		now,
+	});
 	const couponsEarned = computeCouponsEarned({
 		nuclearPastaProducedThisRun: state.prestige.nuclearPastaProducedThisRun,
+		streakActive,
+		couponMagnetLevel: state.couponUpgrades["coupon-magnet"],
 	});
 	const newPrestigeCount = state.prestige.prestigeCount + 1;
 	const newLifetimeCoupons = bnAdd(
@@ -66,6 +107,16 @@ export const performPrestige = ({ state }: { state: GameState }): GameState => {
 		};
 	}
 
+	// Milestone: "assembly-line" (4 prestiges) — Plates automation
+	if (hasMilestone(4)) {
+		freshResources.plates = {
+			...freshResources.plates,
+			isUnlocked: true,
+			isAutomated: true,
+			producers: Math.max(freshResources.plates.producers, 1),
+		};
+	}
+
 	// Milestone: "experienced-builder" (5 prestiges) — Plates unlocked
 	if (hasMilestone(5)) {
 		freshResources.plates = {
@@ -75,12 +126,36 @@ export const performPrestige = ({ state }: { state: GameState }): GameState => {
 		};
 	}
 
+	// Milestone: "resource-manager" (6 prestiges) — start with 500 Iron Ore + 100 Plates
+	if (hasMilestone(6)) {
+		freshResources["iron-ore"] = {
+			...freshResources["iron-ore"],
+			amount: bigNum(500),
+		};
+		freshResources.plates = {
+			...freshResources.plates,
+			isUnlocked: true,
+			amount: bigNum(100),
+			producers: Math.max(freshResources.plates.producers, 1),
+		};
+	}
+
 	// Milestone: "supply-chain-expert" (7 prestiges) — Reinforced Plate unlocked
 	if (hasMilestone(7)) {
 		freshResources["reinforced-plate"] = {
 			...freshResources["reinforced-plate"],
 			isUnlocked: true,
 			producers: 1,
+		};
+	}
+
+	// Milestone: "efficiency-expert" (8 prestiges) — Reinforced Plate automation
+	if (hasMilestone(8)) {
+		freshResources["reinforced-plate"] = {
+			...freshResources["reinforced-plate"],
+			isUnlocked: true,
+			isAutomated: true,
+			producers: Math.max(freshResources["reinforced-plate"].producers, 1),
 		};
 	}
 
@@ -154,7 +229,9 @@ export const performPrestige = ({ state }: { state: GameState }): GameState => {
 			couponBalance: newCouponBalance,
 			lifetimeCoupons: newLifetimeCoupons,
 			nuclearPastaProducedThisRun: bigNumZero,
+			lastPrestigeAt: now,
 		},
+		couponUpgrades: { ...state.couponUpgrades },
 		timeWarpCount: state.timeWarpCount,
 		lastSavedAt: Date.now(),
 	};

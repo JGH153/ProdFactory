@@ -1,3 +1,4 @@
+import { OFFLINE_CAPACITY_BONUS_PER_LEVEL } from "./coupon-shop-config";
 import type { LabId, ResearchId, ResourceId, ShopBoosts } from "./types";
 
 export const MAX_RESEARCH_LEVEL = 20;
@@ -221,18 +222,21 @@ export const getMaxLevelForResearch = (researchId: ResearchId): number =>
 		? MAX_UTILITY_RESEARCH_LEVEL
 		: MAX_RESEARCH_LEVEL;
 
-/** Max offline progress cap in seconds, accounting for shop boost and research. */
+/** Max offline progress cap in seconds, accounting for shop boost, research, and coupon upgrades. */
 export const getOfflineCapSeconds = ({
 	shopBoosts,
 	research,
+	offlineCapacityLevel = 0,
 }: {
 	shopBoosts: ShopBoosts;
 	research: Record<ResearchId, number>;
+	offlineCapacityLevel?: number;
 }): number => {
 	let cap = BASE_OFFLINE_SECONDS;
 	if (shopBoosts["offline-2h"]) {
 		cap += OFFLINE_BOOST_SECONDS;
 	}
 	cap += research["offline-progress"] * OFFLINE_PROGRESS_BONUS_PER_LEVEL;
+	cap += offlineCapacityLevel * OFFLINE_CAPACITY_BONUS_PER_LEVEL;
 	return cap;
 };

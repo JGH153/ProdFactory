@@ -173,4 +173,35 @@ describe("getRunTimeMultiplier", () => {
 			}),
 		).toBe(0.125);
 	});
+
+	it("speedSurgeLevel=1 → 0.9", () => {
+		expect(
+			getRunTimeMultiplier({
+				shopBoosts: noBoosts,
+				isAutomated: false,
+				speedSurgeLevel: 1,
+			}),
+		).toBeCloseTo(0.9);
+	});
+
+	it("speedSurgeLevel=3 → 0.729", () => {
+		expect(
+			getRunTimeMultiplier({
+				shopBoosts: noBoosts,
+				isAutomated: false,
+				speedSurgeLevel: 3,
+			}),
+		).toBeCloseTo(0.729);
+	});
+
+	it("speed surge stacks with runtime-50 boost", () => {
+		const boosts = { ...noBoosts, "runtime-50": true };
+		expect(
+			getRunTimeMultiplier({
+				shopBoosts: boosts,
+				isAutomated: false,
+				speedSurgeLevel: 1,
+			}),
+		).toBeCloseTo(0.45);
+	});
 });

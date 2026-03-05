@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type RefObject, useCallback, useEffect, useRef } from "react";
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import type {
 	GameState,
 	LabId,
@@ -42,6 +43,7 @@ type QueueItem = {
 	boostId?: ShopBoostId | undefined;
 	labId?: LabId | undefined;
 	researchId?: ResearchId | undefined;
+	upgradeId?: CouponUpgradeId | undefined;
 };
 
 type ReconcileCallback = (args: {
@@ -64,6 +66,7 @@ export const useServerSync = ({
 		boostId?: ShopBoostId | undefined;
 		labId?: LabId | undefined;
 		researchId?: ResearchId | undefined;
+		upgradeId?: CouponUpgradeId | undefined;
 	}) => void;
 	executeAwaitedAction: (args: {
 		endpoint: string;
@@ -71,6 +74,7 @@ export const useServerSync = ({
 		boostId?: ShopBoostId | undefined;
 		labId?: LabId | undefined;
 		researchId?: ResearchId | undefined;
+		upgradeId?: CouponUpgradeId | undefined;
 	}) => Promise<SerializedGameState>;
 	executeTimeWarp: () => Promise<{
 		state: SerializedGameState;
@@ -170,6 +174,7 @@ export const useServerSync = ({
 					boostId: item.boostId,
 					labId: item.labId,
 					researchId: item.researchId,
+					upgradeId: item.upgradeId,
 					serverVersion: serverVersionRef.current,
 				});
 				serverVersionRef.current = result.serverVersion;
@@ -185,6 +190,7 @@ export const useServerSync = ({
 							boostId: item.boostId,
 							labId: item.labId,
 							researchId: item.researchId,
+							upgradeId: item.upgradeId,
 							serverVersion: serverVersionRef.current,
 						});
 						serverVersionRef.current = retryResult.serverVersion;
@@ -371,12 +377,14 @@ export const useServerSync = ({
 			boostId,
 			labId,
 			researchId,
+			upgradeId,
 		}: {
 			endpoint: string;
 			resourceId?: ResourceId | undefined;
 			boostId?: ShopBoostId | undefined;
 			labId?: LabId | undefined;
 			researchId?: ResearchId | undefined;
+			upgradeId?: CouponUpgradeId | undefined;
 		}): Promise<SerializedGameState> => {
 			await acquireExclusiveLock();
 			try {
@@ -386,6 +394,7 @@ export const useServerSync = ({
 					boostId,
 					labId,
 					researchId,
+					upgradeId,
 					serverVersion: serverVersionRef.current,
 				});
 				serverVersionRef.current = result.serverVersion;
@@ -399,6 +408,7 @@ export const useServerSync = ({
 						boostId,
 						labId,
 						researchId,
+						upgradeId,
 						serverVersion: serverVersionRef.current,
 					});
 					serverVersionRef.current = retryResult.serverVersion;
@@ -448,12 +458,14 @@ export const useServerSync = ({
 			boostId,
 			labId,
 			researchId,
+			upgradeId,
 		}: {
 			endpoint: string;
 			resourceId?: ResourceId | undefined;
 			boostId?: ShopBoostId | undefined;
 			labId?: LabId | undefined;
 			researchId?: ResearchId | undefined;
+			upgradeId?: CouponUpgradeId | undefined;
 		}) => {
 			queueRef.current.push({
 				endpoint,
@@ -461,6 +473,7 @@ export const useServerSync = ({
 				boostId,
 				labId,
 				researchId,
+				upgradeId,
 			});
 			processQueue();
 		},

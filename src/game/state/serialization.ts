@@ -1,4 +1,6 @@
 import { RESOURCE_ORDER } from "@/game/config";
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
+import { COUPON_UPGRADE_ORDER } from "@/game/coupon-shop-config";
 import { LAB_ORDER, RESEARCH_ORDER } from "@/game/research-config";
 import type {
 	GameState,
@@ -41,6 +43,7 @@ export type SerializedPrestigeState = {
 	couponBalance: SerializedBigNum;
 	lifetimeCoupons: SerializedBigNum;
 	nuclearPastaProducedThisRun: SerializedBigNum;
+	lastPrestigeAt?: number | null;
 };
 
 export type SerializedGameState = {
@@ -49,6 +52,7 @@ export type SerializedGameState = {
 	labs: Record<LabId, SerializedLabState>;
 	research: Record<ResearchId, number>;
 	prestige: SerializedPrestigeState;
+	couponUpgrades?: Record<CouponUpgradeId, number>;
 	timeWarpCount: number;
 	lastSavedAt: number;
 	version: number;
@@ -97,6 +101,7 @@ const serializePrestige = (
 	nuclearPastaProducedThisRun: bnSerialize(
 		prestige.nuclearPastaProducedThisRun,
 	),
+	lastPrestigeAt: prestige.lastPrestigeAt,
 });
 
 const deserializePrestige = (data: SerializedPrestigeState): PrestigeState => ({
@@ -104,6 +109,7 @@ const deserializePrestige = (data: SerializedPrestigeState): PrestigeState => ({
 	couponBalance: bnDeserialize(data.couponBalance),
 	lifetimeCoupons: bnDeserialize(data.lifetimeCoupons),
 	nuclearPastaProducedThisRun: bnDeserialize(data.nuclearPastaProducedThisRun),
+	lastPrestigeAt: data.lastPrestigeAt ?? null,
 });
 
 export const serializeGameState = (state: GameState): SerializedGameState => {
@@ -121,6 +127,7 @@ export const serializeGameState = (state: GameState): SerializedGameState => {
 		labs,
 		research: { ...state.research },
 		prestige: serializePrestige(state.prestige),
+		couponUpgrades: { ...state.couponUpgrades },
 		timeWarpCount: state.timeWarpCount,
 		lastSavedAt: Date.now(),
 		version: SAVE_VERSION,
@@ -163,6 +170,17 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 	for (const id of RESEARCH_ORDER) {
 		research[id] = data.research[id];
 	}
+	const couponUpgrades: Record<CouponUpgradeId, number> = {
+		"producer-discount": 0,
+		"offline-capacity": 0,
+		"coupon-magnet": 0,
+		"speed-surge": 0,
+	};
+	if (data.couponUpgrades) {
+		for (const id of COUPON_UPGRADE_ORDER) {
+			couponUpgrades[id] = data.couponUpgrades[id] ?? 0;
+		}
+	}
 	return {
 		resources,
 		shopBoosts: migrateShopBoosts(
@@ -171,6 +189,7 @@ export const deserializeGameState = (data: SerializedGameState): GameState => {
 		labs,
 		research,
 		prestige: deserializePrestige(data.prestige),
+		couponUpgrades,
 		timeWarpCount: data.timeWarpCount,
 		lastSavedAt: data.lastSavedAt,
 	};

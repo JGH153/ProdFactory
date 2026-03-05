@@ -27,6 +27,7 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 	const maxOfflineSeconds = getOfflineCapSeconds({
 		shopBoosts: state.shopBoosts,
 		research: state.research,
+		offlineCapacityLevel: state.couponUpgrades["offline-capacity"],
 	});
 	const hasOfflineBoost = state.shopBoosts["offline-2h"];
 	const offlineResearchLevel = state.research["offline-progress"];

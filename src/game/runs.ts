@@ -40,6 +40,7 @@ export const canStartRun = ({
 				research: state.research,
 				resourceId,
 			}),
+			speedSurgeLevel: state.couponUpgrades["speed-surge"],
 		});
 		const multiplier = getContinuousMultiplier({
 			resourceId,
@@ -84,6 +85,7 @@ export const startRun = ({
 				research: state.research,
 				resourceId,
 			}),
+			speedSurgeLevel: state.couponUpgrades["speed-surge"],
 		});
 		const multiplier = getContinuousMultiplier({
 			resourceId,

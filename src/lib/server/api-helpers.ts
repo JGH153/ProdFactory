@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import {
 	deserializeGameState,
 	type SerializedGameState,
@@ -16,6 +17,7 @@ import {
 	isNonNegativeInteger,
 	isRecord,
 	isValidBoostId,
+	isValidCouponUpgradeId,
 	isValidLabId,
 	isValidResearchId,
 	isValidResourceId,
@@ -169,6 +171,15 @@ export const parseLabResearchActionBody = createBodyParser<{
 }>({
 	labId: { validate: isValidLabId, error: "Invalid labId" },
 	researchId: { validate: isValidResearchId, error: "Invalid researchId" },
+});
+
+export const parseCouponUpgradeActionBody = createBodyParser<{
+	upgradeId: CouponUpgradeId;
+}>({
+	upgradeId: {
+		validate: isValidCouponUpgradeId,
+		error: "Invalid upgradeId",
+	},
 });
 
 export const parseVersionOnlyBody = createBodyParser({});

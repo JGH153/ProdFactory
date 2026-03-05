@@ -9,11 +9,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
 	COUPON_BONUS_PER_UNIT,
 	getPrestigePassiveMultiplier,
+	PRESTIGE_STREAK_WINDOW_MS,
 } from "@/game/prestige-config";
-import { computeCouponsEarned } from "@/game/prestige-logic";
+import { computeCouponsEarned, isPrestigeStreak } from "@/game/prestige-logic";
 import { useGameState } from "@/game/state/game-state-context";
 import { useSfx } from "@/game/state/sfx-context";
-import { bigNum, bnFormat, bnIsZero, bnToNumber } from "@/lib/big-number";
+import {
+	bigNum,
+	bnFormat,
+	bnIsZero,
+	bnSub,
+	bnToNumber,
+} from "@/lib/big-number";
+import { CouponShop } from "./coupon-shop";
 import { PrestigeConfirmModal } from "./prestige-confirm-modal";
 import { PrestigeMilestones } from "./prestige-milestones";
 
@@ -39,10 +47,49 @@ export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 		lifetimeCoupons: prestige.lifetimeCoupons,
 	});
 	const passiveBonusPercent = Math.round((passiveMultiplier - 1) * 100);
+	const streakActive = isPrestigeStreak({
+		lastPrestigeAt: prestige.lastPrestigeAt,
+		now: Date.now(),
+	});
 	const couponsToEarn = computeCouponsEarned({
 		nuclearPastaProducedThisRun: prestige.nuclearPastaProducedThisRun,
+		streakActive,
+		couponMagnetLevel: state.couponUpgrades["coupon-magnet"],
 	});
 	const canPrestigeNow = !bnIsZero(prestige.nuclearPastaProducedThisRun);
+
+	const [streakRemainingMs, setStreakRemainingMs] = useState(() => {
+		if (!prestige.lastPrestigeAt) {
+			return 0;
+		}
+		return Math.max(
+			0,
+			prestige.lastPrestigeAt + PRESTIGE_STREAK_WINDOW_MS - Date.now(),
+		);
+	});
+
+	useEffect(() => {
+		if (!streakActive || !prestige.lastPrestigeAt) {
+			return;
+		}
+		const tick = () => {
+			const remaining = Math.max(
+				0,
+				(prestige.lastPrestigeAt ?? 0) + PRESTIGE_STREAK_WINDOW_MS - Date.now(),
+			);
+			setStreakRemainingMs(remaining);
+		};
+		tick();
+		const id = setInterval(tick, 1000);
+		return () => clearInterval(id);
+	}, [streakActive, prestige.lastPrestigeAt]);
+
+	const formatCountdown = (ms: number): string => {
+		const totalSeconds = Math.ceil(ms / 1000);
+		const minutes = Math.floor(totalSeconds / 60);
+		const seconds = totalSeconds % 60;
+		return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+	};
 
 	useEffect(() => {
 		return () => {
@@ -174,6 +221,14 @@ export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 									</span>
 								</div>
 								<div className="flex items-center justify-between text-sm">
+									<span className="text-text-muted">Coupons Spent</span>
+									<span className="font-medium text-text-primary">
+										{bnFormat(
+											bnSub(prestige.lifetimeCoupons, prestige.couponBalance),
+										)}
+									</span>
+								</div>
+								<div className="flex items-center justify-between text-sm">
 									<span className="text-text-muted">Passive Bonus</span>
 									<span className="font-medium text-text-primary">
 										{passiveBonusPercent > 0
@@ -193,6 +248,15 @@ export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 						{/* Prestige Button */}
 						<Card>
 							<CardContent className="flex flex-col items-center gap-3">
+								{streakActive && (
+									<div className="w-full rounded-md bg-accent-amber/10 px-3 py-1.5 text-center text-xs font-semibold text-accent-amber">
+										Streak active — +20% coupons!
+										<span className="block font-normal text-accent-amber/70 mt-0.5">
+											Expires in {formatCountdown(streakRemainingMs)} · Prestige
+											within 30 min to keep it
+										</span>
+									</div>
+								)}
 								<div className="flex items-center gap-2">
 									<HugeiconsIcon
 										icon={Rocket01Icon}
@@ -217,6 +281,9 @@ export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 							</CardContent>
 						</Card>
 
+						{/* Coupon Shop */}
+						<CouponShop />
+
 						{/* Milestones */}
 						<PrestigeMilestones prestigeCount={prestige.prestigeCount} />
 					</motion.div>
@@ -228,6 +295,8 @@ export const PrestigePage = ({ onPrestigeComplete }: Props) => {
 				onOpenChange={setShowConfirm}
 				couponsToEarn={couponsToEarn}
 				currentLifetimeCoupons={prestige.lifetimeCoupons}
+				streakActive={streakActive}
+				couponMagnetLevel={state.couponUpgrades["coupon-magnet"]}
 				isPrestiging={isPrestiging}
 				onConfirm={handlePrestige}
 			/>

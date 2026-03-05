@@ -32,6 +32,7 @@ export const getProductionParams = ({
 			research: state.research,
 			resourceId,
 		}),
+		speedSurgeLevel: state.couponUpgrades["speed-surge"],
 	});
 	const productionMul = state.shopBoosts["production-2x"] ? 2 : 1;
 	const continuousMul = getContinuousMultiplier({

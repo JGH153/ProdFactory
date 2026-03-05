@@ -58,6 +58,7 @@ export const computeOfflineProgress = ({
 	const maxOfflineSeconds = getOfflineCapSeconds({
 		shopBoosts,
 		research: initialResearch as Record<ResearchId, number>,
+		offlineCapacityLevel: state.couponUpgrades?.["offline-capacity"] ?? 0,
 	});
 
 	const rawElapsedSeconds = (serverNow - state.lastSavedAt) / 1000;
@@ -145,6 +146,7 @@ export const computeOfflineProgress = ({
 				research,
 				resourceId,
 			}),
+			speedSurgeLevel: state.couponUpgrades?.["speed-surge"] ?? 0,
 		});
 		const runTime = getEffectiveRunTime({
 			resourceId,

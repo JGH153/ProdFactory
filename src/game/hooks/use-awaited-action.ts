@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import type { SerializedGameState } from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId, ShopBoostId } from "@/game/types";
 
@@ -10,6 +11,7 @@ type ActionArgs = {
 	boostId?: ShopBoostId | undefined;
 	labId?: LabId | undefined;
 	researchId?: ResearchId | undefined;
+	upgradeId?: CouponUpgradeId | undefined;
 };
 
 type ExecuteAwaitedAction = (args: ActionArgs) => Promise<SerializedGameState>;

@@ -1,3 +1,4 @@
+import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import type { SerializedGameState } from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId, ShopBoostId } from "@/game/types";
 import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
@@ -168,6 +169,7 @@ export const postAction = async ({
 	boostId,
 	labId,
 	researchId,
+	upgradeId,
 	serverVersion,
 }: {
 	endpoint: string;
@@ -175,6 +177,7 @@ export const postAction = async ({
 	boostId?: ShopBoostId | undefined;
 	labId?: LabId | undefined;
 	researchId?: ResearchId | undefined;
+	upgradeId?: CouponUpgradeId | undefined;
 	serverVersion: number;
 }): Promise<ActionResponse> => {
 	const body: Record<string, unknown> = { serverVersion };
@@ -189,6 +192,9 @@ export const postAction = async ({
 	}
 	if (researchId) {
 		body.researchId = researchId;
+	}
+	if (upgradeId) {
+		body.upgradeId = upgradeId;
 	}
 	const response = await postJson({
 		url: `/api/game/${endpoint}`,
