@@ -184,7 +184,7 @@ export const parseCouponUpgradeActionBody = createBodyParser<{
 
 export const parseVersionOnlyBody = createBodyParser({});
 
-const ALLOWED_TIME_WARP_DURATIONS = new Set([3600, 86400]);
+const ALLOWED_TIME_WARP_DURATIONS = new Set([3600, 86400, 31536000]);
 
 export const parseTimeWarpBody = createBodyParser<{
 	durationSeconds: number;
@@ -192,7 +192,7 @@ export const parseTimeWarpBody = createBodyParser<{
 	durationSeconds: {
 		validate: (v: unknown) =>
 			typeof v === "number" && ALLOWED_TIME_WARP_DURATIONS.has(v),
-		error: "Invalid durationSeconds — must be 3600 or 86400",
+		error: "Invalid durationSeconds — must be 3600, 86400, or 31536000",
 	},
 });
 

@@ -82,6 +82,13 @@ const TIME_WARP_OPTIONS = [
 		description:
 			"Jump forward 24 hours — gain resources and research as if time passed.",
 	},
+	{
+		durationSeconds: 31536000,
+		name: "Time Warp — 1 Year",
+		description:
+			"Jump forward 1 year — gain resources and research as if time passed.",
+		warning: "This may cause extreme numbers and could break the game!",
+	},
 ] as const;
 
 export const ShopPage = () => {
@@ -254,6 +261,11 @@ export const ShopPage = () => {
 											<div>
 												<CardTitle>{option.name}</CardTitle>
 												<CardDescription>{option.description}</CardDescription>
+												{"warning" in option && (
+													<p className="text-red-400 text-sm font-medium mt-1">
+														{option.warning}
+													</p>
+												)}
 											</div>
 										</div>
 									</CardHeader>

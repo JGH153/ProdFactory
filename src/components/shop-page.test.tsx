@@ -19,6 +19,7 @@ describe("ShopPage", () => {
 		expect(screen.getByText("Offline +2h")).toBeInTheDocument();
 		expect(screen.getByText("Time Warp — 1 Hour")).toBeInTheDocument();
 		expect(screen.getByText("Time Warp — 24 Hours")).toBeInTheDocument();
+		expect(screen.getByText("Time Warp — 1 Year")).toBeInTheDocument();
 	});
 
 	it("shows Activate buttons for inactive boosts and time warp", () => {
@@ -27,8 +28,8 @@ describe("ShopPage", () => {
 		const activateButtons = screen.getAllByRole("button", {
 			name: "Activate",
 		});
-		// 5 boost cards + 2 time warp cards
-		expect(activateButtons).toHaveLength(7);
+		// 5 boost cards + 3 time warp cards
+		expect(activateButtons).toHaveLength(8);
 	});
 
 	it("shows Active state after activating a boost", async () => {
