@@ -17,7 +17,7 @@
 		"test:ui": "vitest run .test.tsx",
 		"test:logic": "vitest run --exclude 'src/**/*.test.tsx'",
 		"test:watch": "vitest",
-		"validate": "pnpm test && biome check . && tsc --noEmit && knip",
+		"validate": "pnpm test && biome check . && tsc --noEmit && knip && pnpm build",
 		"update-deps": "pnpm dlx npm-check-updates -i -p pnpm",
 		"update-deps-minor": "pnpm dlx npm-check-updates -i -p pnpm --target minor"
 	},

@@ -1,8 +1,10 @@
 import {
 	type BigNum,
 	bigNum,
+	bnDiv,
 	bnFloor,
 	bnGte,
+	bnLog10,
 	bnMul,
 	bnPow,
 	bnSub,
@@ -10,6 +12,19 @@ import {
 import { RESOURCE_CONFIGS } from "./config";
 import { getEffectiveCostScaling } from "./coupon-shop-config";
 import type { GameState, ResourceId } from "./types";
+
+const getScaling = ({
+	resourceId,
+	producerDiscountLevel = 0,
+}: {
+	resourceId: ResourceId;
+	producerDiscountLevel?: number;
+}): number => {
+	const config = RESOURCE_CONFIGS[resourceId];
+	return producerDiscountLevel > 0
+		? getEffectiveCostScaling({ level: producerDiscountLevel })
+		: config.costScaling;
+};
 
 export const getProducerCost = ({
 	resourceId,
@@ -21,11 +36,35 @@ export const getProducerCost = ({
 	producerDiscountLevel?: number;
 }): BigNum => {
 	const config = RESOURCE_CONFIGS[resourceId];
-	const scaling =
-		producerDiscountLevel > 0
-			? getEffectiveCostScaling({ level: producerDiscountLevel })
-			: config.costScaling;
+	const scaling = getScaling({ resourceId, producerDiscountLevel });
 	return bnFloor(bnMul(config.baseCost, bnPow(bigNum(scaling), owned)));
+};
+
+/**
+ * Compute the total cost of buying `count` producers starting from `owned`.
+ * Uses the geometric series: baseCost * scaling^owned * (scaling^count - 1) / (scaling - 1)
+ */
+const getProducerBulkCost = ({
+	resourceId,
+	owned,
+	count,
+	producerDiscountLevel = 0,
+}: {
+	resourceId: ResourceId;
+	owned: number;
+	count: number;
+	producerDiscountLevel?: number;
+}): BigNum => {
+	if (count <= 0) {
+		return bigNum(0);
+	}
+	const config = RESOURCE_CONFIGS[resourceId];
+	const scaling = getScaling({ resourceId, producerDiscountLevel });
+	// sum = baseCost * (scaling^(owned+count) - scaling^owned) / (scaling - 1)
+	const scalePowEnd = bnPow(bigNum(scaling), owned + count);
+	const scalePowStart = bnPow(bigNum(scaling), owned);
+	const numerator = bnMul(config.baseCost, bnSub(scalePowEnd, scalePowStart));
+	return bnFloor(bnDiv(numerator, bigNum(scaling - 1)));
 };
 
 export const canBuyProducer = ({
@@ -78,6 +117,17 @@ export const buyProducer = ({
 	};
 };
 
+/**
+ * O(1) computation of max affordable producers using geometric series math.
+ *
+ * Total cost for `count` producers starting at `owned`:
+ *   totalCost = baseCost * scaling^owned * (scaling^count - 1) / (scaling - 1)
+ *
+ * Solving for count:
+ *   count = floor(log(amount * (scaling - 1) / (baseCost * scaling^owned) + 1) / log(scaling))
+ *
+ * A verification step adjusts for floating-point drift.
+ */
 export const getMaxAffordableProducers = ({
 	state,
 	resourceId,
@@ -90,19 +140,58 @@ export const getMaxAffordableProducers = ({
 		return 0;
 	}
 
-	let remaining = resource.amount;
-	let owned = resource.producers;
-	let count = 0;
 	const producerDiscountLevel = state.couponUpgrades["producer-discount"];
+	const firstCost = getProducerCost({
+		resourceId,
+		owned: resource.producers,
+		producerDiscountLevel,
+	});
 
-	while (true) {
-		const cost = getProducerCost({ resourceId, owned, producerDiscountLevel });
-		if (!bnGte(remaining, cost)) {
-			break;
+	if (!bnGte(resource.amount, firstCost)) {
+		return 0;
+	}
+
+	const config = RESOURCE_CONFIGS[resourceId];
+	const scaling = getScaling({ resourceId, producerDiscountLevel });
+	const logScaling = Math.log10(scaling);
+
+	// ratio = amount * (scaling - 1) / (baseCost * scaling^owned)
+	// log10(ratio) = log10(amount) + log10(scaling - 1) - log10(baseCost) - owned * log10(scaling)
+	const log10Ratio =
+		bnLog10(resource.amount) +
+		Math.log10(scaling - 1) -
+		bnLog10(config.baseCost) -
+		resource.producers * logScaling;
+
+	// count = floor(log10(ratio + 1) / log10(scaling))
+	// For large ratio (>10^15), log10(ratio + 1) ≈ log10(ratio), avoids Infinity overflow
+	const log10RatioPlusOne =
+		log10Ratio > 15 ? log10Ratio : Math.log10(10 ** log10Ratio + 1);
+	const rawCount = Math.floor(log10RatioPlusOne / logScaling);
+	let count = Math.max(0, rawCount);
+
+	// Verify and adjust for floating-point drift (off by ±1)
+	const bulkCost = getProducerBulkCost({
+		resourceId,
+		owned: resource.producers,
+		count,
+		producerDiscountLevel,
+	});
+
+	if (!bnGte(resource.amount, bulkCost)) {
+		// Overshot — back off by 1
+		count = Math.max(0, count - 1);
+	} else {
+		// Check if we can afford one more
+		const nextCost = getProducerBulkCost({
+			resourceId,
+			owned: resource.producers,
+			count: count + 1,
+			producerDiscountLevel,
+		});
+		if (bnGte(resource.amount, nextCost)) {
+			count += 1;
 		}
-		remaining = bnSub(remaining, cost);
-		owned += 1;
-		count += 1;
 	}
 
 	return count;
@@ -115,9 +204,30 @@ export const buyMaxProducers = ({
 	state: GameState;
 	resourceId: ResourceId;
 }): GameState => {
-	let current = state;
-	while (canBuyProducer({ state: current, resourceId })) {
-		current = buyProducer({ state: current, resourceId });
+	const resource = state.resources[resourceId];
+	const producerDiscountLevel = state.couponUpgrades["producer-discount"];
+	const count = getMaxAffordableProducers({ state, resourceId });
+
+	if (count === 0) {
+		return state;
 	}
-	return current;
+
+	const totalCost = getProducerBulkCost({
+		resourceId,
+		owned: resource.producers,
+		count,
+		producerDiscountLevel,
+	});
+
+	return {
+		...state,
+		resources: {
+			...state.resources,
+			[resourceId]: {
+				...resource,
+				amount: bnSub(resource.amount, totalCost),
+				producers: resource.producers + count,
+			},
+		},
+	};
 };

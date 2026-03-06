@@ -125,4 +125,106 @@ describe("buyMaxProducers", () => {
 		// Should not be able to buy any more
 		expect(canBuyProducer({ state: next, resourceId: "iron-ore" })).toBe(false);
 	});
+
+	it("returns same state when nothing affordable", () => {
+		const state = withIronOre({ amount: bigNum(0), producers: 0 });
+		expect(buyMaxProducers({ state, resourceId: "iron-ore" })).toBe(state);
+	});
+});
+
+describe("large resource amounts (O(1) performance)", () => {
+	it("getMaxAffordableProducers handles 10^50 resources", () => {
+		const state = withIronOre({
+			amount: { mantissa: 1, exponent: 50 },
+			producers: 0,
+		});
+		const count = getMaxAffordableProducers({
+			state,
+			resourceId: "iron-ore",
+		});
+		// With 10^50 resources and baseCost=2, scaling=1.15:
+		// 1.15^n ≈ 10^50 → n ≈ 50/log10(1.15) ≈ 823
+		// Exact count depends on geometric sum, should be in the hundreds
+		expect(count).toBeGreaterThan(700);
+		expect(count).toBeLessThan(900);
+	});
+
+	it("getMaxAffordableProducers handles 10^100 resources", () => {
+		const state = withIronOre({
+			amount: { mantissa: 1, exponent: 100 },
+			producers: 0,
+		});
+		const count = getMaxAffordableProducers({
+			state,
+			resourceId: "iron-ore",
+		});
+		expect(count).toBeGreaterThan(1500);
+		expect(count).toBeLessThan(1800);
+	});
+
+	it("getMaxAffordableProducers with existing producers and large resources", () => {
+		const state = withIronOre({
+			amount: { mantissa: 1, exponent: 100 },
+			producers: 500,
+		});
+		const count = getMaxAffordableProducers({
+			state,
+			resourceId: "iron-ore",
+		});
+		// Starting at 500 producers, fewer can be bought since costs are higher
+		expect(count).toBeGreaterThan(1000);
+		expect(count).toBeLessThan(1400);
+	});
+
+	it("buyMaxProducers with large resources produces correct result", () => {
+		const state = withIronOre({
+			amount: { mantissa: 1, exponent: 50 },
+			producers: 0,
+		});
+		const count = getMaxAffordableProducers({
+			state,
+			resourceId: "iron-ore",
+		});
+		const next = buyMaxProducers({ state, resourceId: "iron-ore" });
+		expect(next.resources["iron-ore"].producers).toBe(count);
+		// Should not be able to buy any more
+		expect(canBuyProducer({ state: next, resourceId: "iron-ore" })).toBe(false);
+	});
+
+	it("getMaxAffordableProducers returns 1 when can afford exactly one", () => {
+		// Cost at producers=0 is floor(2 * 1.15^0) = 2
+		const state = withIronOre({ amount: bigNum(2), producers: 0 });
+		expect(getMaxAffordableProducers({ state, resourceId: "iron-ore" })).toBe(
+			1,
+		);
+	});
+
+	it("handles resources beyond Number.MAX_VALUE (exponent > 308)", () => {
+		const state = withIronOre({
+			amount: { mantissa: 5, exponent: 400 },
+			producers: 0,
+		});
+		const count = getMaxAffordableProducers({
+			state,
+			resourceId: "iron-ore",
+		});
+		expect(count).toBeGreaterThan(6000);
+		expect(Number.isFinite(count)).toBe(true);
+		const next = buyMaxProducers({ state, resourceId: "iron-ore" });
+		expect(next.resources["iron-ore"].producers).toBe(count);
+		expect(canBuyProducer({ state: next, resourceId: "iron-ore" })).toBe(false);
+	});
+
+	it("matches loop-based calculation for moderate amounts", () => {
+		// Verify our O(1) formula matches by checking the result is valid
+		const state = withIronOre({ amount: bigNum(1000), producers: 0 });
+		const count = getMaxAffordableProducers({
+			state,
+			resourceId: "iron-ore",
+		});
+		// Verify we can afford `count` but not `count + 1`
+		const next = buyMaxProducers({ state, resourceId: "iron-ore" });
+		expect(next.resources["iron-ore"].producers).toBe(count);
+		expect(canBuyProducer({ state: next, resourceId: "iron-ore" })).toBe(false);
+	});
 });

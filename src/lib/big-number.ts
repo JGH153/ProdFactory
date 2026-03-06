@@ -187,6 +187,26 @@ export const bnGte = (a: BigNum, b: BigNum): boolean => !bnLt(a, b);
 
 export const bnIsZero = (bn: BigNum): boolean => bn.mantissa === 0;
 
+export const bnDiv = (a: BigNum, b: BigNum): BigNum => {
+	if (b.mantissa === 0) {
+		throw new Error("Division by zero");
+	}
+	if (a.mantissa === 0) {
+		return bigNumZero;
+	}
+	return normalize({
+		mantissa: a.mantissa / b.mantissa,
+		exponent: a.exponent - b.exponent,
+	});
+};
+
+export const bnLog10 = (bn: BigNum): number => {
+	if (bn.mantissa <= 0) {
+		return -Infinity;
+	}
+	return Math.log10(bn.mantissa) + bn.exponent;
+};
+
 export const bnFloor = (bn: BigNum): BigNum => {
 	if (bn.mantissa === 0) {
 		return bigNumZero;
