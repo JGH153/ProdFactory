@@ -114,7 +114,8 @@ const ResearchPickerItem = ({
 	const isLocked =
 		config.resourceId === null
 			? state.prestige.prestigeCount < 1
-			: !state.resources[config.resourceId].isUnlocked;
+			: !state.resources[config.resourceId].isUnlocked &&
+				state.prestige.prestigeCount < 1;
 	const isAssignedElsewhere = LAB_ORDER.some(
 		(otherLabId) =>
 			otherLabId !== labId &&
