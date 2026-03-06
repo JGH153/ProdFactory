@@ -113,4 +113,32 @@ describe("coupon upgrade config", () => {
 			expect(upgrade.maxLevel).toBeGreaterThan(0);
 		}
 	});
+
+	it("includes music unlock upgrades", () => {
+		expect(COUPON_UPGRADE_ORDER).toContain("music-gemini");
+		expect(COUPON_UPGRADE_ORDER).toContain("music-gemini-calm");
+		expect(COUPON_UPGRADE_ORDER).toContain("music-classic");
+	});
+
+	it("music upgrades have maxLevel 1", () => {
+		expect(COUPON_UPGRADES["music-gemini"].maxLevel).toBe(1);
+		expect(COUPON_UPGRADES["music-gemini-calm"].maxLevel).toBe(1);
+		expect(COUPON_UPGRADES["music-classic"].maxLevel).toBe(1);
+	});
+});
+
+describe("buyCouponUpgrade — music unlock", () => {
+	it("unlocks a music track in one purchase", () => {
+		const state = withCoupons(10);
+		const result = buyCouponUpgrade({ state, upgradeId: "music-gemini" });
+		expect(result.couponUpgrades["music-gemini"]).toBe(1);
+		expect(bnToNumber(result.prestige.couponBalance)).toBe(8);
+	});
+
+	it("cannot buy music upgrade beyond max level", () => {
+		const state = withCoupons(10);
+		state.couponUpgrades["music-gemini"] = 1;
+		const result = buyCouponUpgrade({ state, upgradeId: "music-gemini" });
+		expect(result).toBe(state);
+	});
 });

@@ -119,6 +119,9 @@ export const createInitialGameState = (): GameState => ({
 		"offline-capacity": 0,
 		"coupon-magnet": 0,
 		"speed-surge": 0,
+		"music-gemini": 0,
+		"music-gemini-calm": 0,
+		"music-classic": 0,
 	},
 	prestige: {
 		prestigeCount: 0,
