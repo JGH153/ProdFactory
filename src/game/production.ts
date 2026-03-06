@@ -101,4 +101,7 @@ export const getProductionForRuns = ({
 	researchMul: number;
 	prestigeMul: number;
 }): BigNum =>
-	bigNum(runs * producers * productionMul * researchMul * prestigeMul);
+	bnMul(
+		bnMul(bigNum(runs), bigNum(producers)),
+		bigNum(productionMul * researchMul * prestigeMul),
+	);

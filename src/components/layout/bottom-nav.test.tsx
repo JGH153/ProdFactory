@@ -30,8 +30,15 @@ describe("BottomNav", () => {
 			<BottomNav activeTab="game" onTabChange={onTabChange} />,
 		);
 
-		fireEvent.click(screen.getByRole("tab", { name: /research/i }));
-		expect(onTabChange).toHaveBeenCalledWith("research");
+		fireEvent.click(screen.getByRole("tab", { name: /settings/i }));
+		expect(onTabChange).toHaveBeenCalledWith("settings");
+	});
+
+	it("shows research tab as locked when reinforced plates are not unlocked", () => {
+		renderWithProviders(<BottomNav activeTab="game" onTabChange={vi.fn()} />);
+
+		const researchTab = screen.getByRole("tab", { name: /research/i });
+		expect(researchTab).toHaveAttribute("aria-disabled");
 	});
 
 	it("has no accessibility violations", async () => {

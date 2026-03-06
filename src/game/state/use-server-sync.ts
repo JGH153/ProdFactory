@@ -76,7 +76,7 @@ export const useServerSync = ({
 		researchId?: ResearchId | undefined;
 		upgradeId?: CouponUpgradeId | undefined;
 	}) => Promise<SerializedGameState>;
-	executeTimeWarp: () => Promise<{
+	executeTimeWarp: (durationSeconds: number) => Promise<{
 		state: SerializedGameState;
 		offlineSummary: SerializedOfflineSummary;
 	}>;
@@ -422,34 +422,41 @@ export const useServerSync = ({
 		[acquireExclusiveLock, executeAction],
 	);
 
-	const executeTimeWarp = useCallback(async (): Promise<{
-		state: SerializedGameState;
-		offlineSummary: SerializedOfflineSummary;
-	}> => {
-		await acquireExclusiveLock();
-		try {
-			const result = await executeTimeWarpMutation({
-				serverVersion: serverVersionRef.current,
-			});
-			serverVersionRef.current = result.serverVersion;
-			return { state: result.state, offlineSummary: result.offlineSummary };
-		} catch (error) {
-			if (error instanceof ConflictError) {
-				serverVersionRef.current = error.serverVersion;
-				const retryResult = await executeTimeWarpMutation({
+	const executeTimeWarp = useCallback(
+		async (
+			durationSeconds: number,
+		): Promise<{
+			state: SerializedGameState;
+			offlineSummary: SerializedOfflineSummary;
+		}> => {
+			await acquireExclusiveLock();
+			try {
+				const result = await executeTimeWarpMutation({
 					serverVersion: serverVersionRef.current,
+					durationSeconds,
 				});
-				serverVersionRef.current = retryResult.serverVersion;
-				return {
-					state: retryResult.state,
-					offlineSummary: retryResult.offlineSummary,
-				};
+				serverVersionRef.current = result.serverVersion;
+				return { state: result.state, offlineSummary: result.offlineSummary };
+			} catch (error) {
+				if (error instanceof ConflictError) {
+					serverVersionRef.current = error.serverVersion;
+					const retryResult = await executeTimeWarpMutation({
+						serverVersion: serverVersionRef.current,
+						durationSeconds,
+					});
+					serverVersionRef.current = retryResult.serverVersion;
+					return {
+						state: retryResult.state,
+						offlineSummary: retryResult.offlineSummary,
+					};
+				}
+				throw error;
+			} finally {
+				processingRef.current = false;
 			}
-			throw error;
-		} finally {
-			processingRef.current = false;
-		}
-	}, [acquireExclusiveLock, executeTimeWarpMutation]);
+		},
+		[acquireExclusiveLock, executeTimeWarpMutation],
+	);
 
 	const enqueueAction = useCallback(
 		({

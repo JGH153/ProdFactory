@@ -57,7 +57,7 @@ type GameActions = {
 	}) => Promise<boolean>;
 	unassignLabResearch: (labId: LabId) => Promise<boolean>;
 	unlockLab: (labId: LabId) => Promise<boolean>;
-	timeWarp: () => Promise<boolean>;
+	timeWarp: (durationSeconds: number) => Promise<boolean>;
 	resetGame: () => void;
 	buyCouponUpgrade: (upgradeId: CouponUpgradeId) => Promise<boolean>;
 	prestige: () => Promise<boolean>;
@@ -268,16 +268,19 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		[performAwaitedAction],
 	);
 
-	const timeWarp = useCallback(async (): Promise<boolean> => {
-		try {
-			const result = await executeTimeWarp();
-			reconcileState({ state: result.state, fullReplace: false });
-			setOfflineSummary(deserializeOfflineSummary(result.offlineSummary));
-			return true;
-		} catch {
-			return false;
-		}
-	}, [executeTimeWarp, reconcileState]);
+	const timeWarp = useCallback(
+		async (durationSeconds: number): Promise<boolean> => {
+			try {
+				const result = await executeTimeWarp(durationSeconds);
+				reconcileState({ state: result.state, fullReplace: false });
+				setOfflineSummary(deserializeOfflineSummary(result.offlineSummary));
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		[executeTimeWarp, reconcileState],
+	);
 
 	const resetGame = useCallback(() => {
 		clearSave();

@@ -89,7 +89,7 @@ export const OfflineSummaryModal = ({ summary, onCollect }: Props) => {
 					</DialogTitle>
 					<DialogDescription>
 						{summary?.isTimeWarp
-							? "You warped 1 hour forward"
+							? `You warped ${formatElapsed(summary.elapsedSeconds)} forward`
 							: `You were away for ${summary ? formatElapsed(summary.elapsedSeconds) : ""}`}
 					</DialogDescription>
 				</div>

@@ -69,11 +69,26 @@ const SHOP_MULTIPLIERS: ReadonlyArray<{
 	},
 ];
 
+const TIME_WARP_OPTIONS = [
+	{
+		durationSeconds: 3600,
+		name: "Time Warp — 1 Hour",
+		description:
+			"Jump forward 1 hour — gain resources and research as if time passed.",
+	},
+	{
+		durationSeconds: 86400,
+		name: "Time Warp — 24 Hours",
+		description:
+			"Jump forward 24 hours — gain resources and research as if time passed.",
+	},
+] as const;
+
 export const ShopPage = () => {
 	const { state, activateShopBoost, timeWarp } = useGameState();
 	const [activatingId, setActivatingId] = useState<ShopBoostId | null>(null);
-	const [isWarping, setIsWarping] = useState(false);
-	const [showWarpFlash, setShowWarpFlash] = useState(false);
+	const [warpingDuration, setWarpingDuration] = useState<number | null>(null);
+	const [flashDuration, setFlashDuration] = useState<number | null>(null);
 	const flashTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
 	const handleActivate = async (boostId: ShopBoostId) => {
@@ -82,17 +97,17 @@ export const ShopPage = () => {
 		setActivatingId(null);
 	};
 
-	const handleTimeWarp = async () => {
-		setIsWarping(true);
-		const success = await timeWarp();
+	const handleTimeWarp = async (durationSeconds: number) => {
+		setWarpingDuration(durationSeconds);
+		const success = await timeWarp(durationSeconds);
 		if (success) {
-			setShowWarpFlash(true);
+			setFlashDuration(durationSeconds);
 			if (flashTimerRef.current) {
 				clearTimeout(flashTimerRef.current);
 			}
-			flashTimerRef.current = setTimeout(() => setShowWarpFlash(false), 600);
+			flashTimerRef.current = setTimeout(() => setFlashDuration(null), 600);
 		}
-		setIsWarping(false);
+		setWarpingDuration(null);
 	};
 
 	return (
@@ -196,6 +211,7 @@ export const ShopPage = () => {
 					Repeatable Purchases
 				</h3>
 				<motion.div
+					className="flex flex-col gap-4"
 					initial="hidden"
 					animate="visible"
 					variants={{
@@ -203,60 +219,64 @@ export const ShopPage = () => {
 						visible: { transition: { staggerChildren: 0.1 } },
 					}}
 				>
-					<motion.div
-						variants={{
-							hidden: { opacity: 0, y: 20 },
-							visible: { opacity: 1, y: 0 },
-						}}
-					>
-						<Card className="relative overflow-hidden border-accent-amber/50">
-							<AnimatePresence>
-								{showWarpFlash && (
-									<motion.div
-										className="absolute inset-0 bg-accent-amber/20 pointer-events-none"
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										exit={{ opacity: 0 }}
-										transition={{ duration: 0.6 }}
-									/>
-								)}
-							</AnimatePresence>
-							<CardHeader>
-								<div className="flex items-center gap-3">
-									<div className="text-accent-amber">
-										<HugeiconsIcon
-											icon={Forward02Icon}
-											size={28}
-											aria-hidden="true"
-										/>
-									</div>
-									<div>
-										<CardTitle>Time Warp</CardTitle>
-										<CardDescription>
-											Jump forward 1 hour — gain resources and research as if
-											time passed.
-										</CardDescription>
-									</div>
-								</div>
-							</CardHeader>
-							<CardContent>
-								<Button
-									className="w-full"
-									onClick={handleTimeWarp}
-									disabled={isWarping}
-								>
-									{isWarping ? (
-										<>
-											<Spinner />
-											Warping...
-										</>
-									) : (
-										"Activate"
-									)}
-								</Button>
-							</CardContent>
-						</Card>
-					</motion.div>
+					{TIME_WARP_OPTIONS.map((option) => {
+						const isThisWarping = warpingDuration === option.durationSeconds;
+						const isThisFlashing = flashDuration === option.durationSeconds;
+						return (
+							<motion.div
+								key={option.durationSeconds}
+								variants={{
+									hidden: { opacity: 0, y: 20 },
+									visible: { opacity: 1, y: 0 },
+								}}
+							>
+								<Card className="relative overflow-hidden border-accent-amber/50">
+									<AnimatePresence>
+										{isThisFlashing && (
+											<motion.div
+												className="absolute inset-0 bg-accent-amber/20 pointer-events-none"
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												exit={{ opacity: 0 }}
+												transition={{ duration: 0.6 }}
+											/>
+										)}
+									</AnimatePresence>
+									<CardHeader>
+										<div className="flex items-center gap-3">
+											<div className="text-accent-amber">
+												<HugeiconsIcon
+													icon={Forward02Icon}
+													size={28}
+													aria-hidden="true"
+												/>
+											</div>
+											<div>
+												<CardTitle>{option.name}</CardTitle>
+												<CardDescription>{option.description}</CardDescription>
+											</div>
+										</div>
+									</CardHeader>
+									<CardContent>
+										<Button
+											className="w-full"
+											onClick={() => handleTimeWarp(option.durationSeconds)}
+											disabled={warpingDuration !== null}
+										>
+											{isThisWarping ? (
+												<>
+													<Spinner />
+													Warping...
+												</>
+											) : (
+												"Activate"
+											)}
+										</Button>
+									</CardContent>
+								</Card>
+							</motion.div>
+						);
+					})}
 				</motion.div>
 			</div>
 		</div>

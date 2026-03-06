@@ -23,16 +23,11 @@ describe("Home page", () => {
 		expect(gameTab).toHaveAttribute("aria-selected", "true");
 	});
 
-	it("switches to Research tab when clicked", async () => {
+	it("shows Research tab as locked before reinforced plates are unlocked", () => {
 		renderWithProviders(<Home />);
 
-		fireEvent.click(screen.getByRole("tab", { name: /research/i }));
-
-		await waitFor(() => {
-			expect(
-				screen.getByRole("heading", { level: 2, name: /research/i }),
-			).toBeInTheDocument();
-		});
+		const researchTab = screen.getByRole("tab", { name: /research/i });
+		expect(researchTab).toHaveAttribute("aria-disabled");
 	});
 
 	it("switches to Settings tab when clicked", async () => {

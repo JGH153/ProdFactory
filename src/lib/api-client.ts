@@ -215,12 +215,14 @@ export const postAction = async ({
 
 export const postTimeWarp = async ({
 	serverVersion,
+	durationSeconds,
 }: {
 	serverVersion: number;
+	durationSeconds: number;
 }): Promise<TimeWarpResponse> => {
 	const response = await postJson({
 		url: "/api/game/time-warp",
-		body: { serverVersion },
+		body: { serverVersion, durationSeconds },
 	});
 	if (response.status === 409) {
 		return handleConflict(response);

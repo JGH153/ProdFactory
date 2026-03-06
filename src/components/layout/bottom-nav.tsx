@@ -37,7 +37,15 @@ const TABS: TabConfig[] = [
 			message: "Unlock Plates to access the Shop",
 		},
 	},
-	{ id: "research", label: "Research", icon: MicroscopeIcon },
+	{
+		id: "research",
+		label: "Research",
+		icon: MicroscopeIcon,
+		requiresUnlock: {
+			resourceId: "reinforced-plate",
+			message: "Unlock Reinforced Plates to access Research",
+		},
+	},
 	{
 		id: "prestige",
 		label: "Prestige",
@@ -75,7 +83,8 @@ export const BottomNav = ({ activeTab, onTabChange }: Props) => {
 						requiresUnlock !== undefined &&
 						!state.resources[requiresUnlock.resourceId].isUnlocked &&
 						!(tab.id === "prestige" && state.prestige.prestigeCount >= 1) &&
-						!(tab.id === "shop" && state.prestige.prestigeCount >= 1);
+						!(tab.id === "shop" && state.prestige.prestigeCount >= 1) &&
+						!(tab.id === "research" && state.prestige.prestigeCount >= 1);
 
 					if (isLocked && requiresUnlock) {
 						return (

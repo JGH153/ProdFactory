@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import {
 	getSessionFromRequest,
-	parseVersionOnlyBody,
+	parseTimeWarpBody,
 	stripServerVersion,
 } from "@/lib/server/api-helpers";
 import { logger } from "@/lib/server/logger";
@@ -17,8 +17,6 @@ import {
 
 const TIME_WARP_RATE_LIMIT_MAX = 30;
 const TIME_WARP_RATE_LIMIT_WINDOW = 60;
-
-const TIME_WARP_DURATION_SECONDS = 3600;
 
 export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const sessionResult = await getSessionFromRequest(request);
@@ -37,7 +35,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 		return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 	}
 
-	const body = await parseVersionOnlyBody(request);
+	const body = await parseTimeWarpBody(request);
 	if (body instanceof NextResponse) {
 		return body;
 	}
@@ -69,7 +67,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 	const now = Date.now();
 	const { updatedState, summary } = computeTimeWarp({
 		state,
-		durationSeconds: TIME_WARP_DURATION_SECONDS,
+		durationSeconds: body.durationSeconds,
 		serverNow: now,
 	});
 

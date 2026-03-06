@@ -42,9 +42,11 @@ export type SerializedOfflineSummary = {
 export const computeOfflineProgress = ({
 	state,
 	serverNow,
+	skipOfflineCap = false,
 }: {
 	state: SerializedGameState;
 	serverNow: number;
+	skipOfflineCap?: boolean;
 }): {
 	updatedState: SerializedGameState;
 	summary: SerializedOfflineSummary | null;
@@ -62,8 +64,10 @@ export const computeOfflineProgress = ({
 	});
 
 	const rawElapsedSeconds = (serverNow - state.lastSavedAt) / 1000;
-	const wasCapped = rawElapsedSeconds > maxOfflineSeconds;
-	const elapsedSeconds = Math.min(rawElapsedSeconds, maxOfflineSeconds);
+	const wasCapped = !skipOfflineCap && rawElapsedSeconds > maxOfflineSeconds;
+	const elapsedSeconds = skipOfflineCap
+		? rawElapsedSeconds
+		: Math.min(rawElapsedSeconds, maxOfflineSeconds);
 
 	if (elapsedSeconds < MIN_OFFLINE_SECONDS) {
 		return { updatedState: state, summary: null };
@@ -279,6 +283,7 @@ export const computeTimeWarp = ({
 	const result = computeOfflineProgress({
 		state: modifiedState,
 		serverNow,
+		skipOfflineCap: true,
 	});
 
 	// Restore lastSavedAt so future offline progress calculations are unaffected.
