@@ -17,6 +17,10 @@ type FormattedTime = { text: string; title: string | undefined; suffix: string |
 
 const formatRunTime = (seconds: number): FormattedTime => {
 	const ms = seconds * 1000;
+	if (ms < 0.000000000001) {
+		const as = ms * 1_000_000_000_000_000;
+		return { text: `${parseFloat(as.toPrecision(2))}as`, title: "attoseconds", suffix: undefined };
+	}
 	if (ms < 0.000000001) {
 		const fs = ms * 1_000_000_000_000;
 		return { text: `${parseFloat(fs.toPrecision(2))}fs`, title: "femtoseconds", suffix: undefined };
