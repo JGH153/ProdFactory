@@ -2,7 +2,10 @@ export type CouponUpgradeId =
 	| "producer-discount"
 	| "offline-capacity"
 	| "coupon-magnet"
-	| "speed-surge";
+	| "speed-surge"
+	| "music-gemini"
+	| "music-gemini-calm"
+	| "music-classic";
 
 type CouponUpgrade = {
 	id: CouponUpgradeId;
@@ -41,6 +44,27 @@ export const COUPON_UPGRADES: Record<CouponUpgradeId, CouponUpgrade> = {
 		costPerLevel: 10,
 		maxLevel: 3,
 	},
+	"music-gemini": {
+		id: "music-gemini",
+		name: "Gemini Track",
+		description: "Unlock the Gemini music track",
+		costPerLevel: 2,
+		maxLevel: 1,
+	},
+	"music-gemini-calm": {
+		id: "music-gemini-calm",
+		name: "Gemini Calm Track",
+		description: "Unlock the Gemini Calm music track",
+		costPerLevel: 2,
+		maxLevel: 1,
+	},
+	"music-classic": {
+		id: "music-classic",
+		name: "Classic Track",
+		description: "Unlock the Classic music track",
+		costPerLevel: 2,
+		maxLevel: 1,
+	},
 };
 
 export const COUPON_UPGRADE_ORDER: CouponUpgradeId[] = [
@@ -48,6 +72,9 @@ export const COUPON_UPGRADE_ORDER: CouponUpgradeId[] = [
 	"offline-capacity",
 	"coupon-magnet",
 	"speed-surge",
+	"music-gemini",
+	"music-gemini-calm",
+	"music-classic",
 ];
 
 /** Base producer cost scaling factor before discount */

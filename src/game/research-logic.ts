@@ -76,7 +76,10 @@ export const getAssignResearchError = ({
 	}
 	const config = RESEARCH_CONFIGS[researchId];
 	if (config.resourceId !== null) {
-		if (!state.resources[config.resourceId].isUnlocked) {
+		if (
+			!state.resources[config.resourceId].isUnlocked &&
+			state.prestige.prestigeCount < 1
+		) {
 			return "Resource is not unlocked";
 		}
 	} else if (state.prestige.prestigeCount < 1) {

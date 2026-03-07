@@ -66,7 +66,8 @@ export const ResearchItemCard = ({ researchId }: Props) => {
 	const isLocked =
 		config.resourceId === null
 			? state.prestige.prestigeCount < 1
-			: !state.resources[config.resourceId].isUnlocked;
+			: !state.resources[config.resourceId].isUnlocked &&
+				state.prestige.prestigeCount < 1;
 	const isSpeedResearch = researchId.startsWith("speed-");
 	const activeLab = getActiveLabForResearch({
 		researchId,

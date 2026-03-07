@@ -14,7 +14,7 @@ import {
 	INTRO_CLOSED_EVENT,
 } from "@/components/intro-video-dialog";
 
-type MusicTrackId = "cave" | "gemini" | "gemini-calm" | "classic";
+export type MusicTrackId = "cave" | "gemini" | "gemini-calm" | "classic";
 
 type MusicTrack = {
 	id: MusicTrackId;
