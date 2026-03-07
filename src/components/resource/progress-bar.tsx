@@ -13,26 +13,36 @@ import type { ResourceState } from "@/game/types";
 import { bigNum, bnFormat } from "@/lib/big-number";
 import { ParticleEffect } from "./particle-effect";
 
-const formatRunTime = (seconds: number): string => {
+type FormattedTime = { text: string; title: string | undefined; suffix: string | undefined };
+
+const formatRunTime = (seconds: number): FormattedTime => {
 	const ms = seconds * 1000;
+	if (ms < 0.000000001) {
+		const fs = ms * 1_000_000_000_000;
+		return { text: `${parseFloat(fs.toPrecision(2))}fs`, title: "femtoseconds", suffix: undefined };
+	}
+	if (ms < 0.000001) {
+		const ps = ms * 1_000_000_000;
+		return { text: `${parseFloat(ps.toPrecision(2))}ps`, title: "picoseconds", suffix: undefined };
+	}
 	if (ms < 0.001) {
 		const ns = ms * 1_000_000;
-		return `${parseFloat(ns.toPrecision(2))}ns`;
+		return { text: `${parseFloat(ns.toPrecision(2))}ns`, title: "nanoseconds", suffix: undefined };
 	}
 	if (ms < 0.1) {
 		const us = ms * 1000;
-		return `${parseFloat(us.toPrecision(2))}µs`;
+		return { text: `${parseFloat(us.toPrecision(2))}µs`, title: undefined, suffix: undefined };
 	}
 	if (ms < 1) {
-		return `${parseFloat(ms.toPrecision(2))}ms`;
+		return { text: `${parseFloat(ms.toPrecision(2))}ms`, title: undefined, suffix: undefined };
 	}
 	if (ms <= 10) {
-		return `${Math.round(ms)}ms`;
+		return { text: `${Math.round(ms)}ms`, title: undefined, suffix: undefined };
 	}
 	if (Number.isInteger(seconds)) {
-		return `${seconds}s`;
+		return { text: `${seconds}s`, title: undefined, suffix: undefined };
 	}
-	return `${seconds.toFixed(2)}s`;
+	return { text: `${seconds.toFixed(2)}s`, title: undefined, suffix: undefined };
 };
 
 const getRemainingSeconds = ({
@@ -75,20 +85,21 @@ const getStatusText = ({
 	remainingSeconds: number;
 	effectiveRunTime: number;
 	perSecondFormatted: string;
-}): string => {
+}): FormattedTime => {
 	if (isPaused) {
-		return "Paused";
+		return { text: "Paused", title: undefined, suffix: undefined };
 	}
 	if (isWaitingForInput && inputResourceName) {
-		return `Waiting for ${inputResourceName}...`;
+		return { text: `Waiting for ${inputResourceName}...`, title: undefined, suffix: undefined };
 	}
 	if (isRunning && isContinuous) {
-		return `${formatRunTime(remainingSeconds)}/run · ${perSecondFormatted}/s`;
+		const rt = formatRunTime(remainingSeconds);
+		return { text: `${rt.text}/run`, title: rt.title, suffix: ` · ${perSecondFormatted}/s` };
 	}
 	if (isRunning) {
-		return `${formatRunTime(remainingSeconds)}`;
+		return formatRunTime(remainingSeconds);
 	}
-	return `${formatRunTime(effectiveRunTime)}`;
+	return formatRunTime(effectiveRunTime);
 };
 
 type Props = {
@@ -154,6 +165,17 @@ export const ProgressBar = ({ resource }: Props) => {
 		? RESOURCE_CONFIGS[config.inputResourceId].name
 		: null;
 
+	const status = getStatusText({
+		isPaused,
+		isWaitingForInput,
+		inputResourceName,
+		isRunning,
+		isContinuous,
+		remainingSeconds,
+		effectiveRunTime,
+		perSecondFormatted,
+	});
+
 	return (
 		<div className="w-full">
 			<div ref={barRef} className="relative overflow-visible">
@@ -183,16 +205,8 @@ export const ProgressBar = ({ resource }: Props) => {
 				<span
 					className={`text-xs truncate ${isPaused || isWaitingForInput ? "text-accent-amber" : "text-text-muted"}`}
 				>
-					{getStatusText({
-						isPaused,
-						isWaitingForInput,
-						inputResourceName,
-						isRunning,
-						isContinuous,
-						remainingSeconds,
-						effectiveRunTime,
-						perSecondFormatted,
-					})}
+					<span title={status.title}>{status.text}</span>
+					{status.suffix}
 				</span>
 				{resource.producers > 0 && !isPaused && !isWaitingForInput && (
 					<span className="text-xs text-text-muted shrink-0">
