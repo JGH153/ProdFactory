@@ -8,6 +8,7 @@ import {
 	bnMul,
 	bnSqrt,
 } from "@/lib/big-number";
+import { RESOURCE_ORDER } from "./config";
 import { COUPON_MAGNET_BONUS_PER_LEVEL } from "./coupon-shop-config";
 import { createInitialGameState } from "./initial-state";
 import {
@@ -90,6 +91,14 @@ export const performPrestige = ({ state }: { state: GameState }): GameState => {
 	// Start from fresh initial resources
 	const freshState = createInitialGameState();
 	const freshResources = { ...freshState.resources };
+
+	// Preserve lifetime production tracking across prestige
+	for (const resourceId of RESOURCE_ORDER) {
+		freshResources[resourceId] = {
+			...freshResources[resourceId],
+			lifetimeProduced: state.resources[resourceId].lifetimeProduced,
+		};
+	}
 
 	// Milestone: "returning-employee" (2 prestiges) — start with 200 Iron Ore
 	if (hasMilestone(2)) {

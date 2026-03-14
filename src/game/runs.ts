@@ -133,9 +133,11 @@ export const isRunComplete = ({
 export const completeRun = ({
 	state,
 	resourceId,
+	achievementMul = 1,
 }: {
 	state: GameState;
 	resourceId: ResourceId;
+	achievementMul?: number;
 }): GameState => {
 	const resource = state.resources[resourceId];
 	if (resource.runStartedAt === null) {
@@ -145,6 +147,7 @@ export const completeRun = ({
 	const { perRun: produced } = getProductionParams({
 		state,
 		resourceId,
+		achievementMul,
 	});
 
 	const updatedPrestige =
@@ -165,6 +168,7 @@ export const completeRun = ({
 			[resourceId]: {
 				...resource,
 				amount: bnAdd(resource.amount, produced),
+				lifetimeProduced: bnAdd(resource.lifetimeProduced, produced),
 				runStartedAt: null,
 			},
 		},

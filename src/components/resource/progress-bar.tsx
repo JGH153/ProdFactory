@@ -13,32 +13,60 @@ import type { ResourceState } from "@/game/types";
 import { bigNum, bnFormat } from "@/lib/big-number";
 import { ParticleEffect } from "./particle-effect";
 
-type FormattedTime = { text: string; title: string | undefined; suffix: string | undefined };
+type FormattedTime = {
+	text: string;
+	title: string | undefined;
+	suffix: string | undefined;
+};
 
 const formatRunTime = (seconds: number): FormattedTime => {
 	const ms = seconds * 1000;
 	if (ms < 0.000000000001) {
 		const as = ms * 1_000_000_000_000_000;
-		return { text: `${parseFloat(as.toPrecision(2))}as`, title: "attoseconds", suffix: undefined };
+		return {
+			text: `${parseFloat(as.toPrecision(2))}as`,
+			title: "attoseconds",
+			suffix: undefined,
+		};
 	}
 	if (ms < 0.000000001) {
 		const fs = ms * 1_000_000_000_000;
-		return { text: `${parseFloat(fs.toPrecision(2))}fs`, title: "femtoseconds", suffix: undefined };
+		return {
+			text: `${parseFloat(fs.toPrecision(2))}fs`,
+			title: "femtoseconds",
+			suffix: undefined,
+		};
 	}
 	if (ms < 0.000001) {
 		const ps = ms * 1_000_000_000;
-		return { text: `${parseFloat(ps.toPrecision(2))}ps`, title: "picoseconds", suffix: undefined };
+		return {
+			text: `${parseFloat(ps.toPrecision(2))}ps`,
+			title: "picoseconds",
+			suffix: undefined,
+		};
 	}
 	if (ms < 0.001) {
 		const ns = ms * 1_000_000;
-		return { text: `${parseFloat(ns.toPrecision(2))}ns`, title: "nanoseconds", suffix: undefined };
+		return {
+			text: `${parseFloat(ns.toPrecision(2))}ns`,
+			title: "nanoseconds",
+			suffix: undefined,
+		};
 	}
 	if (ms < 0.1) {
 		const us = ms * 1000;
-		return { text: `${parseFloat(us.toPrecision(2))}µs`, title: undefined, suffix: undefined };
+		return {
+			text: `${parseFloat(us.toPrecision(2))}µs`,
+			title: undefined,
+			suffix: undefined,
+		};
 	}
 	if (ms < 1) {
-		return { text: `${parseFloat(ms.toPrecision(2))}ms`, title: undefined, suffix: undefined };
+		return {
+			text: `${parseFloat(ms.toPrecision(2))}ms`,
+			title: undefined,
+			suffix: undefined,
+		};
 	}
 	if (ms <= 10) {
 		return { text: `${Math.round(ms)}ms`, title: undefined, suffix: undefined };
@@ -46,7 +74,11 @@ const formatRunTime = (seconds: number): FormattedTime => {
 	if (Number.isInteger(seconds)) {
 		return { text: `${seconds}s`, title: undefined, suffix: undefined };
 	}
-	return { text: `${seconds.toFixed(2)}s`, title: undefined, suffix: undefined };
+	return {
+		text: `${seconds.toFixed(2)}s`,
+		title: undefined,
+		suffix: undefined,
+	};
 };
 
 const getRemainingSeconds = ({
@@ -94,11 +126,19 @@ const getStatusText = ({
 		return { text: "Paused", title: undefined, suffix: undefined };
 	}
 	if (isWaitingForInput && inputResourceName) {
-		return { text: `Waiting for ${inputResourceName}...`, title: undefined, suffix: undefined };
+		return {
+			text: `Waiting for ${inputResourceName}...`,
+			title: undefined,
+			suffix: undefined,
+		};
 	}
 	if (isRunning && isContinuous) {
 		const rt = formatRunTime(remainingSeconds);
-		return { text: `${rt.text}/run`, title: rt.title, suffix: ` · ${perSecondFormatted}/s` };
+		return {
+			text: `${rt.text}/run`,
+			title: rt.title,
+			suffix: ` · ${perSecondFormatted}/s`,
+		};
 	}
 	if (isRunning) {
 		return formatRunTime(remainingSeconds);

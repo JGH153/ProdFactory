@@ -3,6 +3,7 @@ import { type RenderOptions, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type PropsWithChildren, type ReactElement, useRef } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AchievementProvider } from "@/game/achievements/achievement-context";
 import { GameStateProvider } from "@/game/state/game-state-context";
 import { MilestoneNotificationProvider } from "@/game/state/milestone-context";
 import { MusicProvider } from "@/game/state/music-context";
@@ -16,9 +17,11 @@ const AllProvidersWithMusic = ({ children }: PropsWithChildren) => {
 			<TooltipProvider>
 				<SfxProvider>
 					<MilestoneNotificationProvider>
-						<GameStateProvider>
-							<MusicProvider>{children}</MusicProvider>
-						</GameStateProvider>
+						<AchievementProvider>
+							<GameStateProvider>
+								<MusicProvider>{children}</MusicProvider>
+							</GameStateProvider>
+						</AchievementProvider>
 					</MilestoneNotificationProvider>
 				</SfxProvider>
 			</TooltipProvider>

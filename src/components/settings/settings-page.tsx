@@ -3,6 +3,7 @@
 import { Clock01Icon, PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
+import { AchievementsSection } from "@/components/achievements/achievements-section";
 import { Button } from "@/components/ui/button";
 import {
 	getOfflineCapSeconds,
@@ -58,6 +59,7 @@ export const SettingsPage = ({ onReset, onWatchIntro }: Props) => {
 						Watch Intro Video
 					</Button>
 				</div>
+				<AchievementsSection />
 				<div>
 					<h3 className="text-sm font-medium text-text-muted mb-2">
 						Offline Earnings

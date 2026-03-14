@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { ResourceIcon } from "@/components/resource-icon";
 import { Card, CardContent } from "@/components/ui/card";
 import { RESOURCE_CONFIGS, RESOURCE_ORDER } from "@/game/config";
 import { useGregerPeek } from "@/game/hooks/use-greger-peek";
@@ -73,15 +74,17 @@ export const ResourceCard = ({ resource }: Props) => {
 						<ProgressBar resource={resource} />
 
 						{config.inputResourceId && inputCostPerSecond ? (
-							<span className="text-xs text-text-muted">
+							<span className="inline-flex items-center gap-1 text-xs text-text-muted">
 								Cost: {bnFormat(inputCostPerSecond)}{" "}
+								<ResourceIcon resourceId={config.inputResourceId} size={14} />
 								{RESOURCE_CONFIGS[config.inputResourceId].name}/s
 							</span>
 						) : (
 							inputCost &&
 							config.inputResourceId && (
-								<span className="text-xs text-text-muted">
+								<span className="inline-flex items-center gap-1 text-xs text-text-muted">
 									Cost: {bnFormat(inputCost)}{" "}
+									<ResourceIcon resourceId={config.inputResourceId} size={14} />
 									{RESOURCE_CONFIGS[config.inputResourceId].name}
 								</span>
 							)

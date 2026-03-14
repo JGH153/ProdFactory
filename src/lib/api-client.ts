@@ -1,3 +1,4 @@
+import type { AchievementState } from "@/game/achievements/achievement-types";
 import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import type { SerializedGameState } from "@/game/state/serialization";
 import type { LabId, ResearchId, ResourceId, ShopBoostId } from "@/game/types";
@@ -36,6 +37,7 @@ type LoadGameResponse = {
 	state: SerializedGameState;
 	serverVersion: number;
 	offlineSummary?: SerializedOfflineSummary;
+	achievements?: AchievementState;
 };
 
 type SaveGameResponse = {
@@ -126,13 +128,15 @@ export const loadGame = async (): Promise<LoadGameResponse | null> => {
 export const saveGame = async ({
 	state,
 	serverVersion,
+	achievements,
 }: {
 	state: SerializedGameState;
 	serverVersion: number;
+	achievements?: AchievementState;
 }): Promise<SaveGameResponse> => {
 	const response = await postJson({
 		url: "/api/game/save",
-		body: { state, serverVersion },
+		body: { state, serverVersion, ...(achievements && { achievements }) },
 	});
 	if (response.status === 409) {
 		return handleConflict(response);
@@ -146,13 +150,15 @@ export const saveGame = async ({
 export const syncGame = async ({
 	state,
 	serverVersion,
+	achievements,
 }: {
 	state: SerializedGameState;
 	serverVersion: number;
+	achievements?: AchievementState;
 }): Promise<SyncGameResponse> => {
 	const response = await postJson({
 		url: "/api/game/sync",
-		body: { state, serverVersion },
+		body: { state, serverVersion, ...(achievements && { achievements }) },
 	});
 	if (response.status === 409) {
 		return handleConflict(response);

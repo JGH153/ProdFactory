@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AchievementProvider } from "@/game/achievements/achievement-context";
 import { GameStateProvider } from "@/game/state/game-state-context";
 import { MilestoneNotificationProvider } from "@/game/state/milestone-context";
 import { SfxProvider } from "@/game/state/sfx-context";
@@ -27,7 +28,9 @@ export const AppProviders = ({ children }: PropsWithChildren) => (
 			<TooltipProvider>
 				<SfxProvider>
 					<MilestoneNotificationProvider>
-						<GameStateProvider>{children}</GameStateProvider>
+						<AchievementProvider>
+							<GameStateProvider>{children}</GameStateProvider>
+						</AchievementProvider>
 					</MilestoneNotificationProvider>
 				</SfxProvider>
 			</TooltipProvider>

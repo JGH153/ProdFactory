@@ -1651,3 +1651,91 @@ describe("validateSerializedGameState", () => {
 		expect(result).toContain("Invalid amount");
 	});
 });
+
+describe("lifetimeProduced plausibility", () => {
+	it("accepts legitimate lifetimeProduced gain", () => {
+		const t0 = 10_000;
+		const snapshot = makeSnapshot(t0, 0, 1);
+		snapshot.resources["iron-ore"].lifetimeProduced = bnSerialize(bigNum(0));
+
+		const claimed = makeClaimedState({
+			amount: bnSerialize(bigNum(5)),
+			lifetimeProduced: bnSerialize(bigNum(5)),
+		});
+
+		const result = checkPlausibility({
+			claimedState: claimed,
+			lastSnapshot: snapshot,
+			serverNow: t0 + 5_000,
+		});
+
+		expect(result.corrected).toBe(false);
+	});
+
+	it("corrects inflated lifetimeProduced", () => {
+		const t0 = 10_000;
+		const snapshot = makeSnapshot(t0, 0, 1);
+		snapshot.resources["iron-ore"].lifetimeProduced = bnSerialize(bigNum(0));
+
+		const claimed = makeClaimedState({
+			amount: bnSerialize(bigNum(5)),
+			lifetimeProduced: bnSerialize(bigNum(1_000_000)),
+		});
+
+		const result = checkPlausibility({
+			claimedState: claimed,
+			lastSnapshot: snapshot,
+			serverNow: t0 + 5_000,
+		});
+
+		expect(result.corrected).toBe(true);
+		expect(result.correctedState).not.toBeNull();
+		const corrected = result.correctedState as NonNullable<
+			typeof result.correctedState
+		>;
+
+		const lifetimeField = corrected.resources["iron-ore"].lifetimeProduced;
+		expect(lifetimeField).toBeDefined();
+		const correctedLifetime = bnDeserialize(
+			lifetimeField as { m: number; e: number },
+		);
+		// Should be capped, not the claimed 1M
+		expect(correctedLifetime.exponent).toBeLessThan(6);
+	});
+
+	it("handles missing lifetimeProduced in snapshot (backward compat)", () => {
+		const t0 = 10_000;
+		const snapshot = makeSnapshot(t0, 0, 1);
+
+		const claimed = makeClaimedState({
+			amount: bnSerialize(bigNum(5)),
+			lifetimeProduced: bnSerialize(bigNum(5)),
+		});
+
+		const result = checkPlausibility({
+			claimedState: claimed,
+			lastSnapshot: snapshot,
+			serverNow: t0 + 5_000,
+		});
+
+		expect(result.corrected).toBe(false);
+	});
+
+	it("skips validation when lifetimeProduced is zero", () => {
+		const t0 = 10_000;
+		const snapshot = makeSnapshot(t0, 0, 1);
+		snapshot.resources["iron-ore"].lifetimeProduced = bnSerialize(bigNum(0));
+
+		const claimed = makeClaimedState({
+			amount: bnSerialize(bigNum(0)),
+		});
+
+		const result = checkPlausibility({
+			claimedState: claimed,
+			lastSnapshot: snapshot,
+			serverNow: t0 + 5_000,
+		});
+
+		expect(result.corrected).toBe(false);
+	});
+});

@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import type { AchievementState } from "@/game/achievements/achievement-types";
 import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import {
 	deserializeGameState,
@@ -44,6 +45,7 @@ import { COOKIE_NAME, incrementWarnings, validateSession } from "./session";
 type SaveActionBody = {
 	state: SerializedGameState;
 	serverVersion: number;
+	achievements?: AchievementState;
 };
 
 // --- Session & rate limiting ---
@@ -232,6 +234,9 @@ export const parseSaveActionBody = async (
 	return {
 		state: body.state as SerializedGameState,
 		serverVersion: body.serverVersion,
+		...(isRecord(body.achievements) && {
+			achievements: body.achievements as AchievementState,
+		}),
 	};
 };
 
@@ -256,19 +261,25 @@ export const persistWithPlausibility = async ({
 	storedState,
 	newVersion,
 	updateSnapshotOnClean,
+	achievementMul = 1,
+	prebuiltProtectedState,
 }: {
 	sessionId: string;
 	claimedState: SerializedGameState;
 	storedState: StoredGameState | null;
 	newVersion: number;
 	updateSnapshotOnClean: boolean;
+	achievementMul?: number;
+	prebuiltProtectedState?: SerializedGameState;
 }): Promise<PlausibilitySaveResult> => {
 	const serverNow = Date.now();
-	const protectedState = buildProtectedState({
-		claimedState,
-		storedState,
-		serverNow,
-	});
+	const protectedState =
+		prebuiltProtectedState ??
+		buildProtectedState({
+			claimedState,
+			storedState,
+			serverNow,
+		});
 
 	const existingSnapshot = await getSyncSnapshot(sessionId);
 
@@ -285,6 +296,7 @@ export const persistWithPlausibility = async ({
 		claimedState: protectedState,
 		lastSnapshot: effectiveSnapshot,
 		serverNow,
+		achievementMul,
 	});
 
 	if (result.corrected && result.correctedState) {

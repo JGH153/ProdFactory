@@ -9,6 +9,7 @@ const makeResource = (
 ): ResourceState => ({
 	id: "iron-ore",
 	amount: { mantissa: 0, exponent: 0 },
+	lifetimeProduced: { mantissa: 0, exponent: 0 },
 	producers: 1,
 	isUnlocked: true,
 	isAutomated: false,

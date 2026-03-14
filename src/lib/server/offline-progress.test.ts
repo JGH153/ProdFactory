@@ -382,10 +382,10 @@ describe("computeOfflineProgress", () => {
 			});
 			const gain = gainFor(result.summary, "plates");
 			expect(gain).toBeDefined();
-			// plates inputCostPerRun=2, available=20, actualRuns=floor(20/2)=10
-			// gain = 10 * 1 = 10
-			expect(gain?.mantissa).toBeCloseTo(1, 10);
-			expect(gain?.exponent).toBe(1);
+			// plates inputCostPerRun=4, available=20, actualRuns=floor(20/4)=5
+			// gain = 5 * 1 = 5
+			expect(gain?.mantissa).toBeCloseTo(5, 10);
+			expect(gain?.exponent).toBe(0);
 		});
 
 		it("plates gain is zero when no iron-ore is available", () => {
@@ -449,11 +449,11 @@ describe("computeOfflineProgress", () => {
 
 			// Plates: netAvailable for iron-ore = 0 + 100 = 100
 			// plates maxRunsByTime = floor(100/2) = 50
-			// inputNeeded = 2 * 50 = 100, available = 100 → exact match
-			// actualRuns = 50, gain = 50
+			// inputNeeded = 4 * 50 = 200, available = 100 → input-bound
+			// actualRuns = floor(100/4) = 25, gain = 25
 			const platesGain = gainFor(result.summary, "plates");
 			expect(platesGain).toBeDefined();
-			expect(platesGain?.mantissa).toBeCloseTo(5, 10);
+			expect(platesGain?.mantissa).toBeCloseTo(2.5, 10);
 			expect(platesGain?.exponent).toBe(1);
 		});
 
@@ -492,19 +492,19 @@ describe("computeOfflineProgress", () => {
 			expect(ironGain?.mantissa).toBeCloseTo(1, 10);
 			expect(ironGain?.exponent).toBe(2);
 
-			// Plates: netAvailable(iron-ore)=100, maxRunsByTime=50, inputNeeded=2*50=100
-			// available=100 → exact match, actualRuns=50, gain=50
+			// Plates: netAvailable(iron-ore)=100, maxRunsByTime=50, inputNeeded=4*50=200
+			// available=100 → input-bound, actualRuns=floor(100/4)=25, gain=25
 			const platesGain = gainFor(result.summary, "plates");
 			expect(platesGain).toBeDefined();
-			expect(platesGain?.mantissa).toBeCloseTo(5, 10);
+			expect(platesGain?.mantissa).toBeCloseTo(2.5, 10);
 			expect(platesGain?.exponent).toBe(1);
 
-			// Reinforced-plate: netAvailable(plates)=0+50=50, maxRunsByTime=floor(100/4)=25
-			// inputNeeded=2*25=50, available=50 → exact match, actualRuns=25, gain=25
+			// Reinforced-plate: netAvailable(plates)=0+25=25, maxRunsByTime=floor(100/4)=25
+			// inputNeeded=4*25=100, available=25 → input-bound, actualRuns=floor(25/4)=6, gain=6
 			const rpGain = gainFor(result.summary, "reinforced-plate");
 			expect(rpGain).toBeDefined();
-			expect(rpGain?.mantissa).toBeCloseTo(2.5, 10);
-			expect(rpGain?.exponent).toBe(1);
+			expect(rpGain?.mantissa).toBeCloseTo(6, 10);
+			expect(rpGain?.exponent).toBe(0);
 		});
 	});
 

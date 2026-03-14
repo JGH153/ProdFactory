@@ -25,9 +25,11 @@ type ShowResearchLevelUp = (args: {
 export const useGameLoop = ({
 	setState,
 	showResearchLevelUp,
+	achievementMulRef,
 }: {
 	setState: Dispatch<SetStateAction<GameState>>;
 	showResearchLevelUp: ShowResearchLevelUp;
+	achievementMulRef: React.RefObject<number>;
 }) => {
 	const pendingLevelUpsRef = useRef<ResearchLevelUp[]>([]);
 
@@ -61,7 +63,11 @@ export const useGameLoop = ({
 							}),
 						})
 					) {
-						next = completeRun({ state: next, resourceId });
+						next = completeRun({
+							state: next,
+							resourceId,
+							achievementMul: achievementMulRef.current,
+						});
 						changed = true;
 					}
 
@@ -120,5 +126,5 @@ export const useGameLoop = ({
 		rafId = requestAnimationFrame(tick);
 
 		return () => cancelAnimationFrame(rafId);
-	}, [setState, showResearchLevelUp]);
+	}, [setState, showResearchLevelUp, achievementMulRef]);
 };

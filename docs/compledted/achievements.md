@@ -1,3 +1,5 @@
+This plan is already implemented and only serve as documentation
+
 # Achievements System — Feature Proposal & Implementation Plan
 
 ## Overview

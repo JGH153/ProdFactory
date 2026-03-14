@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import type { AchievementState } from "@/game/achievements/achievement-types";
 import {
 	migrateShopBoosts,
 	type SerializedGameState,
@@ -29,6 +30,7 @@ export type SessionData = {
 type SyncSnapshotResource = {
 	amount: SerializedBigNum;
 	producers: number;
+	lifetimeProduced?: SerializedBigNum;
 };
 
 type SyncSnapshotLab = {
@@ -132,6 +134,33 @@ export const setSyncSnapshot = async ({
 
 export const deleteSyncSnapshot = async (sessionId: string): Promise<void> => {
 	await redis.del(`sync:${sessionId}`);
+};
+
+// --- Achievements ---
+
+export const loadAchievements = async (
+	sessionId: string,
+): Promise<AchievementState | null> => {
+	const raw = await redis.get(`achievements:${sessionId}`);
+	if (!raw) {
+		return null;
+	}
+	return JSON.parse(raw) as AchievementState;
+};
+
+export const saveAchievements = async ({
+	sessionId,
+	achievements,
+}: {
+	sessionId: string;
+	achievements: AchievementState;
+}): Promise<void> => {
+	await redis.set(
+		`achievements:${sessionId}`,
+		JSON.stringify(achievements),
+		"EX",
+		TTL_30_DAYS,
+	);
 };
 
 // --- Rate limiting ---

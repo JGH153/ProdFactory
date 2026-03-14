@@ -43,10 +43,12 @@ export const computeOfflineProgress = ({
 	state,
 	serverNow,
 	skipOfflineCap = false,
+	achievementMul = 1,
 }: {
 	state: SerializedGameState;
 	serverNow: number;
 	skipOfflineCap?: boolean;
+	achievementMul?: number;
 }): {
 	updatedState: SerializedGameState;
 	summary: SerializedOfflineSummary | null;
@@ -195,12 +197,17 @@ export const computeOfflineProgress = ({
 			productionMul,
 			researchMul,
 			prestigeMul,
+			achievementMul,
 		});
 		netAvailable[resourceId] = bnAdd(savedAmount, gain);
 		gains.push({ resourceId, amount: bnSerialize(gain) });
+		const existingLifetime = resource.lifetimeProduced
+			? bnDeserialize(resource.lifetimeProduced)
+			: bigNum(0);
 		updatedResources[resourceId] = {
 			...resource,
 			amount: bnSerialize(bnAdd(savedAmount, gain)),
+			lifetimeProduced: bnSerialize(bnAdd(existingLifetime, gain)),
 		};
 	}
 
@@ -246,10 +253,12 @@ export const computeTimeWarp = ({
 	state,
 	durationSeconds,
 	serverNow,
+	achievementMul = 1,
 }: {
 	state: SerializedGameState;
 	durationSeconds: number;
 	serverNow: number;
+	achievementMul?: number;
 }): {
 	updatedState: SerializedGameState;
 	summary: SerializedOfflineSummary | null;
@@ -284,6 +293,7 @@ export const computeTimeWarp = ({
 		state: modifiedState,
 		serverNow,
 		skipOfflineCap: true,
+		achievementMul,
 	});
 
 	// Restore lastSavedAt so future offline progress calculations are unaffected.

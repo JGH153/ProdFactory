@@ -50,6 +50,7 @@ export type ResourceConfig = {
 export type ResourceState = {
 	id: ResourceId;
 	amount: BigNum;
+	lifetimeProduced: BigNum;
 	producers: number;
 	isUnlocked: boolean;
 	isAutomated: boolean;

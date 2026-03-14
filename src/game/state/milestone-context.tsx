@@ -1,6 +1,6 @@
 "use client";
 
-import { MicroscopeIcon } from "@hugeicons/core-free-icons";
+import { MicroscopeIcon, Rocket01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -13,6 +13,8 @@ import {
 	useState,
 } from "react";
 import { ResourceIcon } from "@/components/resource-icon";
+import { ACHIEVEMENT_CONFIGS } from "@/game/achievements/achievement-config";
+import type { AchievementId } from "@/game/achievements/achievement-types";
 import { RESOURCE_CONFIGS } from "@/game/config";
 import type { ResearchId, ResourceId } from "@/game/types";
 import { bigNum, bnFormat } from "@/lib/big-number";
@@ -33,14 +35,24 @@ type ResearchLevelUpPayload = {
 	bonusPercent: number;
 };
 
-type NotificationPayload = SpeedMilestonePayload | ResearchLevelUpPayload;
+type AchievementPayload = {
+	kind: "achievement";
+	achievementId: AchievementId;
+	name: string;
+	rewardPercent: number;
+};
+
+type NotificationPayload =
+	| SpeedMilestonePayload
+	| ResearchLevelUpPayload
+	| AchievementPayload;
 
 type GameNotification = {
 	id: number;
 	payload: NotificationPayload;
 };
 
-type NavigateTab = "game" | "research";
+type NavigateTab = "game" | "research" | "settings";
 
 type MilestoneContextValue = {
 	showMilestone: (args: { resourceId: ResourceId; multiplier: number }) => void;
@@ -50,6 +62,7 @@ type MilestoneContextValue = {
 		newLevel: number;
 		bonusPercent: number;
 	}) => void;
+	showAchievement: (args: { achievementId: AchievementId }) => void;
 	registerNavigate: (fn: (tab: NavigateTab) => void) => void;
 };
 
@@ -137,6 +150,21 @@ export const MilestoneNotificationProvider = ({
 		[],
 	);
 
+	const showAchievement = useCallback(
+		({ achievementId }: { achievementId: AchievementId }) => {
+			const config = ACHIEVEMENT_CONFIGS[achievementId];
+			const id = nextIdRef.current++;
+			const payload: AchievementPayload = {
+				kind: "achievement",
+				achievementId,
+				name: config.name,
+				rewardPercent: config.rewardPercent,
+			};
+			setQueue((prev) => [...prev, { id, payload }]);
+		},
+		[],
+	);
+
 	const registerNavigate = useCallback((fn: (tab: NavigateTab) => void) => {
 		navigateRef.current = fn;
 	}, []);
@@ -169,6 +197,8 @@ export const MilestoneNotificationProvider = ({
 		(item: GameNotification) => {
 			if (item.payload.kind === "speed") {
 				navigateRef.current?.("game");
+			} else if (item.payload.kind === "achievement") {
+				navigateRef.current?.("settings");
 			} else {
 				navigateRef.current?.("research");
 			}
@@ -179,7 +209,12 @@ export const MilestoneNotificationProvider = ({
 
 	return (
 		<MilestoneContext
-			value={{ showMilestone, showResearchLevelUp, registerNavigate }}
+			value={{
+				showMilestone,
+				showResearchLevelUp,
+				showAchievement,
+				registerNavigate,
+			}}
 		>
 			{children}
 			<div
@@ -214,6 +249,8 @@ export const MilestoneNotificationProvider = ({
 						>
 							{item.payload.kind === "speed" ? (
 								<SpeedMilestoneContent payload={item.payload} />
+							) : item.payload.kind === "achievement" ? (
+								<AchievementContent payload={item.payload} />
 							) : (
 								<ResearchLevelUpContent payload={item.payload} />
 							)}
@@ -253,10 +290,13 @@ const SpeedMilestoneContent = ({
 	return (
 		<>
 			<ResourceIcon resourceId={payload.resourceId} size={48} />
-			<span className="text-xl font-bold text-text-primary">
-				{RESOURCE_CONFIGS[payload.resourceId].name} speed is{" "}
-				<WiggleSpan>{multiplierText}</WiggleSpan> now!
-			</span>
+			<div className="flex flex-col">
+				<span className="text-xs text-text-muted">Speed Milestone</span>
+				<span className="text-xl font-bold text-text-primary">
+					{RESOURCE_CONFIGS[payload.resourceId].name} speed is{" "}
+					<WiggleSpan>{multiplierText}</WiggleSpan> now!
+				</span>
+			</div>
 		</>
 	);
 };
@@ -273,11 +313,32 @@ const ResearchLevelUpContent = ({
 			className="text-accent-amber shrink-0"
 			aria-hidden="true"
 		/>
-		<span className="text-xl font-bold text-text-primary">
-			{payload.researchName} level {payload.newLevel} —{" "}
-			<WiggleSpan>+{payload.bonusPercent}%</WiggleSpan>{" "}
-			{payload.researchId.startsWith("speed-") ? "speed" : "bonus"}!
-		</span>
+		<div className="flex flex-col">
+			<span className="text-xs text-text-muted">Research</span>
+			<span className="text-xl font-bold text-text-primary">
+				{payload.researchName} level {payload.newLevel} —{" "}
+				<WiggleSpan>+{payload.bonusPercent}%</WiggleSpan>{" "}
+				{payload.researchId.startsWith("speed-") ? "speed" : "bonus"}!
+			</span>
+		</div>
+	</>
+);
+
+const AchievementContent = ({ payload }: { payload: AchievementPayload }) => (
+	<>
+		<HugeiconsIcon
+			icon={Rocket01Icon}
+			size={48}
+			className="text-accent-amber shrink-0"
+			aria-hidden="true"
+		/>
+		<div className="flex flex-col">
+			<span className="text-xs text-text-muted">Achievement</span>
+			<span className="text-xl font-bold text-text-primary">
+				{payload.name} — <WiggleSpan>+{payload.rewardPercent}%</WiggleSpan>{" "}
+				production!
+			</span>
+		</div>
 	</>
 );
 

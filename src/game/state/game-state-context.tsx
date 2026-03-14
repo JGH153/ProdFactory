@@ -9,6 +9,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { checkAchievements } from "@/game/achievements/achievement-checker";
+import { useAchievements } from "@/game/achievements/achievement-context";
 import { buyAutomation, togglePause } from "@/game/automation";
 import { RESOURCE_ORDER } from "@/game/config";
 import type { CouponUpgradeId } from "@/game/coupon-shop-config";
@@ -73,7 +75,16 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 	);
 	const stateRef = useRef(state);
 	const hasLoadedRef = useRef(false);
-	const { showMilestone, showResearchLevelUp } = useMilestoneNotification();
+	const { showMilestone, showResearchLevelUp, showAchievement } =
+		useMilestoneNotification();
+	const {
+		achievements,
+		achievementMulRef,
+		updateAchievements,
+		reconcileServerAchievements,
+	} = useAchievements();
+	const achievementsRef = useRef(achievements);
+	achievementsRef.current = achievements;
 
 	// Load from localStorage on mount (client-only, instant render)
 	useEffect(() => {
@@ -143,10 +154,26 @@ export const GameStateProvider = ({ children }: PropsWithChildren) => {
 		stateRef,
 		reconcileState,
 		onOfflineSummary,
+		achievementsRef,
+		onServerAchievements: reconcileServerAchievements,
 	});
 
 	// Game tick: check run completions and advance research via RAF
-	useGameLoop({ setState, showResearchLevelUp });
+	useGameLoop({ setState, showResearchLevelUp, achievementMulRef });
+
+	// Check achievements whenever state changes
+	useEffect(() => {
+		const { updated, newlyCompleted } = checkAchievements({
+			state,
+			achievements: achievementsRef.current,
+		});
+		if (newlyCompleted.length > 0) {
+			updateAchievements(updated);
+			for (const achievementId of newlyCompleted) {
+				showAchievement({ achievementId });
+			}
+		}
+	}, [state, updateAchievements, showAchievement]);
 
 	// Awaited action helper for server-authoritative actions
 	const performAwaitedAction = useAwaitedAction({

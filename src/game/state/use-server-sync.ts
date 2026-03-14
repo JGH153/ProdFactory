@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type RefObject, useCallback, useEffect, useRef } from "react";
+import type { AchievementState } from "@/game/achievements/achievement-types";
 import type { CouponUpgradeId } from "@/game/coupon-shop-config";
 import type {
 	GameState,
@@ -55,10 +56,14 @@ export const useServerSync = ({
 	stateRef,
 	reconcileState,
 	onOfflineSummary,
+	achievementsRef,
+	onServerAchievements,
 }: {
 	stateRef: RefObject<GameState>;
 	reconcileState: ReconcileCallback;
 	onOfflineSummary: (summary: OfflineSummary) => void;
+	achievementsRef: RefObject<AchievementState>;
+	onServerAchievements: (achievements: AchievementState) => void;
 }): {
 	enqueueAction: (args: {
 		endpoint: string;
@@ -220,6 +225,9 @@ export const useServerSync = ({
 			serverVersionRef.current = initialData.serverVersion;
 			isReadyRef.current = true;
 			reconcileState({ state: initialData.state, fullReplace: false });
+			if (initialData.achievements) {
+				onServerAchievements(initialData.achievements);
+			}
 			if (initialData.offlineSummary) {
 				onOfflineSummary(deserializeOfflineSummary(initialData.offlineSummary));
 			}
@@ -236,7 +244,14 @@ export const useServerSync = ({
 					// Next interval will retry
 				});
 		}
-	}, [initialData, reconcileState, executeSave, stateRef, onOfflineSummary]);
+	}, [
+		initialData,
+		reconcileState,
+		executeSave,
+		stateRef,
+		onOfflineSummary,
+		onServerAchievements,
+	]);
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -254,6 +269,7 @@ export const useServerSync = ({
 			const savePromise = executeSave({
 				state: serialized,
 				serverVersion: serverVersionRef.current,
+				achievements: achievementsRef.current,
 			})
 				.then((result) => {
 					if (isStaleDeployment(result.buildId)) {
@@ -284,9 +300,9 @@ export const useServerSync = ({
 		}, AUTO_SAVE_INTERVAL_MS);
 
 		return () => clearInterval(interval);
-	}, [executeSave, reconcileState, stateRef]);
+	}, [executeSave, reconcileState, stateRef, achievementsRef]);
 
-	useFlushOnExit({ stateRef, serverVersionRef, isReadyRef });
+	useFlushOnExit({ stateRef, serverVersionRef, isReadyRef, achievementsRef });
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -303,6 +319,7 @@ export const useServerSync = ({
 			const syncPromise = executeSync({
 				state: serialized,
 				serverVersion: serverVersionRef.current,
+				achievements: achievementsRef.current,
 			})
 				.then((result) => {
 					if (isStaleDeployment(result.buildId)) {
@@ -332,7 +349,7 @@ export const useServerSync = ({
 		}, AUTO_SYNC_INTERVAL_MS);
 
 		return () => clearInterval(interval);
-	}, [executeSync, reconcileState, stateRef]);
+	}, [executeSync, reconcileState, stateRef, achievementsRef]);
 
 	// Shared helper: wait for ready, drain queue, flush client state to server,
 	// then hold the processing lock. Caller MUST release in a finally block.

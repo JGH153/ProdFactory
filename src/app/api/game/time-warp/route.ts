@@ -1,5 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getAchievementMultiplier } from "@/game/achievements/achievement-multiplier";
+import { createInitialAchievementState } from "@/game/achievements/achievement-types";
 import {
 	getSessionFromRequest,
 	parseTimeWarpBody,
@@ -10,6 +12,7 @@ import { computeTimeWarp } from "@/lib/server/offline-progress";
 import { buildSyncSnapshot } from "@/lib/server/plausibility";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import {
+	loadAchievements,
 	loadStoredGameState,
 	saveStoredGameState,
 	setSyncSnapshot,
@@ -40,10 +43,17 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 		return body;
 	}
 
-	const stored = await loadStoredGameState(sessionId);
+	const [stored, achievements] = await Promise.all([
+		loadStoredGameState(sessionId),
+		loadAchievements(sessionId),
+	]);
 	if (!stored) {
 		return NextResponse.json({ error: "No game state found" }, { status: 404 });
 	}
+
+	const achievementMul = getAchievementMultiplier({
+		achievements: achievements ?? createInitialAchievementState(),
+	});
 
 	if (stored.serverVersion !== body.serverVersion) {
 		logger.debug(
@@ -69,6 +79,7 @@ export const POST = async (request: NextRequest): Promise<NextResponse> => {
 		state,
 		durationSeconds: body.durationSeconds,
 		serverNow: now,
+		achievementMul,
 	});
 
 	if (!summary) {

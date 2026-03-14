@@ -1,5 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getAchievementMultiplier } from "@/game/achievements/achievement-multiplier";
+import type { AchievementState } from "@/game/achievements/achievement-types";
+import { createInitialAchievementState } from "@/game/achievements/achievement-types";
 import type { SerializedGameState } from "@/game/state/serialization";
 import {
 	getSessionFromRequest,
@@ -11,6 +14,7 @@ import {
 } from "@/lib/server/offline-progress";
 import { buildSyncSnapshot } from "@/lib/server/plausibility";
 import {
+	loadAchievements,
 	loadStoredGameState,
 	saveStoredGameState,
 	setSyncSnapshot,
@@ -23,19 +27,29 @@ type LoadGameResult =
 			state: SerializedGameState;
 			serverVersion: number;
 			offlineSummary?: SerializedOfflineSummary;
+			achievements: AchievementState;
 	  };
 
 const loadGame = async (sessionId: string): Promise<LoadGameResult> => {
-	const stored = await loadStoredGameState(sessionId);
+	const [stored, achievements] = await Promise.all([
+		loadStoredGameState(sessionId),
+		loadAchievements(sessionId),
+	]);
 	if (!stored) {
 		return { type: "not_found" };
 	}
+
+	const resolvedAchievements = achievements ?? createInitialAchievementState();
+	const achievementMul = getAchievementMultiplier({
+		achievements: resolvedAchievements,
+	});
 
 	const state = stripServerVersion(stored);
 	const serverNow = Date.now();
 	const { updatedState, summary } = computeOfflineProgress({
 		state,
 		serverNow,
+		achievementMul,
 	});
 
 	if (summary !== null) {
@@ -60,6 +74,7 @@ const loadGame = async (sessionId: string): Promise<LoadGameResult> => {
 		state: updatedState,
 		serverVersion: stored.serverVersion,
 		...(summary !== null && { offlineSummary: summary }),
+		achievements: resolvedAchievements,
 	};
 };
 
@@ -79,5 +94,6 @@ export const GET = async (request: NextRequest): Promise<NextResponse> => {
 		state: result.state,
 		serverVersion: result.serverVersion,
 		offlineSummary: result.offlineSummary,
+		achievements: result.achievements,
 	});
 };

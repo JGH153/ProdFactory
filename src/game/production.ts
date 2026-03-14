@@ -12,6 +12,7 @@ type ProductionParams = {
 	continuousMul: number;
 	researchMul: number;
 	prestigeMul: number;
+	achievementMul: number;
 	runTimeMultiplier: number;
 	perRun: BigNum;
 };
@@ -20,9 +21,11 @@ type ProductionParams = {
 export const getProductionParams = ({
 	state,
 	resourceId,
+	achievementMul = 1,
 }: {
 	state: GameState;
 	resourceId: ResourceId;
+	achievementMul?: number;
 }): ProductionParams => {
 	const resource = state.resources[resourceId];
 	const runTimeMultiplier = getRunTimeMultiplier({
@@ -53,6 +56,7 @@ export const getProductionParams = ({
 		continuousMul,
 		researchMul,
 		prestigeMul,
+		achievementMul,
 		runTimeMultiplier,
 		perRun: getPerRunProduction({
 			producers: resource.producers,
@@ -60,6 +64,7 @@ export const getProductionParams = ({
 			continuousMul,
 			researchMul,
 			prestigeMul,
+			achievementMul,
 		}),
 	};
 };
@@ -71,16 +76,18 @@ const getPerRunProduction = ({
 	continuousMul,
 	researchMul,
 	prestigeMul,
+	achievementMul = 1,
 }: {
 	producers: number;
 	productionMul: number;
 	continuousMul: number;
 	researchMul: number;
 	prestigeMul: number;
+	achievementMul?: number;
 }): BigNum =>
 	bnMul(
 		bnMul(bigNum(producers * productionMul), bigNum(continuousMul)),
-		bigNum(researchMul * prestigeMul),
+		bigNum(researchMul * prestigeMul * achievementMul),
 	);
 
 /**
@@ -94,14 +101,16 @@ export const getProductionForRuns = ({
 	productionMul,
 	researchMul,
 	prestigeMul,
+	achievementMul = 1,
 }: {
 	runs: number;
 	producers: number;
 	productionMul: number;
 	researchMul: number;
 	prestigeMul: number;
+	achievementMul?: number;
 }): BigNum =>
 	bnMul(
 		bnMul(bigNum(runs), bigNum(producers)),
-		bigNum(productionMul * researchMul * prestigeMul),
+		bigNum(productionMul * researchMul * prestigeMul * achievementMul),
 	);

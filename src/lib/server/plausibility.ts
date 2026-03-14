@@ -177,10 +177,12 @@ export const checkPlausibility = ({
 	claimedState,
 	lastSnapshot,
 	serverNow,
+	achievementMul = 1,
 }: {
 	claimedState: SerializedGameState;
 	lastSnapshot: SyncSnapshot;
 	serverNow: number;
+	achievementMul?: number;
 }): PlausibilityResult => {
 	const elapsed = serverNow - lastSnapshot.timestamp;
 
@@ -400,6 +402,7 @@ export const checkPlausibility = ({
 				productionMul,
 				researchMul,
 				prestigeMul,
+				achievementMul,
 			}),
 			bigNum(continuousMul),
 		);
@@ -458,6 +461,51 @@ export const checkPlausibility = ({
 			);
 			warnings.push(
 				`${config.name} production exceeded plausible rate by ${pct}% (gained: ${bnFormat(actualGain)}, max: ${bnFormat(maxProduction)}, elapsed: ${elapsedSec}s)`,
+			);
+		}
+	}
+
+	// Validate lifetimeProduced against plausible production bounds
+	for (const resourceId of RESOURCE_ORDER) {
+		const snapshotResource = lastSnapshot.resources[resourceId];
+		const claimedResource = claimedState.resources[resourceId];
+		const config = RESOURCE_CONFIGS[resourceId];
+
+		if (!snapshotResource || !claimedResource) {
+			continue;
+		}
+
+		const snapshotLifetime = snapshotResource.lifetimeProduced
+			? bnDeserialize(snapshotResource.lifetimeProduced)
+			: bigNum(0);
+		const claimedLifetime = claimedResource.lifetimeProduced
+			? bnDeserialize(claimedResource.lifetimeProduced)
+			: bigNum(0);
+
+		if (
+			bnIsZero(claimedLifetime) ||
+			!bnGte(claimedLifetime, snapshotLifetime)
+		) {
+			continue;
+		}
+
+		const lifetimeGain = bnSub(claimedLifetime, snapshotLifetime);
+		if (bnIsZero(lifetimeGain)) {
+			continue;
+		}
+
+		const maxProduction = computeMaxProduction(resourceId);
+		const tolerance = bnMul(maxProduction, bigNum(PLAUSIBILITY_TOLERANCE));
+
+		if (!bnGte(tolerance, lifetimeGain)) {
+			const correctedLifetime = bnAdd(snapshotLifetime, maxProduction);
+			correctedResources[resourceId] = {
+				...correctedResources[resourceId],
+				lifetimeProduced: bnSerialize(correctedLifetime),
+			};
+			corrected = true;
+			warnings.push(
+				`${config.name} lifetimeProduced exceeded plausible rate (gained: ${bnFormat(lifetimeGain)}, max: ${bnFormat(maxProduction)})`,
 			);
 		}
 	}
@@ -530,6 +578,9 @@ export const buildSyncSnapshot = ({
 			resources[resourceId] = {
 				amount: resource.amount,
 				producers: resource.producers,
+				...(resource.lifetimeProduced && {
+					lifetimeProduced: resource.lifetimeProduced,
+				}),
 			};
 		}
 	}

@@ -6,6 +6,7 @@ export const createInitialGameState = (): GameState => ({
 		"iron-ore": {
 			id: "iron-ore",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 1,
 			isUnlocked: true,
 			isAutomated: false,
@@ -15,6 +16,7 @@ export const createInitialGameState = (): GameState => ({
 		plates: {
 			id: "plates",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,
@@ -24,6 +26,7 @@ export const createInitialGameState = (): GameState => ({
 		"reinforced-plate": {
 			id: "reinforced-plate",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,
@@ -33,6 +36,7 @@ export const createInitialGameState = (): GameState => ({
 		"modular-frame": {
 			id: "modular-frame",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,
@@ -42,6 +46,7 @@ export const createInitialGameState = (): GameState => ({
 		"heavy-modular-frame": {
 			id: "heavy-modular-frame",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,
@@ -51,6 +56,7 @@ export const createInitialGameState = (): GameState => ({
 		"fused-modular-frame": {
 			id: "fused-modular-frame",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,
@@ -60,6 +66,7 @@ export const createInitialGameState = (): GameState => ({
 		"pressure-conversion-cube": {
 			id: "pressure-conversion-cube",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,
@@ -69,6 +76,7 @@ export const createInitialGameState = (): GameState => ({
 		"nuclear-pasta": {
 			id: "nuclear-pasta",
 			amount: bigNumZero,
+			lifetimeProduced: bigNumZero,
 			producers: 0,
 			isUnlocked: false,
 			isAutomated: false,

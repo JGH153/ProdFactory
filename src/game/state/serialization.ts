@@ -14,17 +14,19 @@ import type {
 	ShopBoosts,
 } from "@/game/types";
 import {
+	bigNumZero,
 	bnDeserialize,
 	bnSerialize,
 	type SerializedBigNum,
 } from "@/lib/big-number";
 import type { SerializedOfflineSummary } from "@/lib/server/offline-progress";
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type SerializedResourceState = {
 	id: ResourceId;
 	amount: SerializedBigNum;
+	lifetimeProduced?: SerializedBigNum;
 	producers: number;
 	isUnlocked: boolean;
 	isAutomated: boolean;
@@ -63,6 +65,7 @@ const serializeResource = (
 ): SerializedResourceState => ({
 	id: resource.id,
 	amount: bnSerialize(resource.amount),
+	lifetimeProduced: bnSerialize(resource.lifetimeProduced),
 	producers: resource.producers,
 	isUnlocked: resource.isUnlocked,
 	isAutomated: resource.isAutomated,
@@ -73,6 +76,9 @@ const serializeResource = (
 const deserializeResource = (data: SerializedResourceState): ResourceState => ({
 	id: data.id,
 	amount: bnDeserialize(data.amount),
+	lifetimeProduced: data.lifetimeProduced
+		? bnDeserialize(data.lifetimeProduced)
+		: bigNumZero,
 	producers: data.producers,
 	isUnlocked: data.isUnlocked,
 	isAutomated: data.isAutomated,
