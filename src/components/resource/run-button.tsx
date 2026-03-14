@@ -147,7 +147,7 @@ export const RunButton = ({ resource }: Props) => {
 					<span
 						className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-text-primary"
 						style={{
-							WebkitTextStroke: "2.5px #1a1a2e",
+							WebkitTextStroke: "2.5px #141312",
 							paintOrder: "stroke fill",
 						}}
 					>
